@@ -93,6 +93,12 @@ def test_summary_facts_keep_only_real_gains_and_state_costs():
     assert "waypoints_lonlat" not in json.dumps(facts)
 
 
+def test_summary_facts_include_charging_stop_details():
+    report = {**EXAMPLE, "route": {**EXAMPLE["route"], "charging_stop": {"arrive": "09:11", "charge_hours": 2.65, "lon": 1, "lat": 2}}}
+    assert M.summary_facts(report)["charging_stop"] == {"stop_at": "09:11", "charge_hours": 2.65}
+    assert M.summary_facts(EXAMPLE)["charging_stop"] is None
+
+
 def test_summarize_route_uses_summary_model_and_facts(client):
     fake = use_llm(FakeLLM("  Safe 16 km route with 9.7 deg less cross slope.  "))
     r = client.post("/summarize-route", json={"report": EXAMPLE})

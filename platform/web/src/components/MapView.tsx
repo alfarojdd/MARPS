@@ -3,6 +3,9 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { CtxMeta, Place, PlannedRoute, Scene, ThematicLayer } from '../lib/types'
 import type { BasemapMode } from './LayersPopover'
+import {
+  loadTerrainModule, mapFromView, scenePinPosition, viewFromMap, type Terrain3DLike,
+} from '../lib/terrain'
 import { formatLat, formatLon, siteLabel } from '../lib/format'
 import { lonLatToPixel } from '../lib/plan'
 
@@ -26,6 +29,12 @@ interface Props {
   scenes?: Scene[]
   showScenes?: boolean
   onOpenScene?: (scene: Scene) => void
+  terrainUrl?: string
+  exaggeration?: number
+  replayTick?: number
+  paused?: boolean
+  onTerrainState?: (state: 'idle' | 'loading' | 'ready') => void
+  onTerrainError?: (message: string) => void
 }
 
 export default function MapView({
@@ -48,7 +57,14 @@ export default function MapView({
   scenes = [],
   showScenes = true,
   onOpenScene,
+  terrainUrl = '',
+  exaggeration = 3,
+  replayTick = 0,
+  paused = false,
+  onTerrainState = () => undefined,
+  onTerrainError = () => undefined,
 }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const layersRef = useRef<{
@@ -84,12 +100,14 @@ export default function MapView({
       maxZoom: 2,
       zoomControl: true,
       attributionControl: false,
+      zoomSnap: 0.25,
     })
 
-    map.fitBounds([
-      [-meta.rows, 0],
-      [0, meta.cols],
-    ])
+    // Start zoomed so the mosaic covers the whole screen (no black bands); zooming out is still allowed.
+    const size = map.getSize()
+    map.setView([-meta.rows / 2, meta.cols / 2], Math.log2(Math.max(size.x / meta.cols, size.y / meta.rows)), {
+      animate: false,
+    })
 
     const tileGroup = L.layerGroup().addTo(map)
     layersRef.current.ctx = tileGroup
@@ -285,6 +303,162 @@ export default function MapView({
     })
   }, [route, mapReady, showRoute])
 
+  // Real 3D: the Three.js relief viewer (platform/viewer/terrain3d) over the 2D map, with the route drawn on it.
+  const t3dRef = useRef<Terrain3DLike | null>(null)
+  const seqRef = useRef(0)
+  const loadedUrlRef = useRef('')
+  const pinsRef = useRef<HTMLDivElement>(null)
+  const callbacks = useRef({ onTerrainState, onTerrainError })
+  callbacks.current = { onTerrainState, onTerrainError }
+  const layersRefState = useRef({ activeBasemap, hillshade, overlay, overlayOpacity })
+  layersRefState.current = { activeBasemap, hillshade, overlay, overlayOpacity }
+
+  /** Textures the relief with the selected basemap and data layer, so layers also work in 3D. */
+  const applyTextureLayers = async (t3d: Terrain3DLike) => {
+    const { activeBasemap: base, hillshade: hs, overlay: ov, overlayOpacity: op } = layersRefState.current
+    await t3d.setTextureLayers({
+      baseUrl: base === 'hillshade' && hs ? hs.url : null,
+      overlayUrl: ov?.url ?? null,
+      opacity: op / 100,
+      pixelated: ov?.kind === 'categorical',
+    })
+  }
+
+  const ensureTerrain = async () => {
+    if (t3dRef.current) return t3dRef.current
+    const { Terrain3D } = await loadTerrainModule()
+    const t3d = new Terrain3D(rootRef.current as HTMLElement, { exaggeration })
+    t3d.on((type) => {
+      if (type === 'frame' || type === 'entered' || type === 'exit') placePins()
+    })
+    t3dRef.current = t3d
+    return t3d
+  }
+
+  function placePins() {
+    const t3d = t3dRef.current, layer = pinsRef.current
+    if (!t3d || !layer) return
+    for (const el of Array.from(layer.children) as HTMLButtonElement[]) {
+      const scene = pinScenes.current.get(el.dataset.id ?? '')
+      const point = t3d.active && scene ? scenePinPosition(t3d, scene) : null
+      el.hidden = !point
+      if (point) el.style.transform = `translate(${point.x}px,${point.y}px) translate(-50%,-50%)`
+    }
+  }
+  const pinScenes = useRef(new Map<string, Scene>())
+
+  useEffect(() => {
+    const layer = pinsRef.current
+    if (!layer) return
+    layer.replaceChildren()
+    pinScenes.current.clear()
+    for (const scene of showScenes ? scenes : []) {
+      if (!scene.coordinates || !scene.available) continue
+      pinScenes.current.set(scene.id, scene)
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.dataset.id = scene.id
+      button.hidden = true
+      button.title = `${scene.title}${scene.sol ? ` · sol ${scene.sol}` : ''}`
+      button.setAttribute('aria-label', `Open 3D reconstruction: ${scene.title}`)
+      const local = scene.renderer !== 'sketchfab'
+      button.className = `terrain-pin ${local ? 'scene-local' : scene.kind === 'detail' ? 'scene-detail' : ''}`
+      button.textContent = '3D'
+      button.onclick = () => openSceneRef.current?.(scene)
+      layer.append(button)
+    }
+    placePins()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scenes, showScenes])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!mapReady || !map || !meta) return
+    const seq = ++seqRef.current
+    const stale = () => seq !== seqRef.current
+    const { onTerrainState: state, onTerrainError: fail } = callbacks.current
+
+    async function enter3D() {
+      if (!map || !meta) return
+      try {
+        state('loading')
+        if (!terrainUrl) throw new Error('No 3D relief has been prepared on the server.')
+        const t3d = await ensureTerrain()
+        if (stale()) return
+        if (loadedUrlRef.current !== terrainUrl) {
+          await t3d.load(terrainUrl)
+          if (stale()) return
+          loadedUrlRef.current = terrainUrl
+        }
+        t3d.setRoute(route ? { geojson: route.geojson } : null)
+        await applyTextureLayers(t3d)
+        if (stale()) return
+        const bounds = map.getBounds()
+        const view = viewFromMap(map.getCenter(), bounds.getNorth() - bounds.getSouth(), meta)
+        state('ready')
+        await t3d.enter(view)
+      } catch (error) {
+        if (stale()) return
+        t3dRef.current?.exit().catch(() => undefined)
+        fail(error instanceof Error ? error.message : String(error))
+      }
+    }
+
+    async function exit3D() {
+      const t3d = t3dRef.current
+      if (!t3d?.active || !map || !meta) return
+      const view = await t3d.exit()
+      if (view && !stale()) {
+        const { center, zoom } = mapFromView(view, meta, map.getContainer().clientHeight)
+        map.setView(center, zoom, { animate: false })
+      }
+      state('idle')
+    }
+
+    if (is3D) void enter3D()
+    else void exit3D()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [is3D, mapReady])
+
+  // Changing the relief source while in 3D
+  useEffect(() => {
+    const t3d = t3dRef.current
+    if (!is3D || !t3d?.active || !terrainUrl || loadedUrlRef.current === terrainUrl) return
+    const seq = seqRef.current
+    t3d.load(terrainUrl).then((meta) => {
+      if (!meta || seq !== seqRef.current) return
+      loadedUrlRef.current = terrainUrl
+      t3d.setRoute(route ? { geojson: route.geojson } : null)
+      void applyTextureLayers(t3d)
+      void t3d.replayRoute()
+    }).catch((error) => callbacks.current.onTerrainError(String(error.message ?? error)))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [terrainUrl])
+
+  // New route while in 3D (or before entering it)
+  useEffect(() => {
+    const t3d = t3dRef.current
+    if (!t3d || loadedUrlRef.current === '') return
+    t3d.setRoute(route ? { geojson: route.geojson } : null)
+    if (t3d.active) void t3d.replayRoute()
+  }, [route])
+
+  useEffect(() => { t3dRef.current?.setExaggeration(exaggeration) }, [exaggeration])
+
+  // Basemap / data layer changes while the 3D view is open (opacity is debounced: it recomposes a texture)
+  useEffect(() => {
+    const t3d = t3dRef.current
+    if (!is3D || !t3d?.active) return
+    const timer = setTimeout(() => {
+      applyTextureLayers(t3d).catch((error) => callbacks.current.onTerrainError(String(error.message ?? error)))
+    }, 180)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBasemap, overlay, overlayOpacity])
+  useEffect(() => { if (replayTick) void t3dRef.current?.replayRoute() }, [replayTick])
+  useEffect(() => { t3dRef.current?.setPaused(paused) }, [paused])
+  useEffect(() => () => { t3dRef.current?.dispose(); t3dRef.current = null }, [])
+
   // Basemap: CTX mosaic tiles, hillshade image, or nothing
   useEffect(() => {
     const map = mapRef.current, layers = layersRef.current
@@ -360,13 +534,11 @@ export default function MapView({
   }, [focus, mapReady])
 
   return (
-    <div className={`relative h-full w-full ${is3D ? 'map-perspective-container' : ''}`}>
+    <div ref={rootRef} className="relative h-full w-full overflow-hidden">
       {/* MAP SURFACE WITH OPTIONAL 3D PERSPECTIVE */}
       <div
         ref={containerRef}
-        className={`h-full w-full transition-all duration-700 ease-out ${
-          is3D ? 'map-surface-3d' : 'map-surface-2d'
-        }`}
+        className="h-full w-full"
       />
 
       {meta && (
@@ -414,6 +586,9 @@ export default function MapView({
           </div>
         </div>
       )}
+
+      {/* HTML buttons over the 3D relief for the surface reconstructions (positioned by the viewer's camera) */}
+      <div ref={pinsRef} className="pointer-events-none absolute inset-0 z-[950] [&>button]:pointer-events-auto" />
 
       {/* Radar scanning pulse when planning */}
       {scanning && <div className="marps-scan pointer-events-none absolute inset-x-0 z-[500] h-0.5" />}

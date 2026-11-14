@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import type { MissionRequirements, Place, PlannedRoute } from '../lib/types'
-import { formatDuration, formatKm, siteLabel } from '../lib/format'
+import type { MissionRequirements, Place, PlannedRoute, SystemState } from '../lib/types'
+import { formatDuration, formatKm, formatLat, formatLon, siteLabel } from '../lib/format'
 import { MarsDot } from './Brand'
 
 interface Props {
@@ -15,33 +15,32 @@ interface Props {
   focusedName: string | null
   onFocusPlace: (name: string) => void
   onResetRoute?: () => void
+  onPreset?: (system: SystemState) => void
   shortcut: string
 }
 
-const PRESET_SORTIES = [
+/** Demo sorties. Each one also sets the vehicle state, so the scenario behaves as described. */
+const PRESET_SORTIES: { id: string; label: string; route: string; text: string; system: SystemState }[] = [
   {
     id: '1',
-    label: 'Crew · Low Exposure',
-    route: 'Butler → Belva',
-    text: 'Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low.',
+    label: 'Low battery · charging stop',
+    route: 'Low battery · charge stop',
+    text: 'Two astronauts drive from the landing site to the top of the delta. The battery is low, so save as much energy as possible and plan a sunlit stop on the way to recharge.',
+    system: { start_hour: 9, battery_kwh: 16, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
   {
     id: '2',
-    label: 'Rover · Fast, Solar',
-    route: 'Belva → Neretva',
-    text: 'Send a rover from Belva to Neretva Vallis as fast as possible, needs solar charging.',
+    label: 'Crew + fragile cargo',
+    route: 'Crew + fragile cargo',
+    text: 'Two astronauts carrying fragile sample tubes must go from the landing site to Belva crater. Take the safest, gentlest route possible.',
+    system: { start_hour: 9, battery_kwh: 30, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
   {
     id: '3',
-    label: 'EVA · Shortest Path',
-    route: 'Butler → Jezero Center',
-    text: 'Human EVA from Octavia E. Butler Landing to Jezero crater centre, shortest path.',
-  },
-  {
-    id: '4',
-    label: 'Science · Ancient water',
-    route: 'Butler → Delta top',
-    text: 'Two astronauts go from the landing site to the top of the delta looking for carbonates and evidence of an ancient lake. We carry fragile sample tubes, so be careful.',
+    label: 'Science · carbonates',
+    route: 'Science · carbonates',
+    text: 'From the landing site to the delta carbonates: look for carbonates and clays on the way, we have plenty of time for science stops.',
+    system: { start_hour: 8, battery_kwh: 34, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
 ]
 
@@ -55,6 +54,7 @@ export default function MissionPanel({
   route,
   places: _places,
   onResetRoute,
+  onPreset,
   shortcut,
 }: Props) {
   // If a route exists and we are not explicitly editing, show summary mode
@@ -78,7 +78,7 @@ export default function MissionPanel({
           STATE A: ROUTE SUMMARY & BRIEF JUSTIFICATION (Post-Plan Transformed State)
           ========================================================================= */}
       {isSummaryMode && route && duration ? (
-        <div className="glass-panel mx-auto w-full max-w-4xl rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all sm:p-5">
+        <div className="glass-panel pointer-events-auto mx-auto w-full max-w-4xl rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all sm:p-5">
 
           {/* Top Row: Route Endpoints, Status, and Edit Action */}
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-3">
@@ -150,6 +150,19 @@ export default function MissionPanel({
                   ? 'Writing the briefing with the local LLM…'
                   : route.explanation || 'Briefing unavailable (LLM offline). Figures above come from the planner.'}
               </p>
+              {route.report.route?.charging_stop && (
+                <p className="mt-1.5 text-[11px] text-paper/85">
+                  <span className="text-oxide">⚡ Charging stop</span> at {route.report.route.charging_stop.arrive} for{' '}
+                  {route.report.route.charging_stop.charge_hours?.toFixed(1) ?? '?'} h
+                  ({formatLat(route.report.route.charging_stop.lat)} {formatLon(route.report.route.charging_stop.lon)})
+                </p>
+              )}
+              {(route.report.route?.science_stops.length ?? 0) > 0 && (
+                <p className="mt-1.5 text-[11px] text-paper/85">
+                  <span className="text-sage">◆ Science stops</span>:{' '}
+                  {route.report.route!.science_stops.map((s) => `${s.targets.join('+')} (${s.dwell_min} min)`).join(' · ')}
+                </p>
+              )}
               {route.warnings.map((w) => (
                 <p key={w.code} className={`mt-1.5 text-[11px] ${w.severity === 'critical' ? 'text-bad' : 'text-paper/70'}`}>
                   ⚠ {w.message}
@@ -177,7 +190,7 @@ export default function MissionPanel({
         /* =========================================================================
            STATE B: CENTERED LOWER PROMPT BOX (Initial / Edit State from Wireframe 1)
            ========================================================================= */
-        <div className="glass-panel mx-auto w-full max-w-2xl rounded-3xl p-3 shadow-2xl backdrop-blur-2xl transition-all sm:p-4">
+        <div className="glass-panel pointer-events-auto mx-auto w-full max-w-2xl rounded-3xl p-3 shadow-2xl backdrop-blur-2xl transition-all sm:p-4">
 
           {/* Quick Preset Chips Row */}
           <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 text-faint">
@@ -190,7 +203,10 @@ export default function MissionPanel({
                 <button
                   key={preset.id}
                   type="button"
-                  onClick={() => onPromptChange(preset.text)}
+                  onClick={() => {
+                    onPromptChange(preset.text)
+                    onPreset?.(preset.system)
+                  }}
                   className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-all active:scale-95 ${
                     active
                       ? 'border-oxide/60 bg-oxide/15 text-paper shadow-[0_0_12px_rgba(196,92,38,0.25)]'

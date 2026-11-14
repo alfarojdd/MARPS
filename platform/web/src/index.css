@@ -432,3 +432,13 @@ body {
 dialog.scene-dialog[open] { display: block; }
 
 .brand-wordmark { font-family: "Nunito", var(--font-sans); }
+
+/* 3D reconstruction buttons projected over the Three.js relief */
+.terrain-pin {
+  position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 9999px; cursor: pointer;
+  font: 600 8px/1 ui-monospace, monospace; color: #070706; background: #5fc9c0;
+  border: 1.5px solid #f4f0e6; box-shadow: 0 0 0 2px rgba(7, 7, 6, .55);
+}
+.terrain-pin.scene-local { background: #e26a2c; width: 28px; height: 28px; }
+.terrain-pin.scene-detail { background: #b59cf0; }
+.terrain-pin:hover { filter: brightness(1.15); }

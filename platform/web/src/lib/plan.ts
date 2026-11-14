@@ -58,6 +58,7 @@ export function buildRoute(response: PlanResponse, meta: CtxMeta): { route: Plan
       battery_end_pct: r.battery_end_pct,
     },
     feasible: report.feasible,
+    geojson,
     warnings: report.warnings,
     explanation: null,
     report,

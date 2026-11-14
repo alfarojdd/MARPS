@@ -5,9 +5,12 @@ import LayersPopover, { type BasemapMode } from './components/LayersPopover'
 import SceneViewer from './components/SceneViewer'
 import { Wordmark } from './components/Brand'
 import VehiclePanel from './components/VehiclePanel'
+import { fetchTerrainSources } from './lib/terrain'
 import { DEFAULT_SYSTEM, fetchPlannerPlaces, fetchReconstructions, fetchThematicLayers, parseMission, planRoute, summarizeRoute } from './lib/api'
 import { buildRoute, makePlace } from './lib/plan'
 import type { CtxMeta, MissionRequirements, Place, PlannedRoute, Scene, SystemState, ThematicLayer } from './lib/types'
+
+const VERTICAL_EXAGGERATION = 3
 
 function shortcutLabel() {
   if (typeof navigator === 'undefined') return 'Ctrl ↵'
@@ -44,6 +47,10 @@ export default function App() {
   const [scenes, setScenes] = useState<Scene[]>([])
   const [openScene, setOpenScene] = useState<Scene | null>(null)
   const [system, setSystem] = useState<SystemState>(DEFAULT_SYSTEM)
+  const [terrainUrl, setTerrainUrl] = useState('')
+  const [terrainState, setTerrainState] = useState<'idle' | 'loading' | 'ready'>('idle')
+  const [replayTick, setReplayTick] = useState(0)
+  const [terrainError, setTerrainError] = useState<string | null>(null)
 
   const handleResetLayers = useCallback(() => {
     setActiveBasemap('ctx')
@@ -55,6 +62,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    fetchTerrainSources()
+      .then((sources) => {
+        // Fixed for the demo: the real CTX DTM
+        setTerrainUrl((sources.find((s) => s.id === 'terrain_dtm') ?? sources[0])?.url ?? '')
+      })
+      .catch(() => undefined)
     fetchThematicLayers().then(setThematic).catch((err) => console.warn(err.message))
     fetchReconstructions()
       .then(({ scenes, warnings }) => {
@@ -176,6 +189,16 @@ export default function App() {
           scenes={scenes}
           showScenes={showScenes}
           onOpenScene={setOpenScene}
+          terrainUrl={terrainUrl}
+          exaggeration={VERTICAL_EXAGGERATION}
+          replayTick={replayTick}
+          paused={openScene !== null}
+          onTerrainState={setTerrainState}
+          onTerrainError={(message) => {
+            setIs3D(false)
+            setTerrainState('idle')
+            setTerrainError(message)
+          }}
         />
       </div>
 
@@ -189,17 +212,33 @@ export default function App() {
         {/* 3D / 2D Perspective Toggle Button (from Wireframe 2) */}
         <button
           type="button"
-          onClick={() => setIs3D((prev) => !prev)}
+          onClick={() => {
+            setTerrainError(null)
+            setIs3D((prev) => !prev)
+          }}
+          disabled={!terrainUrl || terrainState === 'loading'}
           className={`glass-panel flex h-10 items-center justify-center gap-1.5 rounded-2xl px-3.5 font-mono text-[11px] uppercase tracking-[0.16em] shadow-xl backdrop-blur-xl transition-all active:scale-95 ${
             is3D
               ? 'border-oxide/70 bg-oxide/20 text-oxide shadow-[0_0_16px_rgba(196,92,38,0.3)]'
               : 'text-paper hover:bg-white/[0.08]'
           }`}
-          title="Toggle 3D perspective terrain tilt"
+          title={terrainUrl ? '3D relief with the route' : '3D relief not prepared on the server'}
         >
           <CubeIcon />
-          <span>3D</span>
+          <span>{terrainState === 'loading' ? '…' : '3D'}</span>
         </button>
+
+        {is3D && route && terrainState === 'ready' && (
+          <button
+            type="button"
+            onClick={() => setReplayTick((t) => t + 1)}
+            className="glass-panel flex h-10 items-center justify-center gap-1.5 rounded-2xl px-3.5 font-mono text-[11px] uppercase tracking-[0.16em] text-paper shadow-xl backdrop-blur-xl transition-all hover:bg-white/[0.08] active:scale-95"
+            title="Replay the route animation"
+          >
+            <ReplayIcon />
+            <span>Replay route</span>
+          </button>
+        )}
 
         {/* Layers Button & Popover */}
         <div className="relative">
@@ -251,10 +290,17 @@ export default function App() {
         <VehiclePanel value={system} onChange={setSystem} />
       </div>
 
+      {terrainError && (
+        <div role="alert" className="glass-panel pointer-events-auto absolute left-1/2 top-4 z-40 flex max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 text-[12px] text-paper shadow-xl">
+          <span><span className="font-mono text-[10px] uppercase tracking-wider text-bad">3D unavailable: </span>{terrainError}</span>
+          <button type="button" onClick={() => setTerrainError(null)} aria-label="Dismiss" className="text-faint hover:text-paper">✕</button>
+        </div>
+      )}
+
       <SceneViewer scene={openScene} onClose={() => setOpenScene(null)} />
 
       {/* 4. BOTTOM-CENTER: THE CENTERED LOWER PROMPT BOX THAT TRANSFORMS INTO ROUTE SUMMARY & JUSTIFICATION */}
-      <div className="pointer-events-auto absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-4 sm:bottom-6">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-4 sm:bottom-6">
         <MissionPanel
           prompt={prompt}
           onPromptChange={setPrompt}
@@ -270,6 +316,7 @@ export default function App() {
             if (place) toggleFocus(place)
           }}
           onResetRoute={handleResetRoute}
+          onPreset={setSystem}
           shortcut={shortcutLabel()}
         />
       </div>
@@ -283,6 +330,15 @@ function LayersIcon() {
       <polygon points="12 2 2 7 12 12 22 7 12 2" />
       <polyline points="2 17 12 22 22 17" />
       <polyline points="2 12 12 17 22 12" />
+    </svg>
+  )
+}
+
+function ReplayIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="1 4 1 10 7 10" />
+      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
     </svg>
   )
 }

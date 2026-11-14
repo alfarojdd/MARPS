@@ -120,7 +120,9 @@ def summary_facts(report: dict) -> dict:
         "distance_km": route.get("distance_km"), "duration_h": route.get("duration_h", route.get("time_h")),
         "arrival": route.get("arrival"), "battery_end_pct": route.get("battery_end_pct"),
         "science_stops": len(route.get("science_stops") or []),
-        "charging_stop": bool(route.get("charging_stop")),
+        "charging_stop": None if not route.get("charging_stop") else {
+            "stop_at": route["charging_stop"].get("arrive"), "charge_hours": route["charging_stop"].get("charge_hours")},
+        "science_stop_minutes": sum(s.get("dwell_min", 0) for s in route.get("science_stops") or []),
         "gains_vs_classic_astar": gains, "costs_vs_classic_astar": costs,
         "warnings": [w["message"] for w in report.get("warnings", [])][:3],
     }

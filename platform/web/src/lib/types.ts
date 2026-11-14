@@ -71,7 +71,7 @@ export interface PlanReport {
     arrival: string
     battery_end_pct: number
     science_stops: { lon: number; lat: number; targets: string[]; dwell_min: number }[]
-    charging_stop: { lon: number; lat: number; arrive: string; charge_hours: number } | null
+    charging_stop: { lon: number; lat: number; arrive: string; charge_hours: number | null } | null
   }
   comparison?: Record<string, number>
   warnings: PlanWarning[]
@@ -105,6 +105,8 @@ export interface PlannedRoute {
   }
   feasible: boolean
   warnings: PlanWarning[]
+  /** Route response geometry (lon/lat), consumed by the 3D viewer */
+  geojson: PlanResponse['geojson']
   /** One or two sentences from the local LLM; null while it is being written or if it failed. */
   explanation: string | null
   report: PlanReport

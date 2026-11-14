@@ -48,6 +48,7 @@ export class Terrain3D {
     const texture = meta.texture ? await new THREE.TextureLoader().loadAsync(new URL(meta.texture, base).href) : null;
     if (req !== this._loadSeq) { texture?.dispose(); return null; }  // a newer request arrived
     this._buildScene();
+    this._baseTextureUrl = meta.texture ? new URL(meta.texture, base).href : null;
     this.setTerrain(meta, heights, texture);
     return meta;
   }
@@ -77,6 +78,44 @@ export class Terrain3D {
     this.terrain = new THREE.Mesh(g, mat);
     this.world.add(this.terrain);
     if (this._routeData) this.setRoute(this._routeData);
+  }
+
+  /**
+   * Re-textures the relief: a basemap image (default: the terrain's own texture) with an optional data layer
+   * composited on top. Both images must cover the same bounds as the relief (north up).
+   * options = {baseUrl, overlayUrl, opacity, pixelated}
+   */
+  async setTextureLayers({ baseUrl = null, overlayUrl = null, opacity = 0.7, pixelated = false } = {}) {
+    if (!this.terrain) return;
+    const token = this._texSeq = (this._texSeq || 0) + 1;
+    const loadImage = url => new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error(`${url}: could not load`));
+      img.src = url;
+    });
+    const baseSrc = baseUrl || this._baseTextureUrl;
+    if (!baseSrc) return;
+    const [base, overlay] = await Promise.all([loadImage(baseSrc), overlayUrl ? loadImage(overlayUrl) : null]);
+    if (token !== this._texSeq || !this.terrain) return;  // a newer request arrived or the relief changed
+    const w = Math.min(base.width, 2048), h = Math.round(w * base.height / base.width);
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(base, 0, 0, w, h);
+    if (overlay) {
+      ctx.globalAlpha = opacity;
+      ctx.imageSmoothingEnabled = !pixelated;
+      ctx.drawImage(overlay, 0, 0, w, h);
+    }
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    const material = this.terrain.material;
+    material.map?.dispose();
+    material.map = texture;
+    material.color.set(0xffffff);
+    material.needsUpdate = true;
   }
 
   _buildScene() {
