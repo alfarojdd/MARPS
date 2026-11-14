@@ -173,7 +173,7 @@ def build_tiles(layer, pool):
         for x in xs:  # one task per column
             jobs.append((layer, z, [x], list(ys), extra))
     n = sum(pool.map(_job, jobs, chunksize=4))
-    print(f"  {layer['id']}: {n} teselas")
+    print(f"  {layer['id']}: {n} tiles")
     extra["bounds"] = [max(b[0], W_), max(b[1], S_), min(b[2], E_), min(b[3], N_)]
     return extra
 
@@ -189,7 +189,7 @@ def legend(layer, extra):
     if layer["id"] == "crism_class":
         return dict(type="classes", items=[dict(value=i, color="#%02x%02x%02x" % c[1], label=c[0])
                                            for i, c in enumerate(bl.CRISM_CLASSES, start=1)],
-                    note="Color intenso: confianza alta. Atenuado: confianza media.")
+                    note="Strong colour: high confidence; faded: medium.")
     if layer["id"] == "geo_unit":
         return dict(type="classes", items=[dict(value=v, color=col, label=f"{sym}: {name}")
                                            for v, (sym, name, col) in sorted(extra["geo"].items())])
@@ -249,11 +249,11 @@ def main(only):
     for d in (OUT / "tiles").glob("*") if (OUT / "tiles").exists() else []:
         if d.name not in keep:
             shutil.rmtree(d)
-            print(f"  retirada del visor: {d.name}")
+            print(f"  removed from viewer: {d.name}")
     todo = [l for l in LAYERS if (DATA / l["src"]).exists() and (not only or l["id"] in only)]
     missing = [l["id"] for l in LAYERS if not (DATA / l["src"]).exists()]
     if missing:
-        print("sin datos todavía:", missing)
+        print("no data yet:", missing)
     with ProcessPoolExecutor(max_workers=10) as pool:
         for layer in todo:
             extra = build_tiles(layer, pool)
@@ -269,7 +269,7 @@ def main(only):
     cfg = dict(left=LEFT, top=TOP, right=E_, bottom=S_, res0=RES0, tile=TILE, radius=3396190.0,
                layers=ordered, probe=probe)
     cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=1))
-    print(f"config: {len(ordered)} capas")
+    print(f"config: {len(ordered)} layers")
 
 
 if __name__ == "__main__":

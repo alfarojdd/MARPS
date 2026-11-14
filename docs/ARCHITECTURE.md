@@ -1,117 +1,92 @@
-# Architecture and contracts between areas
+# Architecture
 
-**Status: draft for discussion.** What matters is that the three areas agree on these three formats early so they can work in parallel. Whoever changes one must update this file in the same PR.
+MARPS has four parts that exchange three well-defined data formats.
 
 ```
- Layers (data/) ────────────────────────────┐
-                                            ▼
- Mission text ─► LLM (llm/) ─► [B] JSON ─► Planner (planner/) ─► [C] Route ─► Interface (platform/)
-                                            ▲
-                                    [A] layer grid
+                       ┌────────────────────── backend/app.py (FastAPI, one port) ───────────────────────┐
+ Mission text ───────► │ /api/parse-mission ─► SLM "extractor"  ─► mission JSON  [B]                       │
+ (React interface)     │                                              │                                    │
+                       │ /api/plan-route ◄────────────────────────────┘                                    │
+                       │     planner (A*) ◄── layers [A] (data/jezero)        ─► route + report [C]        │
+ Route on 2D / 3D ◄─── │ /api/summarize-route ─► facts ─► SLM "summariser" ─► briefing                      │
+                       │ /api/reconstructions, /api/terrain-sources, static files [D][E]                   │
+                       └──────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+| Part | Directory | Role |
+|---|---|---|
+| Interface | `platform/web` (React, Leaflet) and `platform/viewer` (Three.js engine) | Map, layers, mission panel, telemetry, 3D relief, surface reconstructions |
+| Server | `backend/app.py` | Joins interface, planner and SLMs behind one port; serves the interface and the data it needs |
+| SLMs | `backend/slm` | Two Gemma 4 E2B models served by Ollama: mission extractor and route summariser |
+| Planner | `planner` | Deterministic A* over the 20 m grid, with a cost that depends on the mission and the vehicle state |
+| Data | `data` | Pipeline that builds the layers from public NASA/USGS products |
+
+The language models never plan: they only translate text into parameters and verified figures into a briefing.
 
 ## [A] Map layers: `data/` → `planner/` and `platform/`
 
-All layers of an area share **the same grid**: same coordinate system, same resolution and same dimensions. That way the planner can combine them cell by cell.
+All layers share **one grid**: Mars 2000 sphere (R = 3 396 190 m), equirectangular projection, 20 m per pixel, 1596 × 1512 cells covering 77.160–77.699 °E and 18.211–18.721 °N.
 
-Initial proposal:
-- Format: GeoTIFF (one band per layer) or NumPy `.npy` arrays with a `metadata.json` alongside.
-- `metadata.json` per area: area name, CRS, resolution (m/pixel), origin corner, size (rows × columns), and per layer: name, unit, "no data" value and source.
-- Standard layer names: `elevation`, `slope`, `roughness`, `thermal_inertia`, `mineralogy_<objetivo>`, `geology`, `radiation`, `rock_abundance`.
-- Values normalised to 0-1 in a separate version for the planner (`*_norm`), keeping the physical values for display in the interface.
+- `data/jezero/stack/jezero_stack_20m.tif`: 13 float32 bands (NaN = no data) with `layers.json` describing each band (unit, description). All bands cover 100 % of the area except `thermal_inertia` (96.1 %), which is treated as unknown where missing.
+- `data/jezero/extra/`: `geo_unit.tif` (geologic units) and `crism_class.tif` (mineralogy, central 41 % only), used by the planner for science targets.
+- Band names: `elev_ctx`, `slope_ctx`, `tri_ctx`, `tpi_ctx_500m`, `aspect_ctx`, `thermal_inertia`, `insolation_rel`, `atm_column_pct`...
 
-**Status (2026-11-14):** Jezero area and 20 m grid decided. The layers are published as a single multiband GeoTIFF in `data/jezero/stack/` with `layers.json` (see [JEZERO_LAYERS.md](JEZERO_LAYERS.md)). The band names are the actual ones (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...), not the standard names proposed above; there is no mineralogy, radiation or rock abundance in the base. 0-1 normalisation and per-area `metadata.json`: not done.
+Layer catalogue, sources and caveats: [JEZERO_LAYERS.md](JEZERO_LAYERS.md). The web interface uses an image per layer exported with `data/jezero/pipeline/export_web_layers.py` (`platform/web/public/layers/thematic`).
 
-Decisions to make: area (Gale/Mount Sharp or Jezero), resolution (HiRISE is much finer than CTX/MOLA) and which layers arrive in time.
+## [B] Mission parameters: SLM → planner
 
-## [B] Mission parameters: `llm/` → `planner/`
-
-**Status (2026-11-14): agreed and implemented** in `planner/api.py` (`POST /plan-route`). The input has two blocks: `mission`, filled in by the LLM (the 5 current fields of `backend/llm/api.py` plus `safety`, `science_targets`, `science_detour` and `return_to_origin`), and `system` (local solar time and battery, set by the vehicle). Exact contract in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). The initial proposal below is kept for reference.
-
-The LLM converts the mission text into this JSON. **It is validated against a schema**; if validation fails, it retries or falls back to default weights. The planner never receives free text.
+The extractor model fills the `mission` block of `POST /plan-route`; the vehicle fills the `system` block.
 
 ```json
 {
-  "travel_mode": "on_foot",
-  "payload_kg": 15,
-  "max_duration_min": 240,
-  "hard_constraints": {
-    "max_slope_deg": 15,
-    "avoid_high_roughness": true
-  },
-  "weights": {
-    "distance": 1.0,
-    "slope": 2.0,
-    "roughness": 1.5,
-    "radiation_exposure": 3.0,
-    "science_interest": 2.5
-  },
-  "science_targets": ["clays", "phyllosilicates"],
-  "waypoints": []
+  "mission": { "human": true, "origin": "landing_site", "destination": "delta_top",
+               "power": true, "route_preference": null, "safety": "normal",
+               "science_targets": [{"target": "carbonates", "priority": 1.0}],
+               "science_detour": "medium", "return_to_origin": false },
+  "system":  { "start_hour": 9.0, "battery_kwh": 24, "battery_capacity_kwh": 40, "reserve_pct": 20 }
 }
 ```
 
-- `travel_mode`: `on_foot` or `rover`.
-- `hard_constraints`: cells that become **forbidden** (the planner treats them as impassable).
-- `weights`: relative weights, greater than or equal to 0. The planner normalises them.
-- `science_targets`: what to look for; the planner cross-references it with the mineralogy or geology layer.
-- The model **only translates**; the default safety limits (for example, absolute maximum slope) are enforced by the planner even if the LLM does not mention them.
+The SLM output is constrained by a JSON schema and validated with Pydantic (`backend/slm/mission.py`). The planner validates it again and rejects unknown values (422) or unknown places (400) with the reason. Field semantics and examples: [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md).
 
-Per-cell cost idea: `coste = Σ peso_i · capa_i  −  peso_interés · afinidad(celda, objetivos)`, always kept positive so that A* remains valid.
+## [C] Route: planner → interface
 
-## [C] Route: `planner/` → `platform/`
+The `/plan-route` response has three parts:
 
-**Status (2026-11-14): implemented.** The `POST /plan-route` response has three parts: `report` (metrics, comparison with a classic A*, light and battery warnings, charging stop and `why`, for the LLM summary and the panel), `geojson` (route, classic A* and stops in planetocentric lon/lat) and `ctx_px` (the lines in pixels of the 6 m CTX basemap for Leaflet `CRS.Simple`). Details in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). The initial proposal below is kept for reference.
+- `report`: metrics, comparison with a classic shortest-path A*, daylight and battery warnings, charging stop and the reasons behind the route (`why`).
+- `geojson`: route, classic A*, origin, destination and stops in planetocentric lon/lat (consumed by the 3D view).
+- `ctx_px`: the same lines in pixels of the 6 m CTX mosaic, for the 2D Leaflet map (`L.CRS.Simple`).
 
-```json
-{
-  "path": [[x0, y0], [x1, y1]],
-  "waypoints_visited": [],
-  "metrics": {
-    "distance_m": 0,
-    "elevation_gain_m": 0,
-    "max_slope_deg": 0,
-    "est_duration_min": 0,
-    "radiation_exposure": 0,
-    "science_points_passed": []
-  },
-  "explanation": "short text on why this route was chosen",
-  "feasible": true
-}
-```
+The summariser model receives a distilled list of facts from `report` (see [backend/slm/README.md](../backend/slm/README.md)) and returns one or two sentences.
 
-- `path`: list of coordinates on the [A] grid (or lon/lat; decide and fix it here).
-- `feasible: false` with a reason when the hard constraints make the destination unreachable.
+## [D] Surface reconstructions
 
-## Tentative stack
+`GET /api/reconstructions` returns the catalogue of 3D surface reconstructions (Perseverance imagery): `{version, body, radius, counts, warnings, scenes}`. Each scene has `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat]` or `null`), `anchor`, `sol`, `license`, `source` and `available`. Locations are approximate rover or scene anchors; entries without a verified location stay in the catalogue but are never placed on the map. Two scenes are local (Gaussian-splat Cheyava Falls and a NASA Navcam mesh) and the rest are embedded from Sketchfab. Details and limitations: [RECONSTRUCTIONS.md](RECONSTRUCTIONS.md).
 
-| Component | Proposal | Status |
+## [E] 3D relief
+
+The 3D view loads a height grid generated from the CTX DTM (or the Mars Trek STL) and renders it with Three.js (`platform/viewer/terrain3d/terrain3d.mjs`). The route is drawn over the relief, the selected basemap and data layer are composited into its texture, and the surface-reconstruction anchors are projected on it as buttons. Data preparation and rendering details: [TERRAIN_3D.md](TERRAIN_3D.md).
+
+## Server endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/parse-mission` | Mission text → mission JSON (extractor SLM) |
+| `POST /api/plan-route` | `{mission, system}` → `{report, geojson, ctx_px}` |
+| `POST /api/summarize-route` | `{report}` → `{summary}` (summariser SLM) |
+| `GET /api/places` | Named places the planner understands |
+| `GET /api/slm/health`, `GET /api/planner/health` | Service status |
+| `GET /api/reconstructions`, `/api/traverse` | Surface-reconstruction catalogue and Perseverance traverse |
+| `GET /api/terrain-sources` | Available 3D relief models |
+
+The same planner and SLM endpoints are also served without the `/api` prefix. Interactive API documentation is disabled because the server may be exposed publicly.
+
+## Technology choices
+
+| Component | Choice | Why |
 |---|---|---|
-| Planner | Python + NumPy + Numba; A* over the 20 m grid, shadows with `mars_shadows.py` | done (`planner/`) |
-| API | FastAPI | to be confirmed |
-| Local LLM | Ollama or llama.cpp with JSON output and validation (Pydantic / JSON Schema) | to be confirmed |
-| Interface | Web map (Leaflet, OpenLayers or deck.gl) | to be confirmed |
-
-Each area records here what it chose and why.
-
-## [D] Surface reconstructions → viewer
-
-Local implementation in `backend/viewer.py` and `backend/reconstructions.py`, using the Python standard library. It does not depend on the LLM API. Startup and setup: [viewer](../platform/viewer/README.md).
-
-- `GET /api/map-config`: pipeline configuration if it exists; otherwise, CTX background with the versioned tiles.
-- `GET /api/reconstructions`: `{version:1, body:"Mars", radius:3396190, counts, warnings, scenes}`. Each scene includes `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat_planetocéntrica]` or `null`), `anchor`, `sol`, `license`, `source` and `available`. Local scenes add `asset`, `frame` and `radius`; the OBJ scene adds `texture`.
-- `GET /api/traverse`: a GeoJSON line with **Mars** coordinates, for context display only.
-- `GET /api/terrain-sources`: `{sources:[{id,title,url}]}` for complete, locally generated reliefs. CTX DTM is listed first, then Mars Trek STL; a manifest without its heightmap or texture is omitted.
-- `/assets/ctx/…`: orbital tiles from the repository. `/reconstructions/files/cheyava_falls/…` and `/reconstructions/files/ejemplo_malla_NASA/…`: local files from the package configured with `--dataset`.
-
-The map projects the anchors with the same Martian equirectangular projection as [A]. Opening a scene keeps the map state in a dialog; closing it destroys its iframe and releases the WebGL viewer. Models without a location never receive invented coordinates. The local camera uses an estimated ground and limited movement, with no guaranteed collision handling or continuous coverage.
-
-## [E] Route map + reconstruction points
-
-The main map (`platform/viewer/index.html`) and the existing floating-card route view (`terrain3d/demo.html`) share `route-view.mjs` and `reconstructions.mjs`. The route keeps its orange line, blue dashed classic A*, stop markers, tilt/exaggeration controls and physical elevation profile. The initial framing follows the route; loading the catalogue does not reframe it to all reconstructions.
-
-`initRouteView({map,cfg,container,routeUrl})` returns `{terrain,setRoute,fitRoute,getRouteLayer}`. The default route is the saved `terrain3d/demo_route.json` response. A future caller of `POST /plan-route` can call `setRoute(response)`, or dispatch `CustomEvent("marps:plan-route", {detail:response})` on `.mapwrap` (main map) or `#wrap` (route view). This replaces both route representations and the elevation profile; it is not an automatic HTTP connection to the planner.
-
-`initReconstructions({map,cfg,terrain,container,fitOnLoad:false})` adds the same verified-location catalogue entries to the 2D map and to an HTML button overlay on the tilted relief. `Terrain3D.projectPoint([lon,lat])` samples the loaded relief for height and projects through the active camera. Out-of-bounds, off-screen and approximately terrain-occluded points are hidden. The buttons mark approximate scene/rover anchors, not mesh footprints.
-
-The scene modal suspends the terrain render loop and its animation clock with `setPaused(true)`. Closing it removes the iframe and resumes the same camera, vertical exaggeration and route progress. Catalogue location/fitting actions use `focusAtXY` in 3D. The 2D Leaflet container is inert while the tilted map is active, so covered 2D markers do not receive keyboard focus. Missing relief or WebGL leaves the route and reconstruction catalogue usable in 2D. Full behavior, data setup and verification: [RECONSTRUCTIONS.md](RECONSTRUCTIONS.md) and [TERRAIN_3D.md](TERRAIN_3D.md).
+| Planner | Python, NumPy, Numba | A* over 2.4 million cells with 16-neighbour connectivity in 1–6 s |
+| SLM runtime | Ollama with Gemma 4 E2B | Runs on a 6 GB GPU, constrained JSON output, easy local deployment |
+| Server | FastAPI | Pydantic validation shared by the planner and the SLM client |
+| Interface | React, Leaflet, Three.js | CRS.Simple map over the CTX mosaic and a WebGL relief with the same data |
+| Hosting | Vercel (interface) and a local host (planner and SLMs) | See [DEPLOY.md](DEPLOY.md) |

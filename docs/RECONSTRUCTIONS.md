@@ -1,51 +1,44 @@
-# Surface reconstructions in the route map
+# Surface reconstructions
 
-## Current implementation
+MARPS lets the user step from the orbital map into 3D reconstructions of the Martian surface built from Perseverance imagery. A catalogue of 244 public reconstructions is placed on the map where a location is known; two of them are stored locally and can be explored in first person.
 
-The reconstruction access points are integrated into the existing route map and its visual style: orange planned route, dashed blue classic A*, coloured stops, dark floating controls, tilted relief, vertical exaggeration and elevation profile. The main map keeps its layer sidebar; the route view keeps its full-screen map and uses a collapsible **Reconstrucciones 3D** card.
+## Where they appear
 
-Both entry points use the same controllers:
-
-| Page | Available experience |
+| Place | Experience |
 |---|---|
-| `/` | Layer viewer + example trajectory + reconstruction catalogue + 2D/3D relief controls |
-| `/terrain3d/demo.html` | Existing floating-card route map + the same reconstruction points and surface viewer |
-| `/surface.html?id=…` | Local SPZ/OBJ viewer, normally opened in a modal from either map |
+| Web application (`platform/web`) | Located scenes are `3D` points in the 2D map and over the 3D relief. A point opens the scene in a modal; closing it returns to the same map, camera and route. |
+| Standalone viewer (`/viewer/`, `/viewer/terrain3d/demo.html`) | Layer viewer and full-screen route map with a searchable catalogue and the same surface viewer |
+| `/viewer/surface.html?id=…` | Local SPZ/OBJ viewer, normally embedded in the modal |
 
-| Existing route map with reconstruction points | Tilted real CTX DTM with the same route and points |
+| Route and reconstruction points in 2D | Tilted CTX DTM with the same route and points |
 |---|---|
 | ![Route and reconstruction points in 2D](img/reconstructions_route_2d.jpg) | ![Route and reconstruction points over the relief](img/reconstructions_route_3d.jpg) |
 
-The code is integrated; generated map data and reconstruction binaries remain outside Git. Neither page currently submits mission text or calls the planner automatically. The initial trajectory is the real, **saved example response** in `platform/viewer/terrain3d/demo_route.json`. The optional Perseverance traverse is a separate historical context layer, not the planned route.
+Orange points are local files, teal points are external scenes and purple points are rock details. The Perseverance traverse is an optional historical context layer in the standalone viewer, not the planned route.
 
-The root `trekSTL.stl` supplied by the user has also been converted and is available as **Mars Trek STL** in the relief selector alongside the real **CTX DTM**. Its fitted scale/offset and roughly 55 m vertical RMSE are recorded in [TERRAIN_3D.md](TERRAIN_3D.md); the source file and generated bundles remain local.
-
-## Start and use
+## Preparation
 
 From the repository root:
 
 ```bash
-python3 backend/prepare_viewer.py
-python3 backend/viewer.py
+python3 backend/prepare_viewer.py            # Three.js, Leaflet and Spark, verified by SHA-256
+python3 backend/prepare_reconstructions.py   # the two local models, verified by size and SHA-256
+python3 backend/app.py
 ```
 
-Restart an older running server after pulling this change: the route controls need `/api/terrain-sources`. If 8765 is occupied, use `--port 8767` and open that port. The standard-library server serves the map, APIs, CTX tiles and the local models. No LLM process is needed to view the saved route.
+The metadata (catalogue, scene manifests, rover positions) is versioned in `data/jezero/reconstructions`. The heavy files (the 16 MB Gaussian-splat `splat.spz` and the 52 MB NASA Navcam mesh) are downloaded from their original public sources by `prepare_reconstructions.py` and excluded from Git. Use `MARPS_DATASET=/other/path` to read the data from another folder. Without the heavy files, the corresponding catalogue entries are disabled and everything else keeps working.
 
-1. Open either map. The initial framing follows the example trajectory, with reconstruction points already visible. **Ver puntos 3D** explicitly frames all catalogue anchors; **Encuadrar trayectoria / Frame route** restores the route framing.
-2. In 2D, select a circular **3D** point and **Entrar en la reconstrucción**. In the tilted map, select a projected **3D** button to enter directly. Orange points are local files, teal points are external scenes, purple points are rock details.
-3. Search by place, author or sol and filter by local models, landscapes, details or missing coordinates. **Situar en mapa** centres the active map, including its tilted camera, without removing the trajectory.
-4. The surface scene opens in a modal. Local scenes support drag-to-look, WASD/arrows and touch movement, orbital inspection, reset, quality selection and fullscreen. Closing it or pressing Esc in the local scene resumes the same route map and camera. The relief render loop and animation time are paused while the modal is open.
-5. The map's **3D** button requires a generated DTM/STL relief. It is different from entering a metre-scale surface reconstruction. Prepare real relief data with [TERRAIN_3D.md](TERRAIN_3D.md). Without those files, the 2D trajectory and surface models still work. A WebGL failure is reported in the route controls and leaves the 2D map intact.
+## Using the viewer
 
-The dataset defaults to `MARPS_Jezero_3D_datos/MARPS_Jezero_3D`. To use a different extracted location:
-
-```bash
-python3 backend/viewer.py --dataset /path/to/MARPS_Jezero_3D
-```
+- Select a `3D` point, then **Enter the reconstruction** (standalone viewer) or click it directly (web application).
+- In local scenes, drag to look around and use **W A S D / arrow keys** or the movement buttons to walk. Eye height is 1.65 m above a surface estimated from the geometry. **Orbit view** inspects the model, **On foot** and **Reset view** restore the camera, and **Esc** or **Back to map** close the scene.
+- Automatic quality keeps the full Gaussians with a GPU and uses a 5 % sample with software rendering. **Full detail** forces the original model; **Light quality** reduces detail for slow machines.
+- In the standalone viewer, search by place, author or sol and filter by local files, scenes, details or entries without a location; **Show on map** centres the map (and the tilted camera in 3D).
+- The 3D relief view is independent from entering a metre-scale reconstruction. Relief preparation: [TERRAIN_3D.md](TERRAIN_3D.md).
 
 ## Data used
 
-| Input in the supplied package | How it is used |
+| Input (`data/jezero/reconstructions`) | How it is used |
 |---|---|
 | `catalogos/modelos_curados.csv` | All 242 model records, including author, kind, sol, licence, source and optional rover anchor |
 | `cheyava_falls/scene_original.json` + `splat.spz` | Local Cheyava Falls reconstruction: 16.3 MB, 972,047 Gaussians; published site origin provides the map anchor |
@@ -53,7 +46,7 @@ python3 backend/viewer.py --dataset /path/to/MARPS_Jezero_3D
 | `geografia/PLACES_best_interp.csv` | Corrected site/drive location for the NASA mesh; telemetry and then the public waypoint list are fallbacks |
 | `geografia/perseverance_waypoints_mars.geojson` | Optional historical traverse, displayed separately from the planned route |
 
-The package currently yields **244 catalogue entries**, **94 with coordinates**, **150 without a verified map location**, and **2 local models**. Unlocated entries remain searchable but do not acquire invented markers. A missing local binary disables its entry action. A missing dataset reports how to set `--dataset` while keeping the CTX route map available.
+The data currently yields **244 catalogue entries**, **94 with coordinates**, **150 without a verified map location**, and **2 local models**. Unlocated entries remain searchable but do not acquire invented markers. A missing local binary disables its entry action. A missing dataset reports how to set `--dataset` while keeping the CTX route map available.
 
 The 87,284 PDS inventory fragments, 17 Landform example tilesets and image sets for sites 87/91 are not automatically turned into new independent scenes. The image sets need actual reconstruction work. Existing source descriptions and licensing cautions in the package's `LEEME.md` still apply. See [DATA_SOURCES.md](DATA_SOURCES.md) for the external source record.
 
@@ -72,7 +65,7 @@ The local surface model is opened separately from the orbital relief. No claim i
 | File | Responsibility |
 |---|---|
 | `backend/reconstructions.py` | Adapts the local catalogue, reads published SPZ origin and corrected NASA RMC location, builds optional traverse |
-| `backend/viewer.py` | Static mounts; `/api/map-config`, `/api/reconstructions`, `/api/traverse`, `/api/terrain-sources` |
+| `backend/app.py`, `backend/viewer.py` | Server and the map-configuration and terrain-source helpers; `/api/reconstructions`, `/api/traverse`, `/api/terrain-sources` |
 | `backend/viewer_dependencies.json` | Versioned library URLs and SHA-256, including the five Three.js line addons |
 | `platform/viewer/route-view.mjs` + CSS | Shared trajectory, source selector, tilt/exaggeration/replay controls, physical elevation profile |
 | `platform/viewer/terrain3d/terrain3d.mjs` | Terrain rendering, route geometry, coordinate projection, camera focus and pause/resume |
@@ -88,7 +81,7 @@ The local surface model is opened separately from the orbital relief. No claim i
 - Reconstruction coverage is partial, with holes and lower quality away from the original image viewpoints. There is no continuous Street View over the whole crater.
 - Surface walking uses a 0.5 m grid estimated from observed geometry and bounded movement with small height steps. It does not provide physical collisions or measurement-grade ground heights.
 - Automatic/light SPZ quality can reduce detail. External landscape models request Sketchfab's first-person navigation; rock details and aerial models request orbital navigation. Their scale and embedding availability depend on the author/service. Source links remain available.
-- Local assets work offline after preparation. Sketchfab needs internet. Cheyava's redistribution licence remains unconfirmed in the supplied inventory: the local user-provided file is used and not published with the repository.
+- Local assets work offline after preparation. Sketchfab needs internet. Cheyava's redistribution licence is unconfirmed: the file is downloaded by each installation from its original public source and is not redistributed in this repository.
 - Orbital POIs may sit behind the controls/profile or a ridge; pan/orbit the map or use the catalogue to centre the desired location. The route and its science stops are independent of reconstruction access points.
 - Desktop Chrome with SwiftShader is covered by automated checks. A narrow mobile layout is checked in emulation; touch controls are provided, but real mobile hardware and every external Sketchfab model have not been verified.
 
@@ -110,6 +103,4 @@ node platform/viewer/test_viewer.cjs
 node platform/viewer/test_route_reconstructions.cjs
 ```
 
-Use `MARPS_VIEWER_URL` for a non-default server, `MARPS_PLAYWRIGHT` for an external Playwright installation and `MARPS_SCREENSHOTS` for captures. The route integration test requires the supplied local dataset and a generated **real relief**. It checks both map pages, nested local scene URLs, route retention, projected marker activation, 3D camera retention, exaggeration without altering profile heights, available DTM/STL switching, marker visibility, return to 2D, missing relief, unavailable WebGL and narrow layouts. Its surface iframe is a lightweight placeholder to avoid allocating two software WebGL scenes at once; the separate viewer test loads the real models. The original viewer test also covers actual local model loading and movement; its external iframe is intercepted so it does not verify Sketchfab availability.
-
-Verified on 2026-11-14: **9 backend unit tests**, **6 terrain-converter tests**, both browser scripts, JavaScript syntax checks, dependency hashes and local documentation links. The route integration check used the real generated CTX DTM and the user-supplied STL; the surface check rendered the supplied Cheyava SPZ and NASA OBJ and exercised movement and camera modes. The converter tests emitted dependency deprecation warnings from affine/rasterio; all tests passed.
+Use `MARPS_VIEWER_URL` for a non-default server, `MARPS_PLAYWRIGHT` for an external Playwright installation and `MARPS_SCREENSHOTS` for captures. The route integration test requires the prepared local dataset and a generated **real relief**. It checks both map pages, nested local scene URLs, route retention, projected marker activation, 3D camera retention, exaggeration without altering profile heights, available DTM/STL switching, marker visibility, return to 2D, missing relief, unavailable WebGL and narrow layouts. Its surface iframe is a lightweight placeholder to avoid allocating two software WebGL scenes at once; the separate viewer test loads the real models. The original viewer test also covers actual local model loading and movement; its external iframe is intercepted so it does not verify Sketchfab availability.

@@ -32,7 +32,7 @@ class ScienceTarget(BaseModel):
 
 
 class Mission(BaseModel):
-    """What the LLM extracts from the astronaut's text."""
+    """What the SLM extracts from the astronaut's text."""
     human: bool = True
     origin: str
     destination: str
@@ -45,8 +45,8 @@ class Mission(BaseModel):
 
 
 class SystemState(BaseModel):
-    """What the vehicle knows, not the LLM."""
-    start_hour: float = Field(9.0, ge=0, lt=24, description="Hora solar local (LTST) de salida")
+    """What the vehicle knows, not the SLM."""
+    start_hour: float = Field(9.0, ge=0, lt=24, description="Departure local solar time (LTST)")
     battery_kwh: float = Field(30.0, ge=0)
     battery_capacity_kwh: float = Field(40.0, gt=0)
     reserve_pct: float = Field(20.0, ge=0, le=100)
@@ -114,7 +114,7 @@ def plan_route(req: PlanRequest):
         pl = planner()
         try:
             return build_response(pl, req)
-        except ValueError as e:  # unknown place or outside the map: the backend can ask the LLM to correct it
+        except ValueError as e:  # unknown place or outside the map: the backend can ask the SLM to correct it
             raise HTTPException(status_code=400, detail=str(e))
 
 

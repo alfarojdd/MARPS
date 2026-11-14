@@ -127,7 +127,7 @@ export default function App() {
       setRoute(built.route)
       setLoading(false)
 
-      // The briefing comes from the local LLM; the route is already on screen while it is written.
+      // The briefing comes from the local SLM; the route is already on screen while it is written.
       try {
         const explanation = await summarizeRoute(result.report)
         setRoute((current) => (current?.report === result.report ? { ...current, explanation } : current))

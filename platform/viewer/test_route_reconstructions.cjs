@@ -43,7 +43,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
       // Locate from the catalogue in 3D, then click the actual projected marker.
       if (path !== '/') await page.locator('.reconstruction-panel summary').click();
       await page.fill('#sceneSearch', 'Cheyava');
-      await page.locator('#sceneList [data-id=cheyava-falls]').getByRole('button', {name: 'Situar en mapa'}).click();
+      await page.locator('#sceneList [data-id=cheyava-falls]').getByRole('button', {name: 'Show on map'}).click();
       if (path !== '/') await page.locator('.reconstruction-panel summary').click();
       const pin = page.locator('.scene-terrain-pin[data-id=cheyava-falls]');
       await pin.waitFor({state: 'visible'});
@@ -113,7 +113,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     await noGL.goto(base);
     await noGL.waitForFunction(() => document.querySelector('#sceneList')?.children.length > 0);
     await noGL.click('#btn3d');
-    await noGL.waitForFunction(() => document.querySelector('#status').textContent.includes('Relieve no disponible'), null, {timeout: 60000});
+    await noGL.waitForFunction(() => document.querySelector('#status').textContent.includes('Relief unavailable'), null, {timeout: 60000});
     assert.equal(await noGL.locator('.is3d').count(), 0);
     assert.equal(await noGL.locator('.leaflet-marker-icon.scene-pin').count(), catalogue.counts.placed);
     await noGL.close();

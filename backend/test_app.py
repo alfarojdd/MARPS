@@ -1,4 +1,4 @@
-"""Tests for the unified MARPS server (backend/app.py) with a fake LLM client.
+"""Tests for the unified MARPS server (backend/app.py) with a fake SLM client.
 
 Run: python3 -m pytest backend/test_app.py -q
 """
@@ -13,10 +13,10 @@ import os
 os.environ["MARPS_WARMUP"] = "0"
 
 import app as A  # noqa: E402
-from llm import mission as M  # noqa: E402
+from slm import mission as M  # noqa: E402
 
 
-class FakeLLM:
+class FakeSLM:
     def __init__(self, reply=None, error=None):
         self.reply, self.error, self.calls = reply, error, []
 
@@ -34,13 +34,13 @@ def client():
     A.app.dependency_overrides.clear()
 
 
-def use_llm(fake):
-    A.app.dependency_overrides[A.get_llm] = lambda: fake
+def use_slm(fake):
+    A.app.dependency_overrides[A.get_slm] = lambda: fake
     return fake
 
 
 def test_parse_mission_returns_full_schema_with_defaults(client):
-    fake = use_llm(FakeLLM({"human": True, "origin": "landing_site", "destination": "delta_top",
+    fake = use_slm(FakeSLM({"human": True, "origin": "landing_site", "destination": "delta_top",
                             "power": False, "route_preference": None,
                             "science_targets": [{"target": "carbonates", "priority": 1}]}))
     r = client.post("/parse-mission", json={"prompt": "Go from the landing site to the delta looking for carbonates"})
@@ -53,21 +53,21 @@ def test_parse_mission_returns_full_schema_with_defaults(client):
     assert fake.calls[0]["format"] == M.JezeroMissionRequirements.model_json_schema()
 
 
-def test_parse_mission_unreachable_llm_is_503(client):
-    use_llm(FakeLLM(error=ConnectionError("refused")))
+def test_parse_mission_unreachable_slm_is_503(client):
+    use_slm(FakeSLM(error=ConnectionError("refused")))
     r = client.post("/parse-mission", json={"prompt": "anything"})
     assert r.status_code == 503
-    assert "LLM" in r.json()["detail"]
+    assert "SLM" in r.json()["detail"]
 
 
-def test_parse_mission_invalid_llm_output_is_502(client):
-    use_llm(FakeLLM('{"human": "maybe"'))
+def test_parse_mission_invalid_slm_output_is_502(client):
+    use_slm(FakeSLM('{"human": "maybe"'))
     r = client.post("/parse-mission", json={"prompt": "anything"})
     assert r.status_code == 502
 
 
 def test_parse_mission_rejects_empty_prompt(client):
-    use_llm(FakeLLM({}))
+    use_slm(FakeSLM({}))
     assert client.post("/parse-mission", json={"prompt": "  "}).status_code == 422
 
 
@@ -100,7 +100,7 @@ def test_summary_facts_include_charging_stop_details():
 
 
 def test_summarize_route_uses_summary_model_and_facts(client):
-    fake = use_llm(FakeLLM("  Safe 16 km route with 9.7 deg less cross slope.  "))
+    fake = use_slm(FakeSLM("  Safe 16 km route with 9.7 deg less cross slope.  "))
     r = client.post("/summarize-route", json={"report": EXAMPLE})
     assert r.status_code == 200
     assert r.json() == {"summary": "Safe 16 km route with 9.7 deg less cross slope."}
@@ -109,33 +109,33 @@ def test_summarize_route_uses_summary_model_and_facts(client):
     assert sent["gains_vs_classic_astar"] and "waypoints_lonlat" not in fake.calls[0]["messages"][-1]["content"]
 
 
-def test_summarize_route_llm_down_is_503(client):
-    use_llm(FakeLLM(error=ConnectionError("refused")))
+def test_summarize_route_slm_down_is_503(client):
+    use_slm(FakeSLM(error=ConnectionError("refused")))
     assert client.post("/summarize-route", json={"report": EXAMPLE}).status_code == 503
 
 
 def test_summarize_route_malformed_report_is_422(client):
-    use_llm(FakeLLM("x"))
+    use_slm(FakeSLM("x"))
     bad = {"comparison": {"energy_saved_pct": None}, "warnings": [{}]}
     assert client.post("/summarize-route", json={"report": bad}).status_code == 422
 
 
 def test_parse_mission_rejects_huge_prompt(client):
-    use_llm(FakeLLM({}))
+    use_slm(FakeSLM({}))
     assert client.post("/parse-mission", json={"prompt": "x" * 5000}).status_code == 422
 
 
-def test_llm_health_reports_unreachable(client):
-    use_llm(FakeLLM(error=ConnectionError("refused")))
-    r = client.get("/llm/health")
+def test_slm_health_reports_unreachable(client):
+    use_slm(FakeSLM(error=ConnectionError("refused")))
+    r = client.get("/slm/health")
     assert r.status_code == 200
     assert r.json()["reachable"] is False
 
 
 def test_legacy_viewer_is_served_under_viewer(client):
     r = client.get("/viewer/")
-    assert r.status_code == 200 and "mission.mjs" in r.text
-    assert client.get("/viewer/mission.mjs").headers["content-type"].startswith("text/javascript")
+    assert r.status_code == 200 and "reconstructions.mjs" in r.text
+    assert client.get("/viewer/reconstructions.mjs").headers["content-type"].startswith("text/javascript")
     assert client.get("/api/map-config").json()["radius"] == 3396190
 
 
@@ -145,7 +145,7 @@ def test_places_endpoint_comes_from_planner_at_root_and_api(client):
         assert "landing_site" in places and "delta_top" in places
 
 
-def test_frontend_calls_api_prefix_for_llm(client):
-    use_llm(FakeLLM({"destination": "delta_top"}))
+def test_frontend_calls_api_prefix_for_slm(client):
+    use_slm(FakeSLM({"destination": "delta_top"}))
     r = client.post("/api/parse-mission", json={"prompt": "go to the delta"})
     assert r.status_code == 200 and r.json()["destination"] == "delta_top"

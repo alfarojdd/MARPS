@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // MARPS server (backend/run.sh): LLM, planner and map data under /api
+      // MARPS server (backend/run.sh): SLM, planner and map data under /api
       ...Object.fromEntries(
         ['/api', '/viewer', '/reconstructions', '/assets/ctx', '/data', '/terrain3d'].map((path) => [
           path,

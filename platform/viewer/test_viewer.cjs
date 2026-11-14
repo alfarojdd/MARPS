@@ -24,17 +24,17 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     await page.locator('#sceneMarkers').check();
     await page.selectOption('#sceneFilter', 'unplaced');
     assert.equal(await page.locator('#sceneList .scene-card').count(), catalog.counts.total - catalog.counts.placed);
-    assert.equal(await page.getByRole('button', {name: 'Situar en mapa', exact: true}).count(), 0);
+    assert.equal(await page.getByRole('button', {name: 'Show on map', exact: true}).count(), 0);
     await page.selectOption('#sceneFilter', 'local');
     await page.fill('#sceneSearch', 'Cheyava');
     assert.equal(await page.locator('#sceneList .scene-card').count(), 1);
-    await page.fill('#sceneSearch', 'ninguna-escena-con-este-nombre');
-    assert.match(await page.locator('#sceneList').textContent(), /No hay reconstrucciones/);
+    await page.fill('#sceneSearch', 'no-scene-with-this-name');
+    assert.match(await page.locator('#sceneList').textContent(), /No reconstructions match/);
     await page.fill('#sceneSearch', '');
-    console.log('Mapa, catálogo, filtros y visibilidad: OK');
+    console.log('Map, catalogue, filters and visibility: OK');
 
     // Check the external integration without depending on Sketchfab availability.
-    await page.route('https://sketchfab.com/models/**/embed*', route => route.fulfill({body: '<p>Visor externo de prueba</p>', contentType: 'text/html'}));
+    await page.route('https://sketchfab.com/models/**/embed*', route => route.fulfill({body: '<p>Test external viewer</p>', contentType: 'text/html'}));
     await page.selectOption('#sceneFilter', 'landscape');
     const external = page.locator('#sceneList .scene-card').filter({hasText: 'Sketchfab'}).first();
     await external.locator('.scene-enter').click();
@@ -42,7 +42,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     await page.click('#surfaceClose');
     await page.locator('#surfaceViewport iframe').waitFor({state: 'detached'});
     assert.equal(await page.locator('#surfaceViewport iframe').count(), 0);
-    console.log('Apertura externa y cierre: OK');
+    console.log('External viewer open and close: OK');
 
     // Moderate resolution: the CI browser uses software rendering.
     await page.setViewportSize({width: 640, height: 480});
@@ -66,7 +66,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
         await page.waitForTimeout(1500);
         await page.screenshot({path: `${process.env.MARPS_SCREENSHOTS}/${id}.png`, timeout: 60000});
       }
-      console.log(`${id}: carga, movimiento y modos de cámara OK`);
+      console.log(`${id}: loading, movement and camera modes OK`);
     }
     await page.setViewportSize({width: 390, height: 844});
     await page.goto(base);
@@ -76,7 +76,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     await page.click('#surfaceClose');
     await page.locator('#surfaceViewport iframe').waitFor({state: 'detached'});
     assert.equal(await page.locator('#surfaceViewport iframe').count(), 0);
-    console.log('Diseño móvil y vuelta al mapa: OK');
+    console.log('Mobile layout and return to map: OK');
     assert.deepEqual(errors, []);
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

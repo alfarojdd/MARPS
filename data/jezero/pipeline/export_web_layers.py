@@ -34,25 +34,6 @@ TITLES = {
     "crism_class": ("Mineralogy (CRISM)", "Science", "Carbonates, clays, olivine... (central 41 %)"),
 }
 
-# Spanish labels from the pipeline → English for the web interface
-LABELS = {"Olivino": "Olivine", "Carbonato de Mg": "Mg carbonate", "Esmectita Fe/Mg": "Fe/Mg smectite",
-          "Olivino + esmectita": "Olivine + smectite", "Olivino/esmectita + 2.2 µm": "Olivine/smectite + 2.2 µm",
-          "Carbonato + 2.2 µm": "Carbonate + 2.2 µm", "Piroxeno alto en Ca": "High-Ca pyroxene",
-          "Piroxeno bajo en Ca": "Low-Ca pyroxene", "Caolinita": "Kaolinite", "Esmectita de Mg 2": "Mg smectite 2",
-          "Color intenso: confianza alta. Atenuado: confianza media.": "Strong colour: high confidence; faded: medium.",
-          "× llano": "× flat ground"}
-
-
-def english(legend):
-    legend = json.loads(json.dumps(legend))
-    for item in legend.get("items", []):
-        item["label"] = LABELS.get(item["label"], item["label"])
-    for key in ("note", "units"):
-        if key in legend:
-            legend[key] = LABELS.get(legend[key], legend[key])
-    return legend
-
-
 def stitch(layer, zoom, cfg):
     tile = cfg["tile"]
     res = cfg["res0"] / 2 ** zoom
@@ -86,7 +67,7 @@ def main():
         title, group, subtitle = TITLES[layer["id"]]
         entries.append(dict(id=layer["id"], title=title, group=group, subtitle=subtitle, kind=layer.get("kind"),
                             url=f"/layers/thematic/{layer['id']}.webp", coverage=layer.get("coverage"),
-                            observed=layer.get("observed"), legend=english(layer.get("legend") or {}),
+                            observed=layer.get("observed"), legend=layer.get("legend") or {},
                             bounds=[[-rows, 0], [0, cols]]))
         print(f"{layer['id']}: {image.size[0]}x{image.size[1]} z{zoom}")
     (OUT / "layers.json").write_text(json.dumps(entries, ensure_ascii=False, indent=1))

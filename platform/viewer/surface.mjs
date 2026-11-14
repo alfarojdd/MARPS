@@ -49,12 +49,12 @@ class SurfaceGrid {
 export async function start() {
   const id = new URLSearchParams(location.search).get("id");
   const response = await fetch("/api/reconstructions");
-  if (!response.ok) throw new Error("El servidor no ha devuelto el catálogo 3D");
+  if (!response.ok) throw new Error("The server did not return the 3D catalogue");
   const catalog = await response.json(), entry = catalog.scenes.find(s => s.id === id);
-  if (!entry?.available || !["spz", "obj"].includes(entry.renderer)) throw new Error("Modelo local no disponible");
+  if (!entry?.available || !["spz", "obj"].includes(entry.renderer)) throw new Error("Local model unavailable");
 
   const view = $("#view"), renderer = new THREE.WebGLRenderer({antialias: false});
-  if (!renderer.capabilities.isWebGL2) throw new Error("Esta vista necesita WebGL2");
+  if (!renderer.capabilities.isWebGL2) throw new Error("This view requires WebGL2");
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   const quality = new URLSearchParams(location.search).get("quality") || "auto";
@@ -81,8 +81,8 @@ export async function start() {
   let mesh, spark, texture, modelRoot, meshEye, meshTarget;
   const bounds = new THREE.Box3();
   function progress(event) {
-    $("#loadingTitle").textContent = event.lengthComputable ? `Cargando modelo · ${Math.round(event.loaded / event.total * 100)} %` : "Descargando y decodificando el modelo…";
-    $("#loadingDetail").textContent = entry.renderer === "spz" ? "Cheyava Falls · 16,3 MB · 972.047 gaussianas" : "Malla Navcam texturizada · 52 MB";
+    $("#loadingTitle").textContent = event.lengthComputable ? `Loading model · ${Math.round(event.loaded / event.total * 100)} %` : "Downloading and decoding the model…";
+    $("#loadingDetail").textContent = entry.renderer === "spz" ? "Cheyava Falls · 16.3 MB · 972,047 Gaussians" : "Textured Navcam mesh · 52 MB";
   }
 
   // Register disposal before starting downloads to cover exits during loading.
@@ -168,7 +168,7 @@ export async function start() {
   const target = entry.target ? new THREE.Vector3(...entry.target) : meshTarget || bounds.getCenter(new THREE.Vector3());
   const desiredEye = entry.eye ? new THREE.Vector3(...entry.eye) : meshEye || target.clone().add(new THREE.Vector3(0, EYE_HEIGHT, 3));
   const home = ground.nearest(desiredEye.x, desiredEye.z, 10);
-  if (!home) throw new Error("No se encontró superficie observada para la cámara inicial");
+  if (!home) throw new Error("No observed surface found for the initial camera");
   let mode = "walk", dragging = null;
   const keys = new Set(), touchMoves = new Set();
   const origin = home.clone(), next = new THREE.Vector3();
@@ -197,7 +197,7 @@ export async function start() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await document.documentElement.requestFullscreen();
-    } catch { $("#position").textContent = "Pantalla completa no disponible en este navegador."; }
+    } catch { $("#position").textContent = "Fullscreen is not available in this browser."; }
   };
   document.addEventListener("keydown", event => {
     if (MOVE_KEYS[event.code] && !["INPUT", "SELECT", "TEXTAREA"].includes(event.target.tagName)) {
@@ -232,7 +232,7 @@ export async function start() {
   window.addEventListener("resize", resize);
   resize(); reset();
   $("#loading").hidden = true;
-  $("#position").textContent = lightweight && entry.renderer === "spz" ? "Calidad ligera · detalle reducido para mejorar la fluidez" : "Altura de ojos: 1,65 m sobre suelo estimado";
+  $("#position").textContent = lightweight && entry.renderer === "spz" ? "Light quality · reduced detail for smoother performance" : "Eye height: 1.65 m above estimated ground";
   view.dataset.ready = "true";
   const clock = new THREE.Clock();
   renderer.setAnimationLoop(() => {
@@ -253,8 +253,8 @@ export async function start() {
         if (height != null && inside && Math.abs(height + EYE_HEIGHT - camera.position.y) < .6) {
           next.y = THREE.MathUtils.lerp(camera.position.y, height + EYE_HEIGHT, Math.min(1, dt * 8));
           camera.position.copy(next);
-          $("#position").textContent = "Altura de ojos: 1,65 m sobre suelo estimado · sin colisiones físicas";
-        } else $("#position").textContent = "Límite de superficie observada. Gira o vuelve atrás.";
+          $("#position").textContent = "Eye height: 1.65 m above estimated ground · no physical collisions";
+        } else $("#position").textContent = "Edge of the observed surface. Turn around or step back.";
       }
     } else controls.update();
     renderer.render(scene, camera);
