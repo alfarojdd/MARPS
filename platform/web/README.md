@@ -7,7 +7,7 @@ React + Vite + Tailwind + Leaflet frontend for the Mars Aerial Route Pairing Sys
 - Operations UI: full-bleed Jezero mosaic, numbered brief, translation, and path readout
 - CTX orthomosaic basemap (6 m/px tiles)
 - Natural-language mission → LLM extraction (`POST /parse-mission`)
-- Mock planner that draws a route + realistic metrics
+- Real planner (`POST /plan-route`): route, shortest-path A* for comparison, stops, warnings, plus an LLM briefing (`POST /summarize-route`)
 - Responsive (works on laptop + phone)
 - Known places only for the demo (see below)
 
@@ -30,7 +30,7 @@ npm install
 
 # Make sure the backend LLM is running on :8000
 # (from repo root)
-# uvicorn backend.llm.api:app --host 0.0.0.0 --port 8000
+# backend/run.sh   (LLM on tfm-lab + planner, port 8765; see backend/llm/README.md)
 
 # Start frontend
 npm run dev

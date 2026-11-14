@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { MissionRequirements, Place, PlannedRoute } from '../lib/types'
 import { formatDuration, formatKm, siteLabel } from '../lib/format'
+import { MarsDot } from './Brand'
 
 interface Props {
   prompt: string
@@ -35,6 +36,12 @@ const PRESET_SORTIES = [
     label: 'EVA · Shortest Path',
     route: 'Butler → Jezero Center',
     text: 'Human EVA from Octavia E. Butler Landing to Jezero crater centre, shortest path.',
+  },
+  {
+    id: '4',
+    label: 'Science · Ancient water',
+    route: 'Butler → Delta top',
+    text: 'Two astronauts go from the landing site to the top of the delta looking for carbonates and evidence of an ancient lake. We carry fragile sample tubes, so be careful.',
   },
 ]
 
@@ -126,8 +133,8 @@ export default function MissionPanel({
               value={`${route.metrics.max_slope_deg.toFixed(1)}°`}
             />
             <MetricBadge
-              label="Radiation Exposure"
-              value={`${route.metrics.radiation_exposure} rad·eq`}
+              label="Battery on arrival"
+              value={`${Math.round(route.metrics.battery_end_pct)} %`}
             />
           </div>
 
@@ -135,11 +142,19 @@ export default function MissionPanel({
           <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-paper/8 bg-void/40 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.2em] text-oxide">
-                <span>Justification & Synthesis</span>
+                <MarsDot size={12} />
+                <span>Bellona · route briefing</span>
               </div>
-              <p className="mt-1 text-[12px] italic leading-relaxed text-paper/90 sm:text-[13px]">
-                "{route.explanation}"
+              <p className="mt-1 text-[12px] leading-relaxed text-paper/90 sm:text-[13px]">
+                {route.explanation === null
+                  ? 'Writing the briefing with the local LLM…'
+                  : route.explanation || 'Briefing unavailable (LLM offline). Figures above come from the planner.'}
               </p>
+              {route.warnings.map((w) => (
+                <p key={w.code} className={`mt-1.5 text-[11px] ${w.severity === 'critical' ? 'text-bad' : 'text-paper/70'}`}>
+                  ⚠ {w.message}
+                </p>
+              ))}
             </div>
 
             {/* Extracted Constraints Badges */}

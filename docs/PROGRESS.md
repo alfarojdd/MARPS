@@ -55,3 +55,9 @@ One entry per work session, most recent first. Format: date, area, what was done
 - [ ] Web map framework
 - [ ] Repository license
 - [ ] Owner of each area (fill in [CONTRIBUTING.md](../CONTRIBUTING.md))
+
+## 2026-11-14: frontend + backend integration, local LLM on tfm-lab
+- `backend/app.py` serves the React frontend (`platform/web/dist`), the planner router, the LLM endpoints and the legacy viewer (`/viewer/`) on one port; `backend/run.sh` opens the SSH tunnel to tfm-lab.
+- The React app now calls `/api/parse-mission` → `/api/plan-route` → `/api/summarize-route` (mock planner removed). Its `src/lib/` had never been committed (the Python `lib/` rule in `.gitignore` swallowed it); rewritten and un-ignored.
+- LLM: `jezero-extractor` updated to the full mission schema; new `jezero-summarizer` (1–2 sentence justification, gains vs classic A*). Running on tfm-lab with Ollama in user space. See [backend/llm/README.md](../backend/llm/README.md).
+- Pending: system state (departure time, battery) is fixed at defaults in the UI; 3D reconstructions are only in `/viewer/`, not in the React app.

@@ -1,0 +1,560 @@
+[
+ {
+  "id": "hillshade_ctx",
+  "title": "Hillshade",
+  "group": "Basemap",
+  "subtitle": "CTX DTM shaded relief, 20 m",
+  "kind": "image",
+  "url": "/layers/thematic/hillshade_ctx.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "image"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "elev_ctx",
+  "title": "Elevation",
+  "group": "Topography",
+  "subtitle": "CTX DTM, 20 m",
+  "kind": "continuous",
+  "url": "/layers/thematic/elev_ctx.webp",
+  "coverage": 100.0,
+  "observed": true,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#333399",
+    "#0888ee",
+    "#01cc66",
+    "#81e680",
+    "#fefe98",
+    "#beac76",
+    "#815e56",
+    "#c1b0ac",
+    "#ffffff"
+   ],
+   "vmin": -2700,
+   "vmax": -1500,
+   "units": "m"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "elev_hrsc",
+  "title": "Elevation (HRSC)",
+  "group": "Topography",
+  "subtitle": "HRSC h0988 DTM, 75 m",
+  "kind": "continuous",
+  "url": "/layers/thematic/elev_hrsc.webp",
+  "coverage": 100.0,
+  "observed": true,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#333399",
+    "#0888ee",
+    "#01cc66",
+    "#81e680",
+    "#fefe98",
+    "#beac76",
+    "#815e56",
+    "#c1b0ac",
+    "#ffffff"
+   ],
+   "vmin": -2700,
+   "vmax": -1500,
+   "units": "m"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "slope_ctx",
+  "title": "Slope",
+  "group": "Topography",
+  "subtitle": "From CTX DTM, 20 m",
+  "kind": "continuous",
+  "url": "/layers/thematic/slope_ctx.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#1a9850",
+    "#6ebe6a",
+    "#c2e484",
+    "#f1e58b",
+    "#fdb571",
+    "#f57b4f",
+    "#e45239",
+    "#c93037",
+    "#7b3294"
+   ],
+   "vmin": 0,
+   "vmax": 35,
+   "units": "°"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "tri_ctx",
+  "title": "Roughness (TRI)",
+  "group": "Topography",
+  "subtitle": "Terrain ruggedness index",
+  "kind": "continuous",
+  "url": "/layers/thematic/tri_ctx.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#000004",
+    "#1d1147",
+    "#51127c",
+    "#832681",
+    "#b73779",
+    "#e75263",
+    "#fc8961",
+    "#fec488",
+    "#fcfdbf"
+   ],
+   "vmin": 0,
+   "vmax": 6,
+   "units": "m"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "tpi_ctx_500m",
+  "title": "Topographic position",
+  "group": "Topography",
+  "subtitle": "TPI, 500 m window",
+  "kind": "continuous",
+  "url": "/layers/thematic/tpi_ctx_500m.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#053061",
+    "#2a71b2",
+    "#6bacd1",
+    "#c2ddec",
+    "#f7f6f6",
+    "#fbccb4",
+    "#e48066",
+    "#ba2832",
+    "#67001f"
+   ],
+   "vmin": -40,
+   "vmax": 40,
+   "units": "m"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "aspect_ctx",
+  "title": "Aspect",
+  "group": "Topography",
+  "subtitle": "Slope orientation",
+  "kind": "continuous",
+  "url": "/layers/thematic/aspect_ctx.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#e2d9e2",
+    "#95b5c7",
+    "#6276ba",
+    "#592a8f",
+    "#2f1436",
+    "#741e4f",
+    "#b25652",
+    "#cca389",
+    "#e2d9e2"
+   ],
+   "vmin": 0,
+   "vmax": 360,
+   "units": "°"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "thermal_inertia",
+  "title": "Thermal inertia",
+  "group": "Thermal",
+  "subtitle": "THEMIS, 100 m (soft sand is low)",
+  "kind": "continuous",
+  "url": "/layers/thematic/thermal_inertia.webp",
+  "coverage": 96.1,
+  "observed": true,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#000004",
+    "#210c4a",
+    "#57106e",
+    "#8a226a",
+    "#bc3754",
+    "#e45a31",
+    "#f98e09",
+    "#f9cb35",
+    "#fcffa4"
+   ],
+   "vmin": 120,
+   "vmax": 420,
+   "units": "J m⁻² K⁻¹ s⁻½"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "themis_day_ir",
+  "title": "THEMIS day IR",
+  "group": "Thermal",
+  "subtitle": "Daytime infrared, 100 m",
+  "kind": "image",
+  "url": "/layers/thematic/themis_day_ir.webp",
+  "coverage": 100.0,
+  "observed": true,
+  "legend": {
+   "type": "image"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "themis_night_ir",
+  "title": "THEMIS night IR",
+  "group": "Thermal",
+  "subtitle": "Night-time infrared, 100 m",
+  "kind": "image",
+  "url": "/layers/thematic/themis_night_ir.webp",
+  "coverage": 100.0,
+  "observed": true,
+  "legend": {
+   "type": "image"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "insolation_rel",
+  "title": "Sunlight",
+  "group": "Mission",
+  "subtitle": "Mean relative direct insolation",
+  "kind": "continuous",
+  "url": "/layers/thematic/insolation_rel.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#313695",
+    "#5183bb",
+    "#90c3dd",
+    "#d4edf4",
+    "#fffebe",
+    "#fed283",
+    "#f88c51",
+    "#dd3d2d",
+    "#a50026"
+   ],
+   "vmin": 0.9,
+   "vmax": 1.05,
+   "units": "× flat ground"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "atm_column_pct",
+  "title": "Radiation shielding",
+  "group": "Mission",
+  "subtitle": "Extra atmospheric column (low ground = more shielding)",
+  "kind": "continuous",
+  "url": "/layers/thematic/atm_column_pct.webp",
+  "coverage": 100.0,
+  "observed": false,
+  "legend": {
+   "type": "ramp",
+   "stops": [
+    "#440154",
+    "#472d7b",
+    "#3b528b",
+    "#2c728e",
+    "#21918c",
+    "#28ae80",
+    "#5ec962",
+    "#addc30",
+    "#fde725"
+   ],
+   "vmin": 0,
+   "vmax": 11,
+   "units": "%"
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "geo_unit",
+  "title": "Geologic units",
+  "group": "Science",
+  "subtitle": "USGS SIM 3464",
+  "kind": "categorical",
+  "url": "/layers/thematic/geo_unit.webp",
+  "coverage": 95.8,
+  "observed": true,
+  "legend": {
+   "type": "classes",
+   "items": [
+    {
+     "value": 1,
+     "color": "#e6c88a",
+     "label": "Aeb: Eolian bedform unit"
+    },
+    {
+     "value": 2,
+     "color": "#4f7fbf",
+     "label": "NHjf1: Jezero fan 1 unit"
+    },
+    {
+     "value": 3,
+     "color": "#2c5a9e",
+     "label": "NHjf2: Jezero fan 2 unit"
+    },
+    {
+     "value": 4,
+     "color": "#c9a27e",
+     "label": "Njf: Jezero floor unit"
+    },
+    {
+     "value": 5,
+     "color": "#e39b5b",
+     "label": "Nle: Lower etched unit"
+    },
+    {
+     "value": 6,
+     "color": "#d98ca0",
+     "label": "Nnp1: Nili Planum 1 unit"
+    },
+    {
+     "value": 7,
+     "color": "#b8607a",
+     "label": "Nnp2: Nili Planum 2 unit"
+    },
+    {
+     "value": 8,
+     "color": "#b0b0b0",
+     "label": "Nrb: Rugged bright unit"
+    },
+    {
+     "value": 9,
+     "color": "#f2c08a",
+     "label": "Nue: Upper etched unit"
+    },
+    {
+     "value": 10,
+     "color": "#3d7d3d",
+     "label": "cr: Crater rim unit"
+    },
+    {
+     "value": 11,
+     "color": "#f0e06a",
+     "label": "su: Smooth unit, undivided"
+    }
+   ]
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ },
+ {
+  "id": "crism_class",
+  "title": "Mineralogy (CRISM)",
+  "group": "Science",
+  "subtitle": "Carbonates, clays, olivine... (central 41 %)",
+  "kind": "categorical",
+  "url": "/layers/thematic/crism_class.webp",
+  "coverage": 40.6,
+  "observed": true,
+  "legend": {
+   "type": "classes",
+   "items": [
+    {
+     "value": 1,
+     "color": "#ff0000",
+     "label": "Olivine"
+    },
+    {
+     "value": 2,
+     "color": "#00ff00",
+     "label": "Mg carbonate"
+    },
+    {
+     "value": 3,
+     "color": "#00ffff",
+     "label": "Fe/Mg smectite"
+    },
+    {
+     "value": 4,
+     "color": "#ff8072",
+     "label": "Olivine + smectite"
+    },
+    {
+     "value": 5,
+     "color": "#808000",
+     "label": "Olivine/smectite + 2.2 µm"
+    },
+    {
+     "value": 6,
+     "color": "#ffd700",
+     "label": "Carbonate + 2.2 µm"
+    },
+    {
+     "value": 7,
+     "color": "#ff8000",
+     "label": "High-Ca pyroxene"
+    },
+    {
+     "value": 8,
+     "color": "#daa520",
+     "label": "Low-Ca pyroxene"
+    },
+    {
+     "value": 9,
+     "color": "#8b4513",
+     "label": "Kaolinite"
+    },
+    {
+     "value": 10,
+     "color": "#0000ff",
+     "label": "Mg smectite 2"
+    }
+   ],
+   "note": "Strong colour: high confidence; faded: medium."
+  },
+  "bounds": [
+   [
+    -5040.0,
+    0
+   ],
+   [
+    0,
+    5320.0
+   ]
+  ]
+ }
+]
