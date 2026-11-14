@@ -1,0 +1,25 @@
+.route-card { position: absolute; z-index: 1000; background: rgba(23,26,31,.94); border: 1px solid #2c313a; border-radius: 10px; color: #e6e8eb; }
+#tools { top: 12px; right: 12px; padding: 8px; display: flex; flex-direction: column; gap: 8px; width: 210px; max-height: calc(100% - 160px); overflow-y: auto; }
+#tools button, #tools select { background: #1f232a; color: #e6e8eb; border: 1px solid #2c313a; border-radius: 6px; padding: 6px 8px; font: inherit; cursor: pointer; }
+#tools button:hover, #tools select:hover { border-color: #e8794a; }
+#tools #btn3d { font-weight: 600; font-size: 15px; padding: 10px 0; border-color: #e8794a; background: #2a1c14; }
+#tools #btn3d[aria-pressed=true] { background: #e8794a; color: #17100b; }
+#tools button:disabled { opacity: .5; cursor: default; }
+#tools label { display: flex; flex-direction: column; gap: 3px; color: #9aa3ae; font-size: 12px; }
+#tools input[type=range] { accent-color: #e8794a; width: 100%; }
+#tools .only3d { display: none; }
+.is3d #tools .only3d { display: flex; }
+#profile { left: 12px; right: 12px; bottom: 28px; height: 118px; padding: 6px 10px 4px; display: none; pointer-events: none; }
+.is3d #profile { display: block; }
+#profile .h { display: flex; justify-content: space-between; color: #9aa3ae; font-size: 11.5px; gap: 8px; }
+#profile svg { width: 100%; height: 88px; display: block; }
+#status, .route-legend { color: #9aa3ae; font-size: 11.5px; min-height: 1em; }
+.route-legend .key { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
+.route-map #inspectBox { top: auto; bottom: 165px; max-height: 32%; }
+.route-map #coords { bottom: 4px; }
+@media (max-width: 640px) {
+  #tools { width: 155px; top: 8px; right: 8px; max-height: calc(100% - 145px); }
+  #profile { left: 8px; right: 8px; height: 100px; }
+  #profile svg { height: 70px; }
+  #tools label, #status, .route-legend { font-size: 10px; }
+}

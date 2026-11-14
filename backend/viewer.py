@@ -30,6 +30,26 @@ def map_config():
                              observed=True, coverage=100, legend=dict(type="image"))])
 
 
+def terrain_sources():
+    """List generated reliefs; no placeholder heights or implicit downloads."""
+    sources = []
+    directory = ROOT / "platform/viewer/data/terrain3d"
+    for name, title in (("terrain_dtm", "CTX DTM (40 m)"), ("terrain_stl", "Mars Trek STL")):
+        manifest = directory / f"{name}.json"
+        if not manifest.is_file():
+            continue
+        try:
+            meta = read_json(manifest)
+            files = [meta["heights"]] + ([meta["texture"]] if meta.get("texture") else [])
+            if not all((directory / file).resolve().is_relative_to(directory.resolve())
+                       and (directory / file).is_file() for file in files):
+                continue
+            sources.append(dict(id=name, title=title, url=f"/data/terrain3d/{name}.json"))
+        except (OSError, ValueError, KeyError, TypeError):
+            continue
+    return dict(sources=sources)
+
+
 class ViewerHandler(SimpleHTTPRequestHandler):
     def __init__(self, *args, dataset=DEFAULT_DATASET, **kwargs):
         self.dataset = Path(dataset).resolve()
@@ -53,11 +73,13 @@ class ViewerHandler(SimpleHTTPRequestHandler):
 
     def _api(self, head=False):
         path = urlsplit(self.path).path
-        if path not in ("/api/reconstructions", "/api/traverse", "/api/map-config"):
+        if path not in ("/api/reconstructions", "/api/traverse", "/api/map-config", "/api/terrain-sources"):
             return False
         try:
             if path == "/api/map-config":
                 value = map_config()
+            elif path == "/api/terrain-sources":
+                value = terrain_sources()
             else:
                 value = build_catalog(self.dataset) if path.endswith("reconstructions") else build_route(self.dataset)
             body = json.dumps(value, ensure_ascii=False).encode("utf-8")

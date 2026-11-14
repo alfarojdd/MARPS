@@ -34,6 +34,7 @@ export class Terrain3D {
     this._tweens = [];
     this._listeners = new Set();
     this._gen = 0;
+    this._paused = false;
   }
 
   // ---------- loading
@@ -133,6 +134,54 @@ export class Terrain3D {
   heightAt(lon, lat) { return this.heightAtXY(...this.lonLatToXY(lon, lat)); }
 
   _toScene(x, y, h, out = new THREE.Vector3()) { return out.set(x - this.cx, h - this.h0, this.cy - y); }
+
+  /** Screen anchor for a surface reconstruction; null outside the relief/frustum or behind terrain. */
+  projectPoint([lon, lat]) {
+    if (!this.active || !this.meta || !this.camera) return null;
+    const [x, y] = this.lonLatToXY(lon, lat), height = this.heightAtXY(x, y);
+    if (height === null) return null;
+    const point = this._toScene(x, y, height);
+    point.y = point.y * this.world.scale.y + 60;
+    const projected = point.clone().project(this.camera);
+    if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) return null;
+    // Approximate terrain visibility without raycasting the entire high-resolution mesh each frame.
+    for (let i = 1; i < 16; i++) {
+      const p = point.clone().lerp(this.camera.position, i / 16);
+      const ground = this.heightAtXY(p.x + this.cx, this.cy - p.z);
+      if (ground !== null && (ground - this.h0) * this.world.scale.y > p.y + 20) return null;
+    }
+    return {x: (projected.x + 1) / 2 * this.container.clientWidth,
+      y: (1 - projected.y) / 2 * this.container.clientHeight};
+  }
+
+  /** Centre a catalogue location or route while keeping the tilted map active. */
+  focusAtXY(x, y, visibleHeight = 1500) {
+    if (!this.active || !this.meta) return;
+    const height = this.heightAtXY(x, y);
+    if (height === null) return;
+    const target = this._toScene(x, y, height);
+    target.y *= this.world.scale.y;
+    const spherical = new THREE.Spherical().setFromVector3(this.camera.position.clone().sub(this.controls.target));
+    this.controls.target.copy(target);
+    this._placeCamera(target, Math.max(300, visibleHeight / 2 / Math.tan(this.opt.fov * DEG / 2)), spherical.phi, spherical.theta);
+    this.controls.update();
+    this.camera.updateMatrixWorld(true);
+    this._emit("frame");
+  }
+
+  /** Suspend GPU work and animation time while an immersive reconstruction covers this map. */
+  setPaused(paused) {
+    if (this._paused === paused) return;
+    this._paused = paused;
+    if (paused) {
+      this._pausedAt = performance.now();
+      cancelAnimationFrame(this._raf);
+    } else {
+      const elapsed = performance.now() - this._pausedAt;
+      for (const tween of this._tweens) if (tween.startedAt !== null) tween.startedAt += elapsed;
+      if (this.active) this._loop();
+    }
+  }
 
   // ---------- route
   /**
@@ -353,7 +402,7 @@ export class Terrain3D {
   _loop() {
     cancelAnimationFrame(this._raf);
     const tick = now => {
-      if (!this.active) return;
+      if (!this.active || this._paused) return;
       this._raf = requestAnimationFrame(tick);
       for (const tw of [...this._tweens]) tw.step(now);
       if (this.controls.enabled) this.controls.update();
@@ -361,18 +410,18 @@ export class Terrain3D {
       this.scene.fog.near = d * 1.2;
       this.scene.fog.far = d * 4;
       this.renderer.render(this.scene, this.camera);
+      this._emit("frame");
     };
     this._raf = requestAnimationFrame(tick);
   }
 
   _tween(ms, fn, tag) {
     return new Promise(resolve => {
-      let t0 = null;
       const tw = {
-        tag, resolve,
+        tag, resolve, startedAt: null,
         step: now => {
-          t0 ??= now;
-          const t = Math.min(1, (now - t0) / ms);
+          tw.startedAt ??= now;
+          const t = Math.min(1, (now - tw.startedAt) / ms);
           fn(t);
           if (t >= 1) { this._tweens.splice(this._tweens.indexOf(tw), 1); resolve(); }
         },
@@ -397,6 +446,8 @@ export class Terrain3D {
 
   dispose() {
     this.active = false;
+    this._loadSeq = (this._loadSeq || 0) + 1;
+    this._stopTweens();
     cancelAnimationFrame(this._raf);
     this._ro?.disconnect();
     this.controls?.dispose();

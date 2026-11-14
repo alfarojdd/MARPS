@@ -1,6 +1,6 @@
 # Jezero viewer and surface reconstructions
 
-Reuses the project's Leaflet map and adds access to 3D reconstructions. It does not need Ollama, FastAPI, Node or any Python packages: the server uses Python 3.10+ and its standard library.
+Reuses the project's Leaflet map and the existing route-map style, combining the planned trajectory, classic A* comparison, stops, optional tilted terrain with elevation profile, and reconstruction access points in 2D and 3D. Serving the viewer does not need Ollama, FastAPI, Node or Python packages: the server uses Python 3.10+ and its standard library. Generating a relief is a separate step requiring NumPy, rasterio and Pillow.
 
 ## Open the map
 
@@ -13,6 +13,10 @@ python3 backend/viewer.py
 
 Open **http://127.0.0.1:8765**. The first command downloads Leaflet 1.9.4, Three.js 0.178.0 and Spark 0.1.10 to `platform/viewer/vendor/` and verifies their SHA-256. Valid downloads are reused; `--check` only checks the files without accessing the internet. Versions, URLs and hashes are kept in `backend/viewer_dependencies.json`. Licences: [Leaflet BSD-2-Clause](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE), [Three.js MIT](https://github.com/mrdoob/three.js/blob/r178/LICENSE), [Spark MIT](https://github.com/sparkjsdev/spark/blob/main/LICENSE).
 
+The existing full-screen route map is at **http://127.0.0.1:8765/terrain3d/demo.html**. It retains its dark floating cards and trajectory style, now with a compact reconstruction catalogue and the same surface scenes. Both pages share the route and reconstruction controllers. Re-run preparation after library changes: the five line addons are now included and the route demo no longer requires a CDN at runtime. Restart an older running server to enable the new `/api/terrain-sources` endpoint.
+
+For the **3D** tilt button, prepare either real relief using [TERRAIN_3D.md](../../docs/TERRAIN_3D.md). The root `trekSTL.stl` supplied by the user is supported through `--stl`; the official DTM can be used directly with `--dtm`, and the existing orthoimage with `--ortho`. Complete local reliefs are discovered automatically when a map is loaded, DTM first. If none are present, the tilt button is disabled while the route and surface models remain usable in 2D.
+
 The default data location is `MARPS_Jezero_3D_datos/MARPS_Jezero_3D/`. For another location:
 
 ```bash
@@ -24,11 +28,16 @@ By default the server only listens on `127.0.0.1`. It serves the interface, the 
 ## Usage
 
 - Click a **3D** point on the map and then **Entrar en la reconstrucción**, or use **Entrar en Cheyava Falls** directly.
-- Search for a place, author or sol and filter by local files, scenes, details or models without a location. **Situar en mapa** centres the map on the corresponding point and opens it.
+- The initial framing follows the example trajectory; loading reconstruction points does not move it. **Encuadrar trayectoria / Frame route** frames the planned route, while **Ver puntos 3D** frames all verified-location access points.
+- The map's **3D / 2D** control tilts the loaded relief and returns to top-down. The orange route, dashed blue A*, stops and elevation profile are retained. Reconstruction buttons follow the active relief and camera; select one to enter the same surface viewer.
+- Search for a place, author or sol and filter by local files, scenes, details or models without a location. **Situar en mapa** centres the active map on that point; in 3D it focuses the tilted camera. The route is preserved.
 - In local scenes, drag to look around and use **W A S D / arrow keys** or the movement buttons to walk. Eye height: 1.65 m above a surface estimated from the geometry.
 - **Vista orbital** lets you inspect the model; **A pie** and **Restablecer vista** restore the initial camera. **Esc** or **Volver al mapa** close the scene.
 - Automatic quality keeps the full Gaussians with a GPU and uses a 5 % sample with software rendering. **Detalle completo** forces the original model; **Calidad ligera** reduces detail for slow machines. The NASA mesh keeps its original geometry.
 - The Perseverance traverse is an optional context layer.
+- Closing a reconstruction returns to the same route, camera and exaggeration. The terrain loop and its animation clock are paused while the surface modal is open. The local viewer URL works from the nested route page as well as from `/`.
+
+The trajectory comes from the saved real planner response `terrain3d/demo_route.json`. It is explicitly labelled as an example. A caller can replace it through `initRouteView(...).setRoute(planRouteResponse)` or by dispatching `marps:plan-route` on `.mapwrap` / `#wrap`; there is no automatic mission-to-LLM-to-planner request from this browser interface yet. See [RECONSTRUCTIONS.md](../../docs/RECONSTRUCTIONS.md) for the full current integration and limits.
 
 ## Included data and limitations
 
@@ -70,8 +79,12 @@ python3 -m unittest discover -s backend -p 'test_*.py' -v
 python3 backend/prepare_viewer.py --check
 node --check platform/viewer/reconstructions.mjs
 node --check platform/viewer/surface.mjs
+node --check platform/viewer/route-view.mjs
+node --check platform/viewer/terrain3d/terrain3d.mjs
 ```
 
 The tests cover keeping models without a location, details versus landscapes, the SPZ origin, preference for corrected PLACES, missing data, file-mount boundaries and the correspondence between the CTX background and its projection.
 
 With the server running and Playwright installed, `node platform/viewer/test_viewer.cjs` checks the map, filters, opening/closing, local models, movement and mobile layout. `MARPS_PLAYWRIGHT` lets you point to an external Playwright installation; `MARPS_SCREENSHOTS` lets you save screenshots. The test intercepts the external iframe so it does not depend on Sketchfab; it does not check that service's availability.
+
+`node platform/viewer/test_route_reconstructions.cjs` additionally checks the main map and the styled route view against a real generated relief: clickable 3D POIs, nested local scene URL, trajectory and camera retention, exaggeration, available source switching, return to 2D, missing relief, unavailable WebGL and mobile layout. It uses a lightweight scene-modal placeholder; the first test independently checks the real surface renderers. `MARPS_VIEWER_URL` overrides the default server URL for either test.

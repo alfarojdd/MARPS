@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jezero 3D route</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="../vendor/leaflet/leaflet.css">
 <style>
   :root { --bg: #0f1114; --panel: rgba(23,26,31,.94); --line: #2c313a; --text: #e6e8eb; --muted: #9aa3ae;
     --accent: #e8794a; --route: #ffb347; }
@@ -16,38 +16,25 @@
   #map { position: absolute; inset: 0; background: #0b0c0e; }
   .leaflet-container { background: #0b0c0e; font: inherit; }
   .card { position: absolute; z-index: 1000; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
-  #tools { top: 12px; right: 12px; padding: 8px; display: flex; flex-direction: column; gap: 8px; width: 210px; }
-  #btn3d { font: 600 15px/1 inherit; padding: 10px 0; border-radius: 8px; border: 1px solid var(--accent);
-    background: #2a1c14; color: var(--text); cursor: pointer; }
-  #btn3d[aria-pressed="true"] { background: var(--accent); color: #17100b; }
-  #btn3d:disabled { opacity: .5; cursor: progress; }
   button, select { background: #1f232a; color: var(--text); border: 1px solid var(--line); border-radius: 6px;
     padding: 6px 8px; font: inherit; cursor: pointer; }
   button:hover, select:hover { border-color: var(--accent); }
   :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  label { display: flex; flex-direction: column; gap: 3px; color: var(--muted); font-size: 12px; }
-  input[type=range] { accent-color: var(--accent); }
-  .only3d { display: none; }
-  .is3d .only3d { display: flex; }
   #title { top: 12px; left: 12px; padding: 8px 12px; max-width: min(360px, calc(100% - 250px)); }
   #title h1 { font-size: 15px; margin: 0; }
   #title p { margin: 2px 0 0; color: var(--muted); font-size: 12px; }
   .key { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 4px; border-radius: 2px; }
-  #profile { left: 12px; right: 12px; bottom: 12px; height: 118px; padding: 6px 10px 4px; display: none; }
-  .is3d #profile { display: block; }
-  #profile .h { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; }
-  #profile svg { width: 100%; height: 88px; display: block; }
-  #status { color: var(--muted); font-size: 11.5px; min-height: 1em; }
   @media (max-width: 640px) {
-    #tools { width: 160px; }
     #title { max-width: calc(100% - 196px); }
     #title p { display: none; }
   }
 </style>
+<link rel="stylesheet" href="../reconstructions.css">
+<link rel="stylesheet" href="../route-view.css">
 <script type="importmap">
 { "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/"
+  "three": "../vendor/three/three.module.js",
+  "three/addons/": "../vendor/three/addons/"
 } }
 </script>
 </head>
@@ -59,132 +46,39 @@
     <p><span class="key" style="background:var(--route)"></span>planned route ·
        <span class="key" style="background:#9fd3ff"></span>shortest-distance A* · dots: science stops</p>
   </div>
-  <div id="tools" class="card">
-    <button id="btn3d" aria-pressed="false" disabled>Loading 3D…</button>
-    <label class="only3d">Vertical exaggeration <span id="exv">×3</span>
-      <input id="ex" type="range" min="1" max="8" step=".5" value="3"></label>
-    <label class="only3d">Relief source
-      <select id="src">
-        <option value="../data/terrain3d/terrain_stl.json">Mars Trek STL (400 × 400)</option>
-        <option value="../data/terrain3d/terrain_dtm.json">CTX DTM (40 m)</option>
-      </select></label>
-    <button id="replay" class="only3d">Replay route</button>
-    <div id="status" role="status"></div>
-  </div>
-  <div id="profile" class="card" aria-label="Elevation profile along the route">
-    <div class="h"><span>Elevation along the route</span><span id="pinfo"></span></div>
-    <svg id="psvg" preserveAspectRatio="none"></svg>
-  </div>
+
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="../vendor/leaflet/leaflet.js"></script>
 <script type="module">
-import { Terrain3D, leafletView } from "./terrain3d.mjs";
+import { initRouteView } from "../route-view.mjs";
+import { initReconstructions, mountReconstructionPanel } from "../reconstructions.mjs";
 
-const $ = s => document.querySelector(s);
-const cfg = await fetch("../data/config.json").then(r => r.json());
-const R = cfg.radius, DEG = Math.PI / 180;
-
-// ---------- 2D map: same CRS as the viewer (latlng = equirectangular metres)
+const cfgResponse = await fetch("/api/map-config");
+if (!cfgResponse.ok) throw new Error("Start the viewer with python3 backend/viewer.py");
+const cfg = await cfgResponse.json(), R = cfg.radius, DEG = Math.PI / 180;
 const crs = L.extend({}, L.CRS.Simple, {
   transformation: new L.Transformation(1 / cfg.res0, -cfg.left / cfg.res0, -1 / cfg.res0, cfg.top / cfg.res0),
 });
 const ll = (lon, lat) => L.latLng(R * lat * DEG, R * lon * DEG);
-const toXY = latlng => [latlng.lng, latlng.lat];
-const map = L.map("map", { crs, zoomSnap: .5, minZoom: 0, maxZoom: 7, attributionControl: true });
-map.attributionControl.setPrefix(false).addAttribution("CTX: NASA/JPL/MSSS/USGS · relief: NASA Mars Trek");
+const map = L.map("map", {crs, zoomSnap: .5, minZoom: 0, maxZoom: 7});
+map.attributionControl.setPrefix(false).addAttribution("CTX: NASA/JPL/MSSS/USGS · relief: CTX DTM / NASA Mars Trek");
 const full = L.latLngBounds([cfg.bottom, cfg.left], [cfg.top, cfg.right]);
-L.tileLayer("../data/tiles/ctx_ortho_6m/{z}/{x}/{y}.webp", { maxNativeZoom: 5, maxZoom: 7, tileSize: cfg.tile,
-  noWrap: true, bounds: full }).addTo(map);
-L.control.scale({ imperial: false }).addTo(map);
+if (cfg.ctx) {
+  for (const tile of cfg.ctx.tiles) L.imageOverlay(`/assets/ctx/${tile.file}`,
+    [ll(tile.lon_min, tile.lat_min), ll(tile.lon_max, tile.lat_max)]).addTo(map);
+} else {
+  const layer = cfg.layers.find(layer => layer.id === "ctx_ortho_6m");
+  if (layer) L.tileLayer(`/data/tiles/${layer.id}/{z}/{x}/{y}.${layer.ext}`, {
+    maxNativeZoom: layer.maxzoom, maxZoom: 7, tileSize: cfg.tile, noWrap: true, bounds: full,
+  }).addTo(map);
+}
+L.control.scale({imperial: false}).addTo(map);
 map.fitBounds(full);
-
-const plan = await fetch("demo_route.json").then(r => r.json());
-const COLORS = { route: "#ffb347", classic_astar: "#9fd3ff", origin: "#5fd38a", destination: "#ff5a5a" };
-const layer2d = L.geoJSON(plan.geojson, {
-  coordsToLatLng: c => ll(c[0], c[1]),
-  style: f => ({ color: COLORS[f.properties.kind], weight: f.properties.kind === "route" ? 4 : 2,
-    dashArray: f.properties.kind === "classic_astar" ? "6 5" : null }),
-  pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: 6, weight: 2, color: "#fff",
-    fillColor: COLORS[f.properties.kind] || "#ffe066", fillOpacity: 1 }),
-}).addTo(map);
-map.fitBounds(layer2d.getBounds(), { padding: [60, 60] });
-
-// ---------- 3D view
-const wrap = $("#wrap"), btn = $("#btn3d"), status = $("#status");
-const t3d = new Terrain3D(wrap, { exaggeration: 3 });
-try {
-  await t3d.load($("#src").value);
-  t3d.setRoute(plan);
-  btn.disabled = false;
-  btn.textContent = "3D";
-} catch (err) {
-  btn.textContent = "3D unavailable";
-  status.textContent = err.message;
-  throw err;
-}
-
-let busy = false;
-btn.onclick = async () => {
-  if (busy) return;
-  busy = true;
-  btn.disabled = true;
-  if (!t3d.active) {
-    btn.setAttribute("aria-pressed", "true");
-    wrap.classList.add("is3d");
-    drawProfile();
-    btn.textContent = "2D";
-    const off = t3d.on(type => { if (type === "entered") { off(); btn.disabled = false; busy = false; } });
-    await t3d.enter(leafletView(map, toXY));
-  } else {
-    const view = await t3d.exit();
-    // Reposition the 2D map where the user left the 3D camera.
-    map.setView(L.latLng(view.y, view.x), map.getBoundsZoom(L.latLngBounds(
-      [view.y - view.height / 2, view.x - view.height / 2], [view.y + view.height / 2, view.x + view.height / 2])), { animate: false });
-    wrap.classList.remove("is3d");
-    btn.setAttribute("aria-pressed", "false");
-    btn.textContent = "3D";
-    btn.disabled = false;
-    busy = false;
-  }
-};
-
-$("#ex").oninput = e => { const v = +e.target.value; $("#exv").textContent = `×${v}`; t3d.setExaggeration(v); };
-$("#replay").onclick = () => t3d.replayRoute();
-$("#src").onchange = async e => {
-  status.textContent = "Loading relief…";
-  try {
-    const meta = await t3d.load(e.target.value);  // reuses the scene and re-places the route
-    if (!meta) return;  // the user picked another source while this one was loading
-    t3d.replayRoute();
-    drawProfile();
-    status.textContent = meta.fit ? `STL fit: r = ${meta.fit.corr.toFixed(3)}, RMSE ${meta.fit.rmse_m.toFixed(0)} m` : "";
-  } catch (err) {
-    status.textContent = err.message;
-  }
-};
-
-// ---------- elevation profile, synced with the route drawing
-let prof = [];
-function drawProfile() {
-  prof = t3d.routeProfile();
-  const svg = $("#psvg");
-  if (!prof.length) { svg.innerHTML = ""; return; }
-  const W = 1000, H = 88, total = prof.at(-1).d;
-  const hs = prof.map(p => p.h), lo = Math.min(...hs), hi = Math.max(...hs), span = Math.max(hi - lo, 1);
-  const X = d => d / total * W, Y = h => H - 6 - (h - lo) / span * (H - 14);
-  const pts = prof.map(p => `${X(p.d).toFixed(1)},${Y(p.h).toFixed(1)}`).join(" ");
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.innerHTML = `<polygon points="0,${H} ${pts} ${W},${H}" fill="rgba(255,179,71,.14)"/>
-    <polyline points="${pts}" fill="none" stroke="#ffb347" stroke-width="2" vector-effect="non-scaling-stroke"/>
-    <line id="pcur" x1="0" x2="0" y1="0" y2="${H}" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
-  $("#pinfo").textContent = `${(total / 1000).toFixed(1)} km · ${lo.toFixed(0)} to ${hi.toFixed(0)} m`;
-}
-t3d.on((type, f) => {
-  if (type !== "route" || !prof.length) return;
-  const c = $("#pcur");
-  if (c) { const x = f * 1000; c.setAttribute("x1", x); c.setAttribute("x2", x); }
-});
+const container = document.querySelector("#wrap");
+const routes = await initRouteView({map, cfg, container});
+mountReconstructionPanel(container);
+await initReconstructions({map, cfg, container, terrain: routes.terrain, fitOnLoad: false});
 </script>
 </body>
 </html>

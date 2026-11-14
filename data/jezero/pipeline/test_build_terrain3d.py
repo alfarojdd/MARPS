@@ -80,17 +80,20 @@ def test_main_creates_missing_output_dir(tmp_path, monkeypatch):
     out = tmp_path / "new" / "dir"
     seen = {}
 
-    def fake_texture(path, bounds, max_px=4096):
+    def fake_texture(path, bounds, max_px=4096, ortho=None):
         seen["exists"] = out.exists()
+        seen["ortho"] = ortho
         return {}
     monkeypatch.setattr(B, "write_texture", fake_texture)
-    monkeypatch.setattr(B, "DTM", tmp_path / "dtm.tif")
+    monkeypatch.setattr(B, "DTM", tmp_path / "unused-default.tif")
     import sys
     import rasterio
     from rasterio.transform import from_origin
     with rasterio.open(tmp_path / "dtm.tif", "w", driver="GTiff", height=4, width=4, count=1,
                        dtype="float32", transform=from_origin(0, 0, 20, 20)) as d:
         d.write(np.arange(16, dtype=np.float32).reshape(4, 4), 1)
-    monkeypatch.setattr(sys, "argv", ["x", "--source", "dtm", "--dtm-width", "2", "--out", str(out)])
+    monkeypatch.setattr(sys, "argv", ["x", "--source", "dtm", "--dtm-width", "2", "--out", str(out),
+                                      "--dtm", str(tmp_path / "dtm.tif"), "--ortho", str(tmp_path / "ortho.tif")])
     B.main()
+    assert seen["ortho"] == tmp_path / "ortho.tif"
     assert seen["exists"] is True
