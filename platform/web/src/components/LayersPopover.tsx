@@ -98,7 +98,7 @@ export default function LayersPopover({
       ref={popoverRef}
       role="dialog"
       aria-label="Map Layers and Data Overlays"
-      className="glass-panel absolute bottom-12 left-0 z-40 w-84 max-w-[calc(100vw-2rem)] rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all duration-200"
+      className="glass-panel absolute bottom-12 left-0 z-40 w-80 max-w-[calc(100vw-1.5rem)] rounded-3xl p-3 shadow-2xl backdrop-blur-2xl transition-all duration-200 sm:w-84 sm:p-4"
     >
       {/* Popover Header */}
       <div className="flex items-center justify-between border-b border-paper/10 pb-3">
@@ -160,7 +160,7 @@ export default function LayersPopover({
 
       {/* TAB 1: OVERLAYS & BASEMAP */}
       {tab === 'layers' && (
-        <div className="mt-3 max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+        <div className="mt-3 max-h-[50vh] space-y-4 overflow-y-auto pr-1 sm:max-h-[60vh]">
           {/* Section 1: Basemap Imagery Selection */}
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -289,7 +289,7 @@ export default function LayersPopover({
 
       {/* TAB 2: PLACES & LANDMARKS */}
       {tab === 'places' && (
-        <div className="mt-3 max-h-[60vh] space-y-1.5 overflow-y-auto pr-1">
+        <div className="mt-3 max-h-[50vh] space-y-1.5 overflow-y-auto pr-1 sm:max-h-[60vh]">
           <p className="px-1 text-[11px] text-faint">
             Click any site to center and focus the map camera:
           </p>

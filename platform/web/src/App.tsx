@@ -5,6 +5,7 @@ import LayersPopover, { type BasemapMode } from './components/LayersPopover'
 import SceneViewer from './components/SceneViewer'
 import { Wordmark } from './components/Brand'
 import VehiclePanel from './components/VehiclePanel'
+import BellonaThinking from './components/BellonaThinking'
 import { fetchTerrainSources } from './lib/terrain'
 import { DEFAULT_SYSTEM, fetchPlannerPlaces, fetchReconstructions, fetchThematicLayers, parseMission, planRoute, summarizeRoute } from './lib/api'
 import { buildRoute, makePlace } from './lib/plan'
@@ -208,7 +209,7 @@ export default function App() {
       </div>
 
       {/* 3. BOTTOM-LEFT: "3D" & "LAYERS" BUTTONS (From Both Wireframes) */}
-      <div className="pointer-events-auto absolute bottom-4 left-4 z-30 flex flex-col gap-2">
+      <div className="pointer-events-auto absolute bottom-4 left-3 z-30 flex flex-col gap-2 safe-bottom sm:left-4">
         {/* 3D / 2D Perspective Toggle Button (from Wireframe 2) */}
         <button
           type="button"
@@ -286,12 +287,10 @@ export default function App() {
       </div>
 
       {/* Vehicle telemetry (editable for the demo) */}
-      <div className="pointer-events-auto absolute right-4 top-4 z-30 hidden sm:block">
-        <VehiclePanel value={system} onChange={setSystem} />
-      </div>
+      <VehiclePanelWrapper value={system} onChange={setSystem} />
 
       {terrainError && (
-        <div role="alert" className="glass-panel pointer-events-auto absolute left-1/2 top-4 z-40 flex max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 text-[12px] text-paper shadow-xl">
+        <div role="alert" className="glass-panel pointer-events-auto absolute left-1/2 top-16 z-40 flex w-[90vw] max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 text-[12px] text-paper shadow-xl sm:top-4">
           <span><span className="font-mono text-[10px] uppercase tracking-wider text-bad">3D unavailable: </span>{terrainError}</span>
           <button type="button" onClick={() => setTerrainError(null)} aria-label="Dismiss" className="text-faint hover:text-paper">✕</button>
         </div>
@@ -299,8 +298,11 @@ export default function App() {
 
       <SceneViewer scene={openScene} onClose={() => setOpenScene(null)} />
 
+      {/* Bellona thinking bubbles — appears above the mission panel during planning */}
+      <BellonaThinking visible={loading} />
+
       {/* 4. BOTTOM-CENTER: THE CENTERED LOWER PROMPT BOX THAT TRANSFORMS INTO ROUTE SUMMARY & JUSTIFICATION */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-4 sm:bottom-6">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-3 safe-bottom sm:bottom-6 sm:px-4">
         <MissionPanel
           prompt={prompt}
           onPromptChange={setPrompt}
@@ -321,6 +323,43 @@ export default function App() {
         />
       </div>
     </div>
+  )
+}
+
+function VehiclePanelWrapper({ value, onChange }: { value: import('./lib/types').SystemState; onChange: (v: import('./lib/types').SystemState) => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      {/* Desktop: always visible */}
+      <div className="pointer-events-auto absolute right-4 top-4 z-30 hidden sm:block">
+        <VehiclePanel value={value} onChange={onChange} />
+      </div>
+      {/* Mobile: toggle button top-right */}
+      <div className="pointer-events-auto absolute right-4 top-4 z-30 sm:hidden">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-label="Toggle telemetry panel"
+          aria-expanded={open}
+          className="glass-panel flex h-10 w-10 items-center justify-center rounded-2xl shadow-xl backdrop-blur-xl transition-all active:scale-95"
+        >
+          <TelemetryIcon />
+        </button>
+        {open && (
+          <div className="absolute right-0 top-12 w-72 max-w-[calc(100vw-2rem)]">
+            <VehiclePanel value={value} onChange={onChange} />
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
+function TelemetryIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
   )
 }
 

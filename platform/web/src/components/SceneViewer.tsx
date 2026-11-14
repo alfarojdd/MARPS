@@ -29,14 +29,14 @@ export default function SceneViewer({ scene, onClose }: { scene: Scene | null; o
       ref={dialogRef}
       onClose={onClose}
       aria-label={scene ? `3D reconstruction: ${scene.title}` : undefined}
-      className="scene-dialog glass-panel m-auto h-[88vh] w-[min(1200px,94vw)] max-w-none rounded-3xl p-0 text-paper backdrop:bg-void/70 backdrop:backdrop-blur-sm"
+      className="scene-dialog glass-panel m-auto h-[88vh] w-[min(1200px,96vw)] max-w-none rounded-3xl p-0 text-paper backdrop:bg-void/70 backdrop:backdrop-blur-sm sm:h-[88vh] sm:w-[min(1200px,94vw)]"
     >
       {scene && (
         <div className="flex h-full flex-col">
-          <header className="flex items-start justify-between gap-3 border-b border-paper/10 px-4 py-3">
-            <div className="min-w-0">
-              <div className="truncate text-[14px] font-semibold">{scene.title}</div>
-              <div className="truncate text-[11px] text-faint">
+          <header className="flex flex-col gap-2 border-b border-paper/10 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold leading-snug sm:text-[14px]">{scene.title}</div>
+              <div className="mt-0.5 truncate text-[10px] text-faint sm:text-[11px]">
                 {scene.author} · {KIND_LABEL[scene.kind]}
                 {scene.sol ? ` · sol ${scene.sol}` : ''} · {scene.license}
               </div>
@@ -45,7 +45,7 @@ export default function SceneViewer({ scene, onClose }: { scene: Scene | null; o
               type="button"
               onClick={onClose}
               autoFocus
-              className="glass-pill shrink-0 rounded-xl px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-white/[0.08]"
+              className="glass-pill self-start rounded-xl px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-white/[0.08] sm:shrink-0"
             >
               Back to map ✕
             </button>
