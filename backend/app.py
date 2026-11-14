@@ -52,7 +52,7 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="MARPS", lifespan=lifespan)
+app = FastAPI(title="MARPS", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)  # public via Funnel
 llm_router = APIRouter()
 
 _client = None

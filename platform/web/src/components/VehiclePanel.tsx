@@ -19,12 +19,7 @@ export default function VehiclePanel({ value, onChange }: { value: SystemState; 
 
   return (
     <section aria-label="Vehicle telemetry" className="glass-panel w-60 rounded-2xl p-3 shadow-xl backdrop-blur-xl">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-paper">Telemetry</span>
-        <span className="rounded bg-oxide/20 px-1.5 font-mono text-[8px] uppercase tracking-wider text-oxide" title="Read-only on a real mission">
-          Simulation
-        </span>
-      </div>
+      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.18em] text-paper">Telemetry</span>
 
       <label className="mt-2.5 block">
         <span className="flex justify-between font-mono text-[9px] uppercase tracking-[0.14em] text-faint">
