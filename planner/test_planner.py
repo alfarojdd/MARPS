@@ -42,7 +42,7 @@ def test_params_validation():
         P.Params.from_dict({"safety": "extreme"})
     with pytest.raises(ValueError):
         P.Params.from_dict({"science_targets": [{"target": "gold"}]})
-    p = P.Params.from_dict({"human": True, "extra_field_from_llm": 1, "science_detour": "high"})
+    p = P.Params.from_dict({"human": True, "extra_field_from_slm": 1, "science_detour": "high"})
     assert p.human and p.safety == "normal" and p.detour == 1.0
 
 
@@ -111,7 +111,7 @@ def test_report_charging_stop_leaves_reserve(planner):
 def test_sun_table_maps_to_local_solar_time(planner):
     sun = planner.sun
     if sun is None:
-        pytest.skip(f"sin mapa de sombras: {planner.sun_error}")
+        pytest.skip(f"no shadow map: {planner.sun_error}")
     assert 5 < sun.sunrise < 7 and 17 < sun.sunset < 19
     assert sun.at([12.0], [700], [800])[0] > 0.5      # at noon, crater floor lit
     assert sun.at([2.0], [700], [800])[0] == 0          # at night, no light
@@ -119,7 +119,7 @@ def test_sun_table_maps_to_local_solar_time(planner):
 
 def test_shadow_metrics_and_daylight_window_from_csv(planner):
     if planner.sun is None:
-        pytest.skip("sin mapa de sombras")
+        pytest.skip("no shadow map")
     rep, codes = _report(planner, {}, {"start_hour": 4.0, "battery_kwh": 40})
     assert "NO_DAYLIGHT_AT_DEPARTURE" in codes
     assert rep["sun"]["source"].startswith("SunAngle.csv")
@@ -128,7 +128,7 @@ def test_shadow_metrics_and_daylight_window_from_csv(planner):
 
 def test_charging_spot_is_lit(planner):
     if planner.sun is None:
-        pytest.skip("sin mapa de sombras")
+        pytest.skip("no shadow map")
     rep, codes = _report(planner, {"power": True}, {"start_hour": 6.0, "battery_kwh": 10})
     ch = rep["route"]["charging_stop"]
     assert ch is not None and ch["mean_direct_light"] > 0.3

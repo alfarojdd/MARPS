@@ -147,8 +147,8 @@ export default function MissionPanel({
               </div>
               <p className="mt-1 text-[12px] leading-relaxed text-paper/90 sm:text-[13px]">
                 {route.explanation === null
-                  ? 'Writing the briefing with the local LLM…'
-                  : route.explanation || 'Briefing unavailable (LLM offline). Figures above come from the planner.'}
+                  ? 'Writing the briefing with the local SLM…'
+                  : route.explanation || 'Briefing unavailable (SLM offline). Figures above come from the planner.'}
               </p>
               {route.report.route?.charging_stop && (
                 <p className="mt-1.5 text-[11px] text-paper/85">

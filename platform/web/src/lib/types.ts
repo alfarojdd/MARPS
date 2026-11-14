@@ -30,7 +30,7 @@ export interface ScienceTarget {
   priority: number
 }
 
-/** What the local LLM extracts from the mission text (POST /parse-mission). */
+/** What the local SLM extracts from the mission text (POST /parse-mission). */
 export interface MissionRequirements {
   human: boolean
   origin: string | null
@@ -43,7 +43,7 @@ export interface MissionRequirements {
   return_to_origin: boolean
 }
 
-/** Vehicle state, set by the system and not by the LLM. */
+/** Vehicle state, set by the system and not by the SLM. */
 export interface SystemState {
   start_hour: number
   battery_kwh: number
@@ -107,7 +107,7 @@ export interface PlannedRoute {
   warnings: PlanWarning[]
   /** Route response geometry (lon/lat), consumed by the 3D viewer */
   geojson: PlanResponse['geojson']
-  /** One or two sentences from the local LLM; null while it is being written or if it failed. */
+  /** One or two sentences from the local SLM; null while it is being written or if it failed. */
   explanation: string | null
   report: PlanReport
 }

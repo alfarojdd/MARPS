@@ -5,22 +5,21 @@ const COLORS = {route: "#ffb347", classic_astar: "#9fd3ff", origin: "#5fd38a", d
 /** Shared route/relief controls for the main map and the existing styled route demo. */
 export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d/demo_route.json"}) {
   container.classList.add("route-map");
-  const es = document.documentElement.lang === "es";
   container.insertAdjacentHTML("beforeend", `
-    <section id="tools" class="route-card" aria-label="${es ? "Ruta y relieve" : "Route and relief"}">
+    <section id="tools" class="route-card" aria-label="Route and relief">
       <button id="btn3d" aria-pressed="false" disabled>3D</button>
-      <button id="routeFit">${es ? "Encuadrar trayectoria" : "Frame route"}</button>
-      <div class="route-legend"><span id="routeKind">${es ? "Ruta de ejemplo" : "Example route"}</span><br>
-        <span class="key" style="background:#ffb347"></span>${es ? "planificada" : "planned"} ·
+      <button id="routeFit">Frame route</button>
+      <div class="route-legend"><span id="routeKind">Example route</span><br>
+        <span class="key" style="background:#ffb347"></span>planned ·
         <span class="key" style="background:#9fd3ff"></span>A*</div>
-      <label class="only3d">${es ? "Exageración vertical" : "Vertical exaggeration"} <span id="exv">×3</span>
+      <label class="only3d">Vertical exaggeration <span id="exv">×3</span>
         <input id="ex" type="range" min="1" max="8" step=".5" value="3"></label>
-      <label class="only3d">${es ? "Relieve" : "Relief source"}<select id="src"></select></label>
-      <button id="replay" class="only3d">${es ? "Repetir trayectoria" : "Replay route"}</button>
+      <label class="only3d">Relief source<select id="src"></select></label>
+      <button id="replay" class="only3d">Replay route</button>
       <div id="status" role="status"></div>
     </section>
-    <section id="profile" class="route-card" aria-label="${es ? "Perfil de elevación" : "Route elevation profile"}">
-      <div class="h"><span>${es ? "Elevación a lo largo de la ruta" : "Elevation along the route"}</span><span id="pinfo"></span></div>
+    <section id="profile" class="route-card" aria-label="Route elevation profile">
+      <div class="h"><span>Elevation along the route</span><span id="pinfo"></span></div>
       <svg id="psvg" preserveAspectRatio="none"></svg>
     </section>`);
   const $ = selector => container.querySelector(selector);
@@ -37,7 +36,7 @@ export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d
       pointToLayer: (f, p) => L.circleMarker(p, {radius: 6, weight: 2, color: "#fff", fillOpacity: 1, fillColor: COLORS[f.properties.kind] || "#ffe066"}),
     }).addTo(map);
     t3d.setRoute(plan);
-    $("#routeKind").textContent = example ? (es ? "Ruta de ejemplo" : "Example route") : (es ? "Ruta planificada" : "Planned route");
+    $("#routeKind").textContent = example ? "Example route" : "Planned route";
     if (t3d.active) drawProfile();
     container.dataset.routeReady = "true";
   }
@@ -50,7 +49,7 @@ export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d
   $("#routeFit").onclick = fitRoute;
 
   async function loadRelief(url) {
-    $("#status").textContent = es ? "Cargando relieve…" : "Loading relief…";
+    $("#status").textContent = "Loading relief…";
     const meta = await t3d.load(url);
     if (!meta) return null;
     sourceLoaded = url;
@@ -78,7 +77,7 @@ export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d
         btn.setAttribute("aria-pressed", "false"); btn.textContent = "3D";
       }
     } catch (error) {
-      $("#status").textContent = `${es ? "Relieve no disponible" : "Relief unavailable"}: ${error.message}`;
+      $("#status").textContent = `Relief unavailable: ${error.message}`;
       if (t3d.active) await t3d.exit();
       container.classList.remove("is3d"); btn.setAttribute("aria-pressed", "false"); btn.textContent = "3D";
     } finally { busy = false; btn.disabled = false; $("#src").disabled = false; }
@@ -113,7 +112,7 @@ export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d
     const response = await fetch(routeUrl);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     setRoute(await response.json(), {example: true}); fitRoute();
-  } catch (error) { $("#status").textContent = `${es ? "No se pudo cargar la ruta" : "Route unavailable"}: ${error.message}`; }
+  } catch (error) { $("#status").textContent = `Route unavailable: ${error.message}`; }
   try {
     const response = await fetch("/api/terrain-sources");
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -121,8 +120,8 @@ export async function initRouteView({map, cfg, container, routeUrl = "/terrain3d
     $("#src").replaceChildren(...sources.map(source => new Option(source.title, source.url)));
     btn.disabled = !sources.length;
     if (!sources.length) {
-      btn.textContent = es ? "Relieve 3D no preparado" : "3D relief not prepared";
-      $("#status").textContent = es ? "El mapa 2D y las reconstrucciones están disponibles." : "The 2D map and surface reconstructions are available.";
+      btn.textContent = "3D relief not prepared";
+      $("#status").textContent = "The 2D map and surface reconstructions are available.";
     }
   } catch (error) { $("#status").textContent = error.message; }
   window.addEventListener("pagehide", () => t3d.dispose(), {once: true});

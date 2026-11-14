@@ -1,6 +1,6 @@
-"""Traverse report for the helmet LLM summary.
+"""Traverse report for the helmet SLM summary.
 
-Input: mission parameters (produced by the LLM) + system state (known by the vehicle: time, battery).
+Input: mission parameters (produced by the SLM) + system state (known by the vehicle: time, battery).
 Output: a JSON with the route, the comparison against the classic A*, the "why" and light and battery warnings.
 If the battery is not enough, it proposes the energy-saving route and, if needed, a solar charging stop in the
 sunniest area near the route (and replans through it).

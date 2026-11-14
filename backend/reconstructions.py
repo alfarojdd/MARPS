@@ -1,4 +1,4 @@
-"""Adapter for the MARPS_Jezero_3D package (without downloading or copying its binaries)."""
+"""Surface-reconstruction catalogue: reads the versioned metadata and the locally prepared models."""
 import csv
 import json
 import math
@@ -7,9 +7,7 @@ from pathlib import Path
 RADIUS = 3396190.0
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLED_DATASET = ROOT / "data/jezero/reconstructions"
-LEGACY_DATASET = ROOT / "MARPS_Jezero_3D_datos/MARPS_Jezero_3D"
-# Keep existing installations; a fresh clone includes the lightweight metadata.
-DEFAULT_DATASET = LEGACY_DATASET if (LEGACY_DATASET / "catalogos/modelos_curados.csv").is_file() else BUNDLED_DATASET
+DEFAULT_DATASET = BUNDLED_DATASET
 
 
 def read_json(path):
@@ -32,7 +30,7 @@ def mesh_anchor(dataset):
                          if f["properties"].get("site") == 6 and f["properties"].get("drive") == 2684), None)
         if waypoint:
             return waypoint["geometry"]["coordinates"][:2], "NASA MMGIS"
-    return None, "Sin localización RMC verificada"
+    return None, "No verified RMC location"
 
 
 def build_catalog(dataset=DEFAULT_DATASET):
@@ -51,18 +49,19 @@ def build_catalog(dataset=DEFAULT_DATASET):
                 except (ValueError, KeyError):
                     pass
                 kind = row.get("kind", "")
+                # The catalogue "kind" column holds Spanish data values: "detalle" = close-up detail, "aére" (aérea) = aerial view.
                 scenes.append(dict(
                     id=row["uid"], title=row["name"], author=row["author"],
                     kind="detail" if "detalle" in kind else "aerial" if "aére" in kind else "landscape",
                     category=kind, renderer="sketchfab", coordinates=coords,
-                    anchor=row.get("anchor_type", "Sin ubicación verificada"),
+                    anchor=row.get("anchor_type", "No verified location"),
                     sol=int(row["sol_in_title"]) if row.get("sol_in_title", "").isdigit() else None,
-                    license=row.get("license") or "No informada", source=row["url"],
+                    license=row.get("license") or "Not provided", source=row["url"],
                     description=row.get("description", ""), available=True,
                 ))
     else:
-        warnings.append("No se encontró el catálogo. Ejecuta python3 backend/prepare_reconstructions.py --dataset \""
-                        + str(dataset) + "\" o indica la carpeta extraída con --dataset.")
+        warnings.append("Catalogue not found. Run python3 backend/prepare_reconstructions.py --dataset \""
+                        + str(dataset) + "\" or point --dataset to the extracted folder.")
 
     manifest = dataset / "cheyava_falls/scene_original.json"
     if manifest.exists():
@@ -73,10 +72,10 @@ def build_catalog(dataset=DEFAULT_DATASET):
             id="cheyava-falls", title="Cheyava Falls · Neretva Vallis", author="Planetary Scene Studio",
             kind="landscape", category="Gaussian Splatting local", renderer="spz",
             coordinates=[origin["x"] * k, origin["y"] * k],
-            anchor="Origen de la escena publicado por sus autores; no es la posición exacta de la roca.",
-            sol=1195, solEnd=1210, license="Redistribución pendiente de confirmar con los autores",
+            anchor="Scene origin as published by its authors; not the exact position of the rock.",
+            sol=1195, solEnd=1210, license="Redistribution terms to be confirmed with the authors",
             source="https://github.com/Matusvec/spaceX-Mhacks-Challenge",
-            description="241 imágenes de Perseverance, 972.047 gaussianas. Entorno parcial de radio 9 m; hay huecos y menor nitidez fuera de las vistas originales. Altura de ojos aproximada, sin colisiones físicas.",
+            description="241 Perseverance images, 972,047 gaussians. Partial environment of 9 m radius; gaps and reduced sharpness outside the original viewpoints. Approximate eye height, no physical collisions.",
             available=(manifest.parent / "splat.spz").is_file(),
             asset="/reconstructions/files/cheyava_falls/splat.spz",
             # The SPZ is already in the site frame (+Z up); do not reapply train_to_site_shift.
@@ -94,21 +93,21 @@ def build_catalog(dataset=DEFAULT_DATASET):
         coords, anchor_source = mesh_anchor(dataset)
         scenes.insert(1 if manifest.exists() else 0, dict(
                 id="nasa-navcam-sol180", title="Citadelle · Navcam NASA · sol 180", author="NASA/JPL-Caltech",
-                kind="landscape", category="Malla estéreo local", renderer="obj",
+                kind="landscape", category="Local stereo mesh", renderer="obj",
                 coordinates=coords,
-                anchor=f"{anchor_source}: posición del rover, site 6, drive 2684; no huella de la malla.",
-                sol=180, license="NASA/PDS · consultar la procedencia del producto",
+                anchor=f"{anchor_source}: rover position, site 6, drive 2684; not the mesh footprint.",
+                sol=180, license="NASA/PDS · check the product provenance",
                 source="https://pds.nasa.gov/ds-view/pds/viewCollection.jsp?identifier=urn:nasa:pds:mars2020_navcam_ops_mesh:data",
-                description="Malla estéreo texturizada parcial. Marco NASA SITE_FRAME (+X norte, +Y este, +Z abajo). Vista inicial sobre la superficie; sin continuidad ni colisiones garantizadas.",
+                description="Partial textured stereo mesh. NASA SITE_FRAME (+X north, +Y east, +Z down). Initial view above the surface; continuity and collisions are not guaranteed.",
                 available=obj.is_file() and obj.with_suffix(".png").is_file(), asset=f"/reconstructions/files/ejemplo_malla_NASA/{obj.name}",
                 texture=f"/reconstructions/files/ejemplo_malla_NASA/{obj.stem}.png",
                 frame="nasa-ned", radius=20,
         ))
 
     if any(not scene["available"] for scene in scenes if scene["renderer"] != "sketchfab"):
-        warnings.append("Faltan archivos de reconstrucciones locales. Ejecuta python3 backend/prepare_reconstructions.py"
+        warnings.append("Local reconstruction files are missing. Run python3 backend/prepare_reconstructions.py"
                         + ("" if dataset.resolve() == DEFAULT_DATASET.resolve() else ' --dataset "' + str(dataset) + '"')
-                        + ". Comprueba la instalación con --check.")
+                        + ". Verify the installation with --check.")
 
     return dict(version=1, body="Mars", radius=RADIUS, scenes=scenes, warnings=warnings,
                 counts=dict(total=len(scenes), placed=sum(s["coordinates"] is not None for s in scenes),

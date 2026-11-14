@@ -4,7 +4,6 @@
 - **Official page:** https://www.spaceappschallenge.org/2026/challenges/interplanetary-survival-guide-martian-map/
 - **Difficulty:** Intermediate.
 - **Subjects:** Human Exploration, Mars, Planets & Moons, Software, Space Exploration.
-- **Number:** we call it "challenge 11", but in the official Málaga list (14 challenges) it is **no. 10** ("Guía de supervivencia marciana"). No. 11 is "Lunar Landing Site Navigator". The one we are working on is the **Martian Map**.
 
 ## What it asks for
 
@@ -37,4 +36,15 @@ Tools such as JPL Mars Trek or the USGS geologic maps already let you overlay la
 | NASA Worldview | Inspiration (it covers Earth) | https://worldview.earthdata.nasa.gov/ |
 | Perseverance Raw Images | More than 1 million surface images | https://mars.nasa.gov/mars2020/multimedia/raw-images/ |
 
-Likely additional data sources (to be verified when we reach the data phase): HiRISE (DTMs and high-resolution images), CTX, THEMIS (thermal inertia), CRISM (mineralogy), MOLA (global topography), MEDA/REMS (surface weather), Curiosity's RAD (radiation).
+Other relevant sources: HiRISE (DTMs and high-resolution images), CTX, THEMIS (thermal inertia), CRISM (mineralogy), MOLA (global topography), MEDA/REMS (surface weather) and Curiosity's RAD (radiation).
+
+## How MARPS answers it
+
+| Requirement | MARPS |
+|---|---|
+| Hyperlocal, layered map of a specific area | 14 layers of Jezero crater on a common 20 m grid, switchable in the interface and draped over a 3D relief |
+| At least three data types | Topographic (CTX/HRSC DTM), thermal (THEMIS), spectral (CRISM), geologic (USGS), derived solar and radiation exposure |
+| Astronaut safety first | Hard slope, cross-slope and hazard-buffer limits, daylight and battery checks, shadow avoidance, charging stops; the safety constraints cannot be relaxed by the language model |
+| Route that meets science objectives while avoiding obstacles | The mission text sets science targets (carbonates, clays, olivine...) and the planner detours through them within a time budget |
+| First-person images | 3D reconstructions of Perseverance imagery, reachable from the map and from the 3D relief |
+| Works in any format and time frame | Web interface; the models run locally, so it works without a link to Earth |

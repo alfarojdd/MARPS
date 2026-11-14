@@ -18,7 +18,7 @@ def fetch(url, name):
                     compress="deflate", tiled=True, blockxsize=256, blockysize=256)
         with rasterio.open(bl.RAW / name, "w", **prof) as d:
             d.write(data)
-    print(name, data.shape, f"{(data[0] != (prof['nodata'] or 0)).mean() * 100:.1f}% con dato")
+    print(name, data.shape, f"{(data[0] != (prof['nodata'] or 0)).mean() * 100:.1f}% with data")
 
 
 if __name__ == "__main__":

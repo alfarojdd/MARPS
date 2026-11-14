@@ -5,7 +5,7 @@ Which layers the map has, where they come from, how they are generated and what 
 ## Working area
 - **Bbox (lon/lat, Mars 2000 sphere R = 3 396 190 m)**: 77.1604655–77.6991776 °E, 18.2110274–18.7211945 °N. About 32 × 30 km on the western edge of Jezero crater: delta, crater floor, Séítah and western rim.
 - It matches exactly the extent of the CTX DTM that USGS prepared for Mars 2020 TRN navigation; that is the **common grid**: equirectangular (`+proj=eqc +R=3396190`), 20 m/px, 1596 × 1512 px, NW corner at (4 573 663.25, 1 109 693.14) m.
-- **Base rule (decided on 2026-11-14)**: only layers with data over the whole bbox (≥ 99.9 %) go into the base. `pipeline/build_layers.py stack` and the test `test_base_stack_covers_whole_bbox` enforce it. **The only exception accepted by the user: `thermal_inertia` (96.1 %)**, flagged with `min_coverage` in `layers.STACK_BANDS`. Everything is clipped exactly to the bbox; the viewer does not allow leaving the box.
+- **Base rule**: only layers with data over the whole bbox (≥ 99.9 %) go into the base. `pipeline/build_layers.py stack` and the test `test_base_stack_covers_whole_bbox` enforce it. **The only exception: `thermal_inertia` (96.1 %)**, flagged with `min_coverage` in `layers.STACK_BANDS`. Everything is clipped exactly to the bbox; the viewer does not allow leaving the box.
 
 ## Where everything is in the repo
 | Path | Contents |
@@ -15,7 +15,7 @@ Which layers the map has, where they come from, how they are generated and what 
 | `data/jezero/extra/geo_unit.tif` | Geologic units (complementary layer, 95.8 %) |
 | `data/jezero/pipeline/` | Code that generates everything, plus its tests |
 | `platform/viewer/index.html` | Leaflet viewer; tiles are not versioned, they are generated with `make_viewer_data.py` |
-| `assets/JEZ_ctx_B_soc_008_orthoMosaic_6m_…tif` | 6 m CTX orthoimage (uploaded by the team); it is the background image |
+| `assets/JEZ_ctx_B_soc_008_orthoMosaic_6m_…tif` | 6 m CTX orthoimage (not versioned; download link in [DATA_SOURCES.md](DATA_SOURCES.md)); it is the background image |
 
 The original downloads, intermediate layers and discarded layers (HiRISE, CRISM) are not pushed: they are regenerated with the pipeline.
 
@@ -31,13 +31,13 @@ The original downloads, intermediate layers and discarded layers (HiRISE, CRISM)
 | `tpi_ctx_500m` | Topographic Position Index (1 km window) | 20 m | Der. | Ridges (line of sight) versus hollows (shelter, sand) | Communications, wind and dust |
 | `aspect_ctx` | Slope aspect (0 = N) | 20 m | Der. | Sun exposure | Panels, thermal, lighting |
 | `hillshade_ctx` | Hillshade (sun 315°, 45°) | 20 m | Der. | Reading the relief | Visual |
-| `insolation_rel` | Our own model: annual mean cos(incidence) / flat ground, no shadows | 20 m | Der. | Solar energy and thermal load | Long missions with panels |
-| `atm_column_pct` | Our own proxy: extra atmospheric column (H = 11.1 km) | 20 m | Der. | More atmosphere overhead in low areas (up to ~11 %) | Long EVAs, solar events |
+| `insolation_rel` | Derived by MARPS: annual mean cos(incidence) / flat ground, no shadows | 20 m | Der. | Solar energy and thermal load | Long missions with panels |
+| `atm_column_pct` | Derived by MARPS: proxy of the extra atmospheric column (H = 11.1 km) | 20 m | Der. | More atmosphere overhead in low areas (up to ~11 %) | Long EVAs, solar events |
 | `thermal_inertia` (**96.1 %**) | THEMIS, Edwards & Buz 2021 (Zenodo 4931348) | 100 m | Obs.* | High = firm rock; low = sand or dust (getting stuck) | Heavy load, long routes |
 | `themis_day_ir` | THEMIS daytime IR, USGS MC-13 controlled mosaic | 100 m | Obs. | Daytime thermal contrast | Complements thermal inertia |
 | `themis_night_ir` | THEMIS nighttime IR, USGS MC-13 controlled mosaic | 100 m | Obs. | At night rock retains heat → firm rock | Same |
 
-Obs. = observed; Obs.* = already-interpreted science product; Der. = derived or inferred by us.
+Obs. = observed; Obs.* = already-interpreted science product; Der. = derived or inferred by MARPS.
 
 ### Complementary (in the viewer, outside the stack)
 | Layer | Coverage | Why it is kept |
@@ -48,7 +48,7 @@ Obs. = observed; Obs.* = already-interpreted science product; Der. = derived or 
 Geologic contacts, ridges, delta fronts, channels, dark mantles and small craters.
 
 ### Data caveats
-- **Thermal inertia: the Jezero product was chosen (user decision, 2026-11-14).** It has no data in a 1.2 km strip along the western edge (77.160–77.181 °E): there the band is NaN and the planner must treat it as "unknown", not as zero. The quantitative global USGS alternative covers 100 %, but it has vertical striping between THEMIS passes; compared with the Jezero product, the correlation is 0.41 and it gives +106 TIU on average. It is stored in `layers20m/thermal_inertia_global.tif`.
+- **Thermal inertia: the Jezero-specific product was chosen.** It has no data in a 1.2 km strip along the western edge (77.160–77.181 °E): there the band is NaN and the planner must treat it as "unknown", not as zero. The quantitative global USGS alternative covers 100 %, but it has vertical striping between THEMIS passes; compared with the Jezero product, the correlation is 0.41 and it gives +106 TIU on average. It is stored in `layers20m/thermal_inertia_global.tif`.
 - **`atm_column_pct` is not radiation.** There is no orbital dose map at this scale.
 - **`insolation_rel`** ignores cast shadows and dust.
 - **THEMIS IR (DN)** is qualitative: it is useful for comparing areas, not as an absolute temperature.
@@ -83,7 +83,7 @@ pip install -r data/jezero/pipeline/requirements.txt
 cd data/jezero/pipeline
 python unpack_stack.py                 # layers20m/ from the published stack
 python make_viewer_data.py             # tiles, legends and probe in platform/viewer/data (~2 min)
-cd ../../.. && python3 -m http.server 8765 --directory platform/viewer   # http://localhost:8765
+cd ../../.. && python3 backend/app.py   # standalone layer viewer at http://127.0.0.1:8765/viewer/
 python -m pytest -q data/jezero/pipeline
 ```
 
@@ -92,7 +92,7 @@ Regenerate the stack from the original data (downloads below, in `data/jezero/ra
 python build_layers.py base            # CTX, HRSC, THEMIS (downloads clips), CRISM, geology
 python build_layers.py stack           # fails if any base band does not cover the whole bbox
 ```
-`build_layers.py hirise_dtm` / `hirise_ortho` regenerate the discarded HiRISE layers. Each regeneration of the stack adds ~90 MB to the git history: do not push it for every small change.
+`build_layers.py hirise_dtm` / `hirise_ortho` regenerate the discarded HiRISE layers.
 
 Manual downloads to `data/jezero/raw/`:
 | File | URL |

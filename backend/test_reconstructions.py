@@ -34,7 +34,7 @@ class ReconstructionTests(unittest.TestCase):
         fields = ["uid", "name", "author", "kind", "anchor_lon", "anchor_lat", "sol_in_title", "license", "url"]
         common = dict(author="NASA", license="CC Attribution", url="https://sketchfab.com/3d-models/example")
         rows = [dict(common, uid="terrain", name="Terreno", kind="escena/afloramiento", anchor_lon="77.3", anchor_lat="18.4", sol_in_title="180"),
-                dict(common, uid="rock", name="Roca", kind="detalle de roca/abrasión", anchor_lon="", anchor_lat="", sol_in_title=""),
+                dict(common, uid="rock", name="Rock", kind="detalle de roca/abrasión", anchor_lon="", anchor_lat="", sol_in_title=""),
                 dict(common, uid="invalid", name="Sin ancla", kind="escena/afloramiento", anchor_lon="nan", anchor_lat="18", sol_in_title="")]
         self.write_csv("catalogos/modelos_curados.csv", fields, rows)
         result = build_catalog(self.dataset)
@@ -86,7 +86,7 @@ class ReconstructionTests(unittest.TestCase):
     def test_ctx_fallback_agrees_with_raster_bounds(self):
         cfg = map_config()
         if "ctx" not in cfg:
-            self.skipTest("Hay capas generadas: el visor usa su configuración")
+            self.skipTest("Generated layers exist: the viewer uses their configuration")
         self.assertEqual(cfg["radius"], RADIUS)
         self.assertAlmostEqual(cfg["left"], 4573663.250853, places=4)
         self.assertAlmostEqual(cfg["top"], 1109693.140188, places=4)

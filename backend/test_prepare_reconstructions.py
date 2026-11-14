@@ -29,7 +29,7 @@ class ReconstructionInstallTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "absent"
             with patch("prepare_reconstructions.urlopen") as network:
-                with self.assertRaisesRegex(ValueError, "Faltan archivos"):
+                with self.assertRaisesRegex(ValueError, "Files are missing"):
                     prepare(path, check=True)
                 network.assert_not_called()
             self.assertFalse(path.exists())

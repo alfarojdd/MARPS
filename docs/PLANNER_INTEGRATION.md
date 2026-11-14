@@ -1,6 +1,6 @@
 # Planner integration with the backend and frontend
 
-Contract between `planner/` (routes), `backend/` (LLM + API) and the frontend (React + Leaflet). If it changes, update this file and `ARCHITECTURE.md` in the same PR.
+Contract between `planner/` (routes), `backend/` (SLM + API) and the frontend (React + Leaflet). If it changes, update this file and `ARCHITECTURE.md` in the same PR.
 
 ## Flow
 
@@ -8,18 +8,18 @@ Contract between `planner/` (routes), `backend/` (LLM + API) and the frontend (R
 Astronaut (text)
    │
    ▼
-POST /parse-mission  (backend/llm, Ollama)         → mission  (LLM JSON)
+POST /parse-mission  (backend/slm, Ollama)         → mission  (SLM JSON)
    │
    ▼  + system (time and battery, known by the vehicle)
 POST /plan-route     (planner/api.py, same FastAPI) → report + geojson + ctx_px
    │                                   │
    ▼                                   ▼
-LLM: natural-language summary       Frontend: draws the route, stops and warnings
+SLM: natural-language summary       Frontend: draws the route, stops and warnings
 ("you saved 14 % battery…")
 from `report`
 ```
 
-The LLM **does not plan**: it only fills in `mission` and then writes the summary from `report`. Everything numeric (savings, warnings, times) is computed by the planner.
+The SLM **does not plan**: it only fills in `mission` and then writes the summary from `report`. Everything numeric (savings, warnings, times) is computed by the planner.
 
 ## Requirements
 
@@ -53,7 +53,7 @@ app.include_router(planner_router)
 ```
 Full example: [../planner/examples/plan_route_request.json](../planner/examples/plan_route_request.json).
 
-### `mission` (filled in by the LLM)
+### `mission` (filled in by the SLM)
 | Field | Type | Default | Meaning |
 |---|---|---|---|
 | `human` | bool | `true` | Crew on board. Raises safety to at least `normal`, adds life support (+1.5 kW), penalises exposure and shadow, and arriving at night becomes critical |
@@ -68,7 +68,7 @@ Full example: [../planner/examples/plan_route_request.json](../planner/examples/
 **Places** (listed by `GET /places`):
 - Names: `landing_site` ("Octavia E. Butler Landing"), `belva_crater` ("Belva", "Belva crater rim"), `neretva_vallis`, `jezero_centre`, `delta_top`, `delta_carbonates`, `north_carbonates`, `crater_floor_south`, `western_rim` and `north_plains`. Case, spaces and parentheses are ignored.
 - Coordinates: `"77.45,18.44"` or `"18.44N, 77.45E"`.
-- An unknown or off-map place returns **400** with the list of valid places. The backend can ask the LLM to correct it. "Three Forks" is not there yet, because verified coordinates are missing.
+- An unknown or off-map place returns **400** with the list of valid places. The backend can ask the SLM to correct it.
 
 **`science_targets`: options for the demo**
 | `target` | What it is | Data | Where on the map |
@@ -83,9 +83,9 @@ Full example: [../planner/examples/plan_route_request.json](../planner/examples/
 | `delta` | Delta fan sediments | SIM 3464 (Jezero fan 1 and 2) | Western delta |
 | `crater_floor` | Crater floor unit | SIM 3464 (Jezero floor) | Centre and south |
 
-CRISM only covers the **central 41 %**. For the demo, A and B should be near that area (for example, from `landing_site` or `crater_floor_south` to `delta_top`). Phrase guide for the LLM prompt: [PLANNER.md](PLANNER.md) (section "`mission` schema").
+CRISM only covers the **central 41 %**. For the demo, A and B should be near that area (for example, from `landing_site` or `crater_floor_south` to `delta_top`). Phrase guide for the SLM prompt: [PLANNER.md](PLANNER.md) (section "`mission` schema").
 
-### `system` (set by the vehicle, not the LLM)
+### `system` (set by the vehicle, not the SLM)
 | Field | Default | Meaning |
 |---|---|---|
 | `start_hour` | 9.0 | Jezero local solar time (LTST, 0–24) of departure |
@@ -100,7 +100,7 @@ CRISM only covers the **central 41 %**. For the demo, A and B should be near tha
 ```
 Full example: [../planner/examples/plan_route_response.json](../planner/examples/plan_route_response.json).
 
-### `report`: for the LLM summary and the frontend panel
+### `report`: for the SLM summary and the frontend panel
 | Block | Contents |
 |---|---|
 | `feasible` | `false` if there is any critical warning |
@@ -155,26 +155,14 @@ Example summary prompt (backend): *"You are the helmet assistant. Using only the
 ### `ctx_px`: shortcut for Leaflet `CRS.Simple`
 The same lines in pixels of the 6 m CTX mosaic (`[col, row]`). The mosaic shares its north-west corner with the 20 m grid, so the conversion is exact.
 
-## What the frontend does (React + Leaflet)
+## How the interface uses it (`platform/web`)
 
-1. Sends the text to `/parse-mission` and shows the resulting `mission` so the astronaut can correct it (optional, but it builds trust).
-2. Calls `/plan-route` with `mission` and `system`, and shows "computing" (1–17 s).
-3. Draws with `ctx_px` on the CTX base map (`L.CRS.Simple`, `lat = -row`, `lng = col`):
-   ```tsx
-   const toLatLng = ([c, r]: number[]) => [-r, c] as [number, number];
-   <Polyline positions={data.ctx_px.classic_astar.map(toLatLng)} pathOptions={{ dashArray: "8 6", color: "#fff" }} />
-   <Polyline positions={data.ctx_px.route.map(toLatLng)} pathOptions={{ color: "#ff8a3d", weight: 4 }} />
-   ```
-   For points (stops, charging), use their lon/lat from `geojson`, converted to base-map pixels with `meta.json` (`col = (R·lon·π/180 − x0)/6`, `row = (y0 − R·lat·π/180)/6`), or with the team's `ctxTiles.ts` helper.
-4. Panel with:
-   - `feasible` and `warnings` (critical ones first, in red);
-   - three or four figures from `comparison` (energy saved, cross slope reduced, sand or dune km avoided, km over the science target);
-   - departure, arrival and daylight (`route.departure`, `route.arrival`, `sun`);
-   - battery on arrival;
-   - the charging stop, if any.
-5. Shows the LLM summary generated from `report`.
+1. `POST /api/parse-mission` extracts the `mission` from the text. The interface checks that origin and destination are present.
+2. `POST /api/plan-route` is called with `mission` and the editable telemetry (`system`). It takes 1–6 s, or 10–17 s with science targets.
+3. The 2D map draws `ctx_px` on the CTX base map (`L.CRS.Simple`, `lat = -row`, `lng = col`): the route in orange and the classic A* dashed. Stops are converted from their lon/lat in `geojson` to base-map pixels with the bounds in `meta.json`. The 3D view draws `geojson` directly over the relief.
+4. The panel shows the verdict, the figures (distance, time, elevation gain, maximum slope, battery on arrival), the charging and science stops and the warnings, critical ones first.
+5. `POST /api/summarize-route` sends `report` to the summariser model and shows its one-to-two-sentence briefing.
 
-## Open integration work
-- Bring the `Mission` schema into `backend/llm/api.py` (`JezeroMissionRequirements`), with `safety`, `science_targets`, `science_detour` and `return_to_origin`, and add examples to the `Modelfile`. Today the LLM only extracts 5 fields; the rest take their default values.
-- Unify place names: the frontend `places.json`, the planner `PLACES` and the `Modelfile` examples ("Three Forks" has no coordinates in any of them).
-- `SunAngle.csv` covers a single day (2026-318). For another day, generate another CSV with the same shape.
+## Notes
+- `SunAngle.csv` covers a single day (sol 2026-318). For another day, generate another CSV with the same shape.
+- Place names are shared by the planner (`PLACES`), the extractor model (`backend/slm/Modelfile`) and the interface (`GET /api/places`).

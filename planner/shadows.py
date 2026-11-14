@@ -1,4 +1,4 @@
-"""Hourly shadows and illumination for the planner, based on `mars_shadows.py` (Pablo) and `SunAngle.csv`.
+"""Hourly shadows and illumination for the planner, based on `mars_shadows.py` and `SunAngle.csv`.
 
 - Reads the solar ephemeris (Time UTC, Elevation, Azimuth) and converts it to local solar time (LTST): noon is
   the elevation maximum and one LTST hour lasts 3698.9 s (1/24 of a sol).
@@ -31,7 +31,7 @@ def _import_mars_shadows(data_dir):
     os.environ.setdefault("JEZERO_DATA", str(data_dir))  # keeps the script from searching the disk for the stack
     path = _find("mars_shadows.py", [os.environ.get("MARS_SHADOWS_DIR")])
     if path is None:
-        raise FileNotFoundError("No encuentro mars_shadows.py (raíz del repo o MARS_SHADOWS_DIR)")
+        raise FileNotFoundError("mars_shadows.py not found (repo root or MARS_SHADOWS_DIR)")
     if str(path.parent) not in sys.path:
         sys.path.insert(0, str(path.parent))
     import mars_shadows
@@ -53,7 +53,7 @@ class SunShadows:
     def __init__(self, dem, res, data_dir, csv_path=None):
         csv_path = Path(csv_path) if csv_path else _find("SunAngle.csv", [os.environ.get("SUN_CSV_DIR"), data_dir])
         if csv_path is None:
-            raise FileNotFoundError("No encuentro SunAngle.csv (assets/ del repo o SUN_CSV_DIR)")
+            raise FileNotFoundError("SunAngle.csv not found (repo assets/ or SUN_CSV_DIR)")
         ms = _import_mars_shadows(data_dir)
         rows = ms.read_sun_csv(csv_path)
         ltst, el = ltst_of(rows)

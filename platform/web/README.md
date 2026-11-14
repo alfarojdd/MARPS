@@ -1,73 +1,43 @@
-# MARPS Web Frontend
+# MARPS web application
 
-React + Vite + Tailwind + Leaflet frontend for the Mars Aerial Route Pairing System (Jezero Crater).
+React, Vite, Tailwind CSS, Leaflet and Three.js interface of the Mars Aerial Route Pairing System, for Jezero crater.
 
 ## Features
 
-- Operations UI: full-bleed Jezero mosaic, numbered brief, translation, and path readout
-- CTX orthomosaic basemap (6 m/px tiles)
-- Natural-language mission → LLM extraction (`POST /parse-mission`)
-- Real planner (`POST /plan-route`): route, shortest-path A* for comparison, stops, warnings, plus an LLM briefing (`POST /summarize-route`)
-- Responsive (works on laptop + phone)
-- Known places only for the demo (see below)
+- **Mission panel.** Natural-language mission text, three demo missions that also set the vehicle state, and a briefing from the local small language model (SLM) with the planner's figures, stops and warnings.
+- **2D map** over the 6 m CTX mosaic (`L.CRS.Simple`, 1 unit = 1 pixel of the 5322 × 5040 raster) with the planned route, the classic shortest-path A* (dashed), stops and named places.
+- **Layers.** Basemap (CTX mosaic or shaded relief) and one of 14 data layers (elevation, slope, roughness, thermal inertia, sunlight, radiation shielding, geology, mineralogy...) with legend and opacity.
+- **3D relief.** Three.js view of the CTX DTM (vertical exaggeration ×3) with the route drawn over the terrain, the selected layer draped on it and a *Replay route* button.
+- **3D surface reconstructions.** Located scenes appear as `3D` points in 2D and 3D and open in a viewer where local scenes can be explored in first person.
+- **Telemetry.** Departure time, battery, capacity and reserve are editable to explore how the vehicle state changes the route.
 
-## Known places (demo)
-
-The LLM can return these names (fuzzy matching is applied):
-
-- **Octavia E. Butler Landing (Perseverance)**
-- **Belva (crater)**
-- **Neretva Vallis**
-- **Jezero (crater centre)**
-
-## Quick start
+## Development
 
 ```bash
 cd platform/web
-
-# Install (once)
-npm install
-
-# Make sure the backend LLM is running on :8000
-# (from repo root)
-# backend/run.sh   (LLM on tfm-lab + planner, port 8765; see backend/llm/README.md)
-
-# Start frontend
-npm run dev
+npm ci
+npm run dev          # http://localhost:5173
 ```
 
-Open http://localhost:5173
+The development server proxies `/api`, `/viewer`, `/reconstructions`, `/assets/ctx`, `/data` and `/terrain3d` to the MARPS server (`python3 backend/app.py` or `backend/run.sh`, port 8765 by default). Use `MARPS_API=http://host:port npm run dev` to point it elsewhere.
 
-The Vite dev server proxies `/api/*` → `http://localhost:8000/*`.
+| Command | Description |
+|---|---|
+| `npm run dev` | Development server |
+| `npm run build` | Type-check and production build in `dist/` (served by `backend/app.py` when present) |
+| `npm run preview` | Preview the production build |
 
-### Environment
-
-Optional:
+## Structure
 
 ```
-VITE_API_URL=http://localhost:8000
+src/App.tsx                 State and layout
+src/components/MapView.tsx  Leaflet map, layers, route, 3D view integration
+src/components/MissionPanel.tsx, VehiclePanel.tsx, LayersPopover.tsx, SceneViewer.tsx, Brand.tsx
+src/lib/                    API client, types, route conversion, 3D viewer helpers
+public/layers/ctx/          CTX mosaic tiles
+public/layers/thematic/     One image per data layer (data/jezero/pipeline/export_web_layers.py)
+public/brand/               Logos
+vercel.json                 Proxy of the API and data paths to the MARPS server
 ```
 
-If you set this, the proxy is bypassed.
-
-## Tiles
-
-Tiles live in `public/layers/ctx/` (already present from the repo assets).
-
-They were generated from the CTX orthomosaic. See `assets/zones/public/layers/ctx/README.md` for regeneration.
-
-## Architecture notes
-
-- Map uses `L.CRS.Simple` (1 unit = 1 pixel of the 5322×5040 raster).
-- Origin / Destination come **only** from the LLM JSON response.
-- Planner is currently mocked (`src/lib/mockPlanner.ts`). Replace with a real call when the planner endpoint is ready.
-- No multi-layer thematic switching yet (focus was on the core planning flow). Can be added later on top of the existing 20 m stack.
-
-## Scripts
-
-| Command        | Description              |
-|----------------|--------------------------|
-| `npm run dev`  | Development server       |
-| `npm run build`| Production build         |
-| `npm run preview` | Preview production build |
-
+The 3D engine is loaded at run time from the MARPS server (`/viewer/terrain3d/terrain3d.mjs`, with Three.js resolved through the import map in `index.html`). See [../../docs/DEPLOY.md](../../docs/DEPLOY.md) for deployment.

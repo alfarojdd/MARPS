@@ -1,6 +1,6 @@
-"""Local LLM (Ollama) for MARPS: mission text → planner parameters, planner report → astronaut summary.
+"""Local SLM (Ollama) for MARPS: mission text → planner parameters, planner report → astronaut summary.
 
-The LLM never plans: it fills in the `mission` block of POST /plan-route and rewords the numbers the
+The SLM never plans: it fills in the `mission` block of POST /plan-route and rewords the numbers the
 planner already computed.
 """
 import json
@@ -10,7 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-EXTRACT_MODEL = os.getenv("MARPS_LLM_MODEL", "jezero-extractor")
+EXTRACT_MODEL = os.getenv("MARPS_EXTRACT_MODEL", "jezero-extractor")
 SUMMARY_MODEL = os.getenv("MARPS_SUMMARY_MODEL", "jezero-summarizer")
 
 ScienceName = Literal["aqueous", "carbonates", "clays", "smectites", "kaolinite", "olivine", "pyroxene",
@@ -35,11 +35,11 @@ class JezeroMissionRequirements(BaseModel):
     return_to_origin: bool = False
 
 
-class LLMUnavailable(RuntimeError):
+class SLMUnavailable(RuntimeError):
     """Ollama could not be reached."""
 
 
-class LLMBadOutput(RuntimeError):
+class SLMBadOutput(RuntimeError):
     """The model answered something that does not fit the schema."""
 
 
@@ -63,7 +63,7 @@ def _chat(client, **kwargs):
     try:
         return client.chat(**kwargs).message.content
     except _transport_errors() as e:
-        raise LLMUnavailable(f"LLM server unavailable at {OLLAMA_HOST}: {e}") from e
+        raise SLMUnavailable(f"SLM server unavailable at {OLLAMA_HOST}: {e}") from e
 
 
 def parse_mission(client, text: str) -> JezeroMissionRequirements:
@@ -72,7 +72,7 @@ def parse_mission(client, text: str) -> JezeroMissionRequirements:
     try:
         return JezeroMissionRequirements.model_validate_json(content)
     except ValueError as e:
-        raise LLMBadOutput(f"LLM output does not match the mission schema: {e}") from e
+        raise SLMBadOutput(f"SLM output does not match the mission schema: {e}") from e
 
 
 _TARGET_NAMES = {"aqueous": "water-related terrain", "carbonates": "carbonates", "clays": "clays",

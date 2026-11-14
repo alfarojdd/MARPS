@@ -1,6 +1,6 @@
 # Planner
 
-Mission-aware route planner: A* over the 20 m Jezero grid, with a cost that depends on the LLM parameters and the vehicle state. It returns the route and a JSON report for the helmet LLM summary.
+Mission-aware route planner: A* over the 20 m Jezero grid, with a cost that depends on the SLM parameters and the vehicle state. It returns the route and a JSON report for the helmet SLM summary.
 
 ```bash
 pip install -r planner/requirements.txt fastapi

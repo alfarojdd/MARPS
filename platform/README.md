@@ -1,5 +1,10 @@
 # platform
 
-Web interface: layered map, origin and destination, mission box and results panel. See [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+User interfaces.
 
-The implemented viewer is in `viewer/`: example planned route, comparison against classic A*, stops, optional tilted relief with elevation profile, and access to surface reconstructions from both 2D and 3D points. The existing floating-card route map (`viewer/terrain3d/demo.html`) uses the same route/POI integration. Setup and current scope: [viewer/README.md](viewer/README.md). Mission text → LLM → a new route is not wired into this browser interface yet.
+| Directory | Contents |
+|---|---|
+| [`web/`](web/README.md) | **The MARPS application** (React, Leaflet, Three.js): mission panel, 2D map with 14 data layers, 3D relief view with the route, surface reconstructions, editable telemetry and Bellona's briefing. Deployed on Vercel. |
+| [`viewer/`](viewer/README.md) | The Three.js terrain engine (`terrain3d/terrain3d.mjs`) and the surface-reconstruction viewer (`surface.html`) used by the application, plus a standalone Leaflet layer viewer served at `/viewer/` for inspecting the layers and reconstructions without the planner. |
+
+Architecture and API contracts: [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).

@@ -27,7 +27,7 @@ import terrain
 
 HERE = Path(__file__).resolve().parent
 # Two layouts: in the MARPS repo the pipeline lives in data/jezero/pipeline/ and the data in data/jezero/;
-# in the working notebook it lives in tools/jezero/ and the data in data/jezero/. JEZERO_DATA overrides it.
+# in a standalone checkout it lives in tools/jezero/ and the data in data/jezero/. JEZERO_DATA overrides it.
 if os.environ.get("JEZERO_DATA"):
     DATA = Path(os.environ["JEZERO_DATA"]).resolve()
 elif (HERE.parent / "stack").exists():
@@ -91,7 +91,7 @@ def to_grid_xy(crs_from):
 # ---------------------------------------------------------------- base
 
 def build_terrain_ctx():
-    print("CTX DTM y derivadas")
+    print("CTX DTM and derivatives")
     dem = to_grid(CTX_DTM, resampling=Resampling.nearest)
     save20("elev_ctx", dem)
     slope = terrain.slope_deg(dem, RES)
@@ -142,16 +142,16 @@ def build_thermal():
 
 # Color key from Parente, Itoh and Saranathan (Jezero_readme.pdf): (high confidence, medium confidence)
 CRISM_CLASSES = [
-    ("Olivino", (255, 0, 0), (153, 0, 0)),
-    ("Carbonato de Mg", (0, 255, 0), (0, 153, 0)),
-    ("Esmectita Fe/Mg", (0, 255, 255), (0, 153, 153)),
-    ("Olivino + esmectita", (255, 128, 114), (153, 77, 68)),
-    ("Olivino/esmectita + 2.2 µm", (128, 128, 0), (77, 77, 0)),
-    ("Carbonato + 2.2 µm", (255, 215, 0), (153, 129, 0)),
-    ("Piroxeno alto en Ca", (255, 128, 0), (153, 77, 0)),
-    ("Piroxeno bajo en Ca", (218, 165, 32), (130, 99, 19)),
-    ("Caolinita", (139, 69, 19), (83, 41, 11)),
-    ("Esmectita de Mg 2", (0, 0, 255), (0, 0, 153)),
+    ("Olivine", (255, 0, 0), (153, 0, 0)),
+    ("Mg carbonate", (0, 255, 0), (0, 153, 0)),
+    ("Fe/Mg smectite", (0, 255, 255), (0, 153, 153)),
+    ("Olivine + smectite", (255, 128, 114), (153, 77, 68)),
+    ("Olivine/smectite + 2.2 µm", (128, 128, 0), (77, 77, 0)),
+    ("Carbonate + 2.2 µm", (255, 215, 0), (153, 129, 0)),
+    ("High-Ca pyroxene", (255, 128, 0), (153, 77, 0)),
+    ("Low-Ca pyroxene", (218, 165, 32), (130, 99, 19)),
+    ("Kaolinite", (139, 69, 19), (83, 41, 11)),
+    ("Mg smectite 2", (0, 0, 255), (0, 0, 153)),
 ]
 
 
@@ -179,7 +179,7 @@ def classify_crism(rgb):
 
 
 def build_crism():
-    print("CRISM (clases minerales)")
+    print("CRISM (mineral classes)")
     src = RAW / "jezeroFinal.tif"
     with rasterio.open(src) as s:
         rgb = np.zeros((3, GRID["height"], GRID["width"]), np.uint8)
@@ -192,7 +192,7 @@ def build_crism():
     cls, conf = classify_crism(rgb)
     outside = (cover == 0) | (cls == -1)
     ambiguous = ~outside & (cls == 0) & (rgb.astype(int).sum(0) > 3 * CRISM_MAX_COLOR_DIST)
-    print(f"  píxeles con color ambiguo (marcados como sin identificar): {ambiguous.sum()}")
+    print(f"  pixels with ambiguous color (marked as unidentified): {ambiguous.sum()}")
     save20("crism_class", np.where(outside, -1, cls), nodata=-1, dtype="int16")
     save20("crism_conf", np.where(outside, -1, conf), nodata=-1, dtype="int16")
 
@@ -205,7 +205,7 @@ def _clip_box_gdf(gdf):
 
 
 def build_geology():
-    print("Mapa geológico SIM 3464")
+    print("SIM 3464 geologic map")
     VEC.mkdir(parents=True, exist_ok=True)
     gdb = SIM / "Geodatabase/Nili.gdb"
     units = pyogrio.read_dataframe(gdb, layer="GeoUnits_v1").to_crs(GRID["crs"])
@@ -227,7 +227,7 @@ def build_geology():
         g = _clip_box_gdf(pyogrio.read_dataframe(gdb, layer=layer).to_crs(GRID["crs"]))
         keep = [c for c in ("TYPE", "name") if c in g.columns]
         g[keep + ["geometry"]].to_file(VEC / f"{out}.geojson", driver="GeoJSON")
-        print(f"  {out}: {len(g)} elementos")
+        print(f"  {out}: {len(g)} features")
 
 
 # ---------------------------------------------------------------- HiRISE 1 m
@@ -241,7 +241,7 @@ def _hires_profile(src, dtype, nodata):
 
 def build_hirise_dtm(chunk=1000):
     """Slope and hillshade at 1 m, plus 20 m aggregates (mean elevation, max/mean slope, roughness)."""
-    print("HiRISE DTM 1 m (por bloques)")
+    print("HiRISE DTM 1 m (in blocks)")
     HR.mkdir(parents=True, exist_ok=True)
     f = 20
     with rasterio.open(HI_DTM) as s:
@@ -266,7 +266,7 @@ def build_hirise_dtm(chunk=1000):
                 agg["slope_max"][rr] = terrain.block_reduce(sl, f, "max")
                 agg["slope_mean"][rr] = terrain.block_reduce(sl, f, "mean")
                 agg["rough"][rr] = terrain.block_reduce(sl, f, "std")
-                print(f"  filas {r1}/{H}", end="\r")
+                print(f"  rows {r1}/{H}", end="\r")
         t20 = s.transform * rasterio.Affine.scale(f)
         crs = s.crs
     print()
@@ -304,7 +304,7 @@ def build_hirise_ortho():
     Replaces the 25 cm TRN orthoimage (3.4 GB) when the download from planetarymaps is slow.
     Each image is stretched to 8 bits with its 0.5-99.5 percentiles; earlier images take priority.
     """
-    print("HiRISE ortho 1 m desde COG")
+    print("HiRISE ortho 1 m from COG")
     HR.mkdir(parents=True, exist_ok=True)
     w, s, e, n = BOUNDS
     tr = rasterio.Affine(1.0, 0, w, 0, -1.0, n)
@@ -329,7 +329,7 @@ def build_hirise_ortho():
         with rasterio.open(out_path, "r+") as d:
             cur = d.read(1, window=win)
             d.write(np.where(cur == 0, dst, cur), 1, window=win)
-        print(f"  {href.split('/')[-1]}: {(dst > 0).mean() * 100:.0f}% de su ventana")
+        print(f"  {href.split('/')[-1]}: {(dst > 0).mean() * 100:.0f}% of its window")
     with rasterio.open(out_path, "r+") as d:
         d.build_overviews([2, 4, 8, 16, 32, 64, 128], Resampling.average)
 
@@ -364,7 +364,7 @@ def build_stack():
         bands=[dict(index=i, **b) for i, b in enumerate(present, start=1)],
     )
     (STACK / "layers.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1))
-    print(f"stack: {len(present)} bandas -> {STACK / 'jezero_stack_20m.tif'}")
+    print(f"stack: {len(present)} bands -> {STACK / 'jezero_stack_20m.tif'}")
 
 
 if __name__ == "__main__":
@@ -380,4 +380,4 @@ if __name__ == "__main__":
     elif stage == "stack":
         build_stack()
     else:
-        sys.exit(f"etapa desconocida: {stage}")
+        sys.exit(f"unknown stage: {stage}")

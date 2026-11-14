@@ -1,5 +1,5 @@
 const $ = selector => document.querySelector(selector);
-const labels = {landscape: "Escena de superficie", detail: "Detalle de roca", aerial: "Vista aérea"};
+const labels = {landscape: "Surface scene", detail: "Rock detail", aerial: "Aerial view"};
 const textNode = (tag, value, className) => {
   const element = document.createElement(tag);
   element.textContent = value;
@@ -10,36 +10,36 @@ const textNode = (tag, value, className) => {
 /** Compact catalogue for the existing floating-card route map. The main viewer already has a sidebar. */
 export function mountReconstructionPanel(container) {
   container.insertAdjacentHTML("beforeend", `<details class="route-card reconstruction-panel">
-    <summary>Reconstrucciones 3D</summary>
-    <section id="reconstructions" aria-label="Reconstrucciones 3D">
-      <p class="muted">Selecciona un punto 3D para explorar la superficie.</p>
-      <div id="sceneStatus" role="status">Cargando catálogo…</div>
-      <div class="scene-actions"><button id="sceneFit">Ver puntos 3D</button><button id="sceneFeatured" disabled>Entrar en Cheyava Falls</button></div>
-      <label class="row"><input id="sceneMarkers" type="checkbox" checked>Mostrar puntos 3D</label>
-      <label class="row"><input id="sceneRoute" type="checkbox">Recorrido de Perseverance</label>
-      <input id="sceneSearch" type="search" placeholder="Buscar lugar, autor o sol…" aria-label="Buscar reconstrucciones">
-      <select id="sceneFilter" aria-label="Filtrar reconstrucciones">
-        <option value="placed">Con ubicación en el mapa</option><option value="local">Archivos 3D locales</option>
-        <option value="landscape">Escenas y afloramientos</option><option value="detail">Detalles de roca</option>
-        <option value="unplaced">Sin ubicación verificada</option><option value="all">Todo el catálogo</option>
+    <summary>3D reconstructions</summary>
+    <section id="reconstructions" aria-label="3D reconstructions">
+      <p class="muted">Select a 3D point to explore the surface.</p>
+      <div id="sceneStatus" role="status">Loading catalogue…</div>
+      <div class="scene-actions"><button id="sceneFit">Show 3D points</button><button id="sceneFeatured" disabled>Enter Cheyava Falls</button></div>
+      <label class="row"><input id="sceneMarkers" type="checkbox" checked>Show 3D points</label>
+      <label class="row"><input id="sceneRoute" type="checkbox">Perseverance traverse</label>
+      <input id="sceneSearch" type="search" placeholder="Search by place, author or sol…" aria-label="Search reconstructions">
+      <select id="sceneFilter" aria-label="Filter reconstructions">
+        <option value="placed">Placed on the map</option><option value="local">Local 3D files</option>
+        <option value="landscape">Scenes and outcrops</option><option value="detail">Rock details</option>
+        <option value="unplaced">No verified location</option><option value="all">Entire catalogue</option>
       </select>
-      <div id="sceneList" aria-label="Catálogo de reconstrucciones"></div>
-      <p class="muted scene-note">Anclas aproximadas; no delimitan la cobertura 3D. La ruta planificada se conserva al entrar y salir.</p>
+      <div id="sceneList" aria-label="Reconstruction catalogue"></div>
+      <p class="muted scene-note">Approximate anchors; they do not delimit the 3D coverage. The planned route is preserved when entering and leaving a scene.</p>
     </section>
   </details>`);
 }
 
 export async function initReconstructions({map, cfg, terrain = null, container = map.getContainer().parentElement, fitOnLoad = true}) {
   const response = await fetch("/api/reconstructions");
-  if (!response.ok) throw new Error("No se pudo cargar el catálogo 3D. Inicia el visor con python3 backend/viewer.py.");
+  if (!response.ok) throw new Error("Could not load the 3D catalogue. Start the server with python3 backend/app.py.");
   const catalog = await response.json(), scenes = catalog.scenes;
   const k = Math.PI * cfg.radius / 180;
   const project = coords => L.latLng(coords[1] * k, coords[0] * k);
   const markers = L.layerGroup().addTo(map), pins = new Map();
   if (!$("#surfaceDialog")) document.body.insertAdjacentHTML("beforeend", `<dialog id="surfaceDialog" aria-labelledby="surfaceTitle">
-    <header><div><strong id="surfaceTitle"></strong><div id="surfaceByline" class="muted"></div></div><button id="surfaceClose">Volver al mapa ×</button></header>
+    <header><div><strong id="surfaceTitle"></strong><div id="surfaceByline" class="muted"></div></div><button id="surfaceClose">Back to map ×</button></header>
     <div id="surfaceViewport"></div>
-    <footer><span id="surfaceNote"></span><a id="surfaceSource" target="_blank" rel="noopener noreferrer">Fuente original ↗</a></footer>
+    <footer><span id="surfaceNote"></span><a id="surfaceSource" target="_blank" rel="noopener noreferrer">Original source ↗</a></footer>
   </dialog>`);
   const dialog = $("#surfaceDialog");
   let previousFocus, route, routeRequested = false;
@@ -62,11 +62,11 @@ export async function initReconstructions({map, cfg, terrain = null, container =
     $("#surfaceTitle").textContent = scene.title;
     $("#surfaceByline").textContent = `${scene.author} · ${labels[scene.kind]} · ${scene.license}`;
     $("#surfaceNote").textContent = scene.renderer === "sketchfab"
-      ? `${scene.anchor} · Visor externo: usa el modo de primera persona de Sketchfab. La escala depende del modelo; los detalles y vistas aéreas se abren en órbita.`
+      ? `${scene.anchor} · External viewer: use Sketchfab first-person mode. Scale depends on the model; details and aerial views open in orbit mode.`
       : scene.description;
     $("#surfaceSource").href = scene.source;
     const frame = document.createElement("iframe");
-    frame.title = `Reconstrucción 3D: ${scene.title}`;
+    frame.title = `3D reconstruction: ${scene.title}`;
     frame.allow = "autoplay; fullscreen; xr-spatial-tracking";
     frame.allowFullscreen = true;
     if (scene.renderer === "sketchfab") {
@@ -92,15 +92,15 @@ export async function initReconstructions({map, cfg, terrain = null, container =
     element.className = "scene-card";
     element.dataset.id = scene.id;
     element.append(textNode("strong", scene.title));
-    element.append(textNode("div", `${scene.renderer === "sketchfab" ? "Sketchfab" : "Archivo local"} · ${scene.sol == null ? "Sol no indicado" : `Sol ${scene.sol}${scene.solEnd ? `–${scene.solEnd}` : ""}`} · ${labels[scene.kind]}`, "scene-meta"));
-    if (!scene.coordinates) element.append(textNode("div", "Sin ubicación verificada: disponible en el catálogo.", "scene-meta"));
-    const enter = textNode("button", scene.kind === "landscape" ? "Entrar en la reconstrucción" : "Ver modelo 3D", "scene-enter");
+    element.append(textNode("div", `${scene.renderer === "sketchfab" ? "Sketchfab" : "Local file"} · ${scene.sol == null ? "Sol not specified" : `Sol ${scene.sol}${scene.solEnd ? `–${scene.solEnd}` : ""}`} · ${labels[scene.kind]}`, "scene-meta"));
+    if (!scene.coordinates) element.append(textNode("div", "No verified location: available in the catalogue only.", "scene-meta"));
+    const enter = textNode("button", scene.kind === "landscape" ? "Enter the reconstruction" : "View 3D model", "scene-enter");
     enter.disabled = !scene.available;
-    if (!scene.available) enter.textContent = "Falta el archivo local";
+    if (!scene.available) enter.textContent = "Local file missing";
     enter.onclick = () => open(scene);
     element.append(enter);
     if (scene.coordinates && !popup) {
-      const locate = textNode("button", "Situar en mapa");
+      const locate = textNode("button", "Show on map");
       locate.onclick = () => {
         setVisible(true);
         if (terrain?.active) {
@@ -139,13 +139,13 @@ export async function initReconstructions({map, cfg, terrain = null, container =
   const terrainLayer = document.createElement("div");
   terrainLayer.className = "scene-terrain-layer";
   terrainLayer.hidden = true;
-  terrainLayer.setAttribute("aria-label", "Reconstrucciones sobre el relieve");
+  terrainLayer.setAttribute("aria-label", "Reconstructions over the relief");
   container.append(terrainLayer);
   const terrainPins = scenes.filter(s => s.coordinates).map(scene => {
     const button = textNode("button", "3D", `scene-pin scene-terrain-pin ${scene.renderer !== "sketchfab" ? "local" : scene.kind === "detail" ? "detail" : ""}`);
     button.dataset.id = scene.id;
     button.title = `${scene.title} · ${scene.anchor}`;
-    button.setAttribute("aria-label", `Abrir reconstrucción: ${scene.title}`);
+    button.setAttribute("aria-label", `Open reconstruction: ${scene.title}`);
     button.onclick = () => open(scene);
     button.hidden = true;
     button.disabled = !scene.available;
@@ -174,7 +174,7 @@ export async function initReconstructions({map, cfg, terrain = null, container =
     if (routeRequested && !route) {
       try {
         const response = await fetch("/api/traverse");
-        if (!response.ok) throw new Error("No se pudo cargar el recorrido.");
+        if (!response.ok) throw new Error("Could not load the traverse.");
         const data = await response.json();
         route = L.polyline(data.geometry.coordinates.map(project), {color: "#e8bc75", weight: 2, opacity: .75, interactive: false});
       } catch (error) { $("#sceneStatus").textContent = error.message; event.target.checked = false; return; }
@@ -186,16 +186,16 @@ export async function initReconstructions({map, cfg, terrain = null, container =
   $("#sceneFeatured").onclick = () => open(featured);
 
   function render() {
-    const query = $("#sceneSearch").value.trim().toLocaleLowerCase("es"), filter = $("#sceneFilter").value;
+    const query = $("#sceneSearch").value.trim().toLocaleLowerCase("en"), filter = $("#sceneFilter").value;
     const visible = scenes.filter(s => {
-      const matches = `${s.title} ${s.author} ${s.sol ?? ""}`.toLocaleLowerCase("es").includes(query);
+      const matches = `${s.title} ${s.author} ${s.sol ?? ""}`.toLocaleLowerCase("en").includes(query);
       return matches && (filter === "all" || filter === "placed" && s.coordinates || filter === "unplaced" && !s.coordinates
         || filter === "local" && s.renderer !== "sketchfab" || filter === s.kind);
     });
     $("#sceneList").replaceChildren(...visible.map(s => card(s)));
-    if (!visible.length) $("#sceneList").append(textNode("p", "No hay reconstrucciones para esta búsqueda.", "muted"));
+    if (!visible.length) $("#sceneList").append(textNode("p", "No reconstructions match this search.", "muted"));
     $("#sceneStatus").textContent = catalog.warnings.length ? catalog.warnings.join(" ")
-      : `${catalog.counts.placed} puntos en el mapa · ${catalog.counts.local} modelos locales · ${visible.length} de ${scenes.length} en el catálogo`;
+      : `${catalog.counts.placed} points on the map · ${catalog.counts.local} local models · ${visible.length} of ${scenes.length} in the catalogue`;
   }
   $("#sceneSearch").oninput = render;
   $("#sceneFilter").onchange = render;

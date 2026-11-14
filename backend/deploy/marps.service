@@ -1,8 +1,8 @@
-# MARPS server on the LLM machine (tfm-lab), as a systemd *user* service.
+# MARPS server on the SLM machine (tfm-lab), as a systemd *user* service.
 # Install: cp backend/deploy/marps.service ~/.config/systemd/user/ && systemctl --user enable --now marps
 # Expects the repo in ~/MARPS (venv in ~/MARPS/.venv), planner data in ~/marps-data/jezero and Ollama on 127.0.0.1:11434.
 [Unit]
-Description=MARPS server (frontend API, planner, LLM proxy)
+Description=MARPS server (frontend API, planner, SLM proxy)
 After=network-online.target ollama.service
 Wants=ollama.service
 

@@ -42,7 +42,7 @@ def download(item, path):
             with urlopen(item["url"], timeout=60) as response:
                 shutil.copyfileobj(response, out, length=1024 * 1024)
         if not valid(temporary, item):
-            raise ValueError(f"Tamaño o SHA-256 inesperado: {item['path']}; no se ha instalado")
+            raise ValueError(f"Unexpected size or SHA-256: {item['path']}; not installed")
         temporary.replace(path)
     finally:
         if temporary is not None:
@@ -67,7 +67,7 @@ def prepare(dataset=DEFAULT_DATASET, check=False):
     for item in json.loads(MANIFEST.read_text(encoding="utf-8")):
         path = (dataset / item["path"]).resolve()
         if not path.is_relative_to(dataset):
-            raise ValueError(f"Ruta fuera del dataset: {item['path']}")
+            raise ValueError(f"Path outside the dataset: {item['path']}")
         if valid(path, item):
             continue
         if check:
@@ -76,12 +76,12 @@ def prepare(dataset=DEFAULT_DATASET, check=False):
         print(f"Descargando {item['path']} ({item['bytes'] / 1e6:.1f} MB)…", flush=True)
         download(item, path)
     if missing:
-        raise ValueError("Faltan archivos o su hash no coincide:\n  " + "\n  ".join(missing)
-                         + "\nEjecuta python3 backend/prepare_reconstructions.py con el mismo --dataset.")
+        raise ValueError("Files are missing or their hash does not match:\n  " + "\n  ".join(missing)
+                         + "\nRun python3 backend/prepare_reconstructions.py with the same --dataset.")
     catalog = build_catalog(dataset)
     counts = catalog["counts"]
-    print(f"Reconstrucciones verificadas en {dataset}: {counts['total']} entradas, "
-          f"{counts['placed']} puntos, {counts['local']} modelos locales.")
+    print(f"Reconstructions verified in {dataset}: {counts['total']} entries, "
+          f"{counts['placed']} placed, {counts['local']} local models.")
 
 
 if __name__ == "__main__":

@@ -2,15 +2,13 @@
 
 Code in `planner/`:
 - `planner.py`: cost model, A*, science and metrics.
-- `report.py`: **JSON report** for the helmet LLM summary (comparison with the classic A*, battery, daylight and charging stop).
+- `report.py`: **JSON report** for the helmet assistant (SLM) summary (comparison with the classic A*, battery, daylight and charging stop).
 - `shadows.py`: shadows and illumination by hour, using `mars_shadows.py` (repo root) and `assets/SunAngle.csv`.
 - `api.py`: FastAPI endpoint `POST /plan-route` for the backend. Full contract in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md).
 - `live.py`: interactive test bench.
 - `demo.py` and `scenarios.json`: scenario figure and table.
 - `examples/`: real API request and response, and a report with a charging stop.
 - `test_planner.py`: tests (14).
-
-This is a spike: only the basics are tested and it has not gone through the subagent and review workflow. If it is taken into the product (MARPS `planner/`), it will need to be reviewed with that workflow.
 
 ```bash
 python planner/live.py      # http://127.0.0.1:8766
@@ -24,16 +22,16 @@ Dependencies: `pip install -r planner/requirements.txt`. **Data**: the files in 
 
 ```json
 {
-  "mission": { ...what the LLM extracts from the astronaut's text... },
+  "mission": { ...what the SLM extracts from the astronaut's text... },
   "system":  { "start_hour": 9.0, "battery_kwh": 30, "battery_capacity_kwh": 40, "reserve_pct": 20 }
 }
 ```
-`system` is not set by the LLM. The vehicle provides it: the time from its link or clock, and the battery from its power manager.
+`system` is not set by the SLM. The vehicle provides it: the time from its link or clock, and the battery from its power manager.
 
-### `mission` schema (for the LLM prompt and validation)
+### `mission` schema (for the SLM prompt and validation)
 ```python
 class Mission(BaseModel):
-    human: bool = True                       # crew on board (does not mean "on foot"); same as the backend LLM
+    human: bool = True                       # crew on board (does not mean "on foot"); same as the backend SLM
     safety: Literal["low", "normal", "high"] = "normal"   # people or fragile cargo → "high"
     power: bool = False                      # prioritise energy saving
     route_preference: Literal["shortest", "fastest"] | None = None
@@ -48,7 +46,7 @@ class ScienceTarget(BaseModel):
                     "olivine", "pyroxene", "delta", "crater_floor"]
     priority: float = Field(1.0, ge=0.1, le=1.0)   # 1 = main target, 0.3 = "if it's on the way"
 ```
-**The parameter for what is to be investigated is `science_targets`.** It is a list because a mission can have several targets with different priorities. The LLM only picks names from a closed list; the code maps each name to map zones. Prompt guide:
+**The parameter for what is to be investigated is `science_targets`.** It is a list because a mission can have several targets with different priorities. The SLM only picks names from a closed list; the code maps each name to map zones. Prompt guide:
 
 | What the astronaut says | `science_targets` |
 |---|---|
@@ -62,7 +60,7 @@ class ScienceTarget(BaseModel):
 | "mainly carbonates, and clays if they're on the way" | `[{"target": "carbonates", "priority": 1}, {"target": "clays", "priority": 0.3}]` |
 | "we have plenty of time" / "time is tight" | `science_detour: "high"` / `"low"` |
 
-Through the API, an invalid value returns 422 and an unknown place 400, both with the reason, so the backend can ask the LLM to correct it. Accepted places: `GET /places` (names such as "Octavia E. Butler Landing" or "Belva crater", or coordinates "77.45,18.44" or "18.44N, 77.45E").
+Through the API, an invalid value returns 422 and an unknown place 400, both with the reason, so the backend can ask the SLM to correct it. Accepted places: `GET /places` (names such as "Octavia E. Butler Landing" or "Belva crater", or coordinates "77.45,18.44" or "18.44N, 77.45E").
 
 ## Model
 **Native 20 m grid** (the CTX DTM grid, 1512 × 1596 = 2.4 M cells) with 16 neighbours. Going below 20 m makes no sense: slope and roughness come from the 20 m CTX DTM, and thermal inertia is 100 m. HiRISE at 1 m only covers the central 32 % (see improvements).
@@ -106,7 +104,7 @@ The search now takes 0.05–0.4 s. The bottleneck is building the cost grid (≈
 5. Greedy insertion with budget `(1 + science_detour) × cost(A→B)`, and A* leg by leg.
 6. Each stop adds 20 min to time and energy.
 
-## Output: report for the helmet LLM (`report.py`)
+## Output: report for the helmet assistant (SLM) (`report.py`)
 Full example in `planner/examples/report_example.json`. Blocks:
 - `feasible`: false if there is any critical warning.
 - `route`:
@@ -117,7 +115,7 @@ Full example in `planner/examples/report_example.json`. Blocks:
   - `charging_stop`;
   - `waypoints_lonlat` (~60 points).
 - `classic_astar`: the same metrics for the route of a pure-distance A*, **measured with the same vehicle and crew** (only the path changes).
-- `comparison`: what the LLM needs for sentences like "you saved X % battery":
+- `comparison`: what the SLM needs for sentences like "you saved X % battery":
   - `energy_saved_pct`, `drive_energy_saved_pct`, `time_saved_pct`, `extra_distance_pct`;
   - reduction in maximum slope and cross slope;
   - rough, soft and dune km avoided;
@@ -144,7 +142,7 @@ Full example in `planner/examples/report_example.json`. Blocks:
 
 It is not the product frontend.
 
-## Shadows (`shadows.py`, with Pablo's `mars_shadows.py`)
+## Shadows (`shadows.py`, with `mars_shadows.py`)
 - **Ephemeris:** `SunAngle.csv` gives the Sun's elevation and azimuth in Earth UTC time (one day, 2026-318). It is converted to **local true solar time (LTST)**: noon is the elevation maximum (parabolic fit) and an LTST hour lasts 3698.9 s. Result: sunrise 05:48, sunset 18:12, Sun at 80° at noon.
 - **Illumination:** for each of the 26 sunlit instants, `mars_shadows.classify` computes on the 20 m DTM the cast shadow (terrain blocks the Sun) and the self-shadow (slope facing away). `illum = cos(incidence)` is stored in illuminated cells (0 in shadow), as uint8. It takes about 7 s the first time and is then cached (`data/jezero/planner_shadows_20m_<hash>.npz`).
 - **In the cost**, if `start_hour` is given:

@@ -1,13 +1,15 @@
-"""MARPS server: map viewer, local LLM and route planner behind one port.
+"""MARPS server: map viewer, local SLM and route planner behind one port.
 
 Run from the repository root:
-    python3 backend/app.py [--port 8765] [--host 127.0.0.1] [--dataset /path/MARPS_Jezero_3D]
+    python3 backend/app.py [--port 8765] [--host 127.0.0.1]
 
 Environment:
-    OLLAMA_HOST          Ollama server (default http://127.0.0.1:11434; see backend/llm/README.md for tfm-lab)
-    MARPS_LLM_MODEL      extraction model (default jezero-extractor, built from backend/llm/Modelfile)
-    MARPS_SUMMARY_MODEL  summary model (default jezero-summarizer, from backend/llm/Modelfile.summary)
-    JEZERO_DATA          planner layers (default data/jezero)
+    OLLAMA_HOST           Ollama server hosting the SLMs (default http://127.0.0.1:11434)
+    MARPS_EXTRACT_MODEL   mission-extraction model (default jezero-extractor, backend/slm/Modelfile)
+    MARPS_SUMMARY_MODEL   route-briefing model (default jezero-summarizer, backend/slm/Modelfile.summary)
+    MARPS_DATASET         surface-reconstruction data (default data/jezero/reconstructions)
+    JEZERO_DATA           planner layers (default data/jezero)
+    MARPS_WARMUP          set to 0 to skip loading the planner and models at startup
 """
 import argparse
 import os
@@ -17,7 +19,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# planner/ goes first: its api.py is the planner router (backend/llm/api.py is reached as llm.api).
+# planner/ goes first: its api.py is the planner router (backend/slm/api.py is reached as slm.api).
 for path in (ROOT / "planner", ROOT / "backend"):
     if str(path) not in sys.path:
         sys.path.insert(0 if path.name == "planner" else 1, str(path))
@@ -27,20 +29,20 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from pydantic import BaseModel, Field, field_validator  # noqa: E402
 
 import api as planner_api  # noqa: E402  (planner/api.py)
-from llm import mission as M  # noqa: E402
+from slm import mission as M  # noqa: E402
 from reconstructions import DEFAULT_DATASET, build_catalog, build_route  # noqa: E402
 from viewer import map_config, terrain_sources  # noqa: E402  (also registers the .mjs/.spz MIME types)
 
 DATASET = Path(os.getenv("MARPS_DATASET", str(DEFAULT_DATASET))).resolve()
 
 def warm_up():
-    """Load the planner layers and the two LLMs before the first visitor (Vercel's proxy times out ~30 s)."""
+    """Load the planner layers and the two SLMs before the first visitor (Vercel's proxy times out ~30 s)."""
     try:
         planner_api.planner()
-        llm = get_llm()
+        slm = get_slm()
         for model in (M.EXTRACT_MODEL, M.SUMMARY_MODEL):
-            llm.chat(model=model, messages=[{"role": "user", "content": "ping"}], options={"num_predict": 1})
-        print("MARPS warm-up done (planner + LLM loaded)", flush=True)
+            slm.chat(model=model, messages=[{"role": "user", "content": "ping"}], options={"num_predict": 1})
+        print("MARPS warm-up done (planner + SLM loaded)", flush=True)
     except Exception as e:  # the server still works; the first request will just be slower
         print(f"MARPS warm-up incomplete: {e}", flush=True)
 
@@ -53,12 +55,12 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="MARPS", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)  # public via Funnel
-llm_router = APIRouter()
+slm_router = APIRouter()
 
 _client = None
 
 
-def get_llm():
+def get_slm():
     global _client
     if _client is None:
         _client = M.make_client()
@@ -80,30 +82,30 @@ class SummaryRequest(BaseModel):
     report: dict
 
 
-@llm_router.post("/parse-mission", response_model=M.JezeroMissionRequirements)
-def parse_mission(req: PromptRequest, llm=Depends(get_llm)):
+@slm_router.post("/parse-mission", response_model=M.JezeroMissionRequirements)
+def parse_mission(req: PromptRequest, slm=Depends(get_slm)):
     try:
-        return M.parse_mission(llm, req.prompt)
-    except M.LLMUnavailable as e:
+        return M.parse_mission(slm, req.prompt)
+    except M.SLMUnavailable as e:
         raise HTTPException(503, str(e))
-    except M.LLMBadOutput as e:
+    except M.SLMBadOutput as e:
         raise HTTPException(502, str(e))
 
 
-@llm_router.post("/summarize-route")
-def summarize_route(req: SummaryRequest, llm=Depends(get_llm)):
+@slm_router.post("/summarize-route")
+def summarize_route(req: SummaryRequest, slm=Depends(get_slm)):
     try:
-        return {"summary": M.summarize(llm, req.report)}
-    except M.LLMUnavailable as e:
+        return {"summary": M.summarize(slm, req.report)}
+    except M.SLMUnavailable as e:
         raise HTTPException(503, str(e))
     except (TypeError, KeyError, AttributeError, ValueError) as e:
         raise HTTPException(422, f"report does not look like a /plan-route report: {e}")
 
 
-@llm_router.get("/llm/health")
-def llm_health(llm=Depends(get_llm)):
+@slm_router.get("/slm/health")
+def slm_health(slm=Depends(get_slm)):
     try:
-        models = [m.model for m in llm.list().models]
+        models = [m.model for m in slm.list().models]
     except Exception as e:  # health check: report the failure instead of raising
         return dict(reachable=False, host=M.OLLAMA_HOST, error=str(e))
     return dict(reachable=True, host=M.OLLAMA_HOST, models=models,
@@ -113,7 +115,7 @@ def llm_health(llm=Depends(get_llm)):
 # Same endpoints at the root (documented API) and under /api (what the React frontend calls).
 for prefix in ("", "/api"):
     app.include_router(planner_api.router, prefix=prefix)
-    app.include_router(llm_router, prefix=prefix)
+    app.include_router(slm_router, prefix=prefix)
 
 
 @app.get("/api/map-config")
@@ -157,7 +159,7 @@ def main():
     parser.add_argument("--host", default="127.0.0.1")
     args = parser.parse_args()
     import uvicorn
-    print(f"MARPS · http://{args.host}:{args.port} · LLM at {M.OLLAMA_HOST}", flush=True)
+    print(f"MARPS · http://{args.host}:{args.port} · SLM at {M.OLLAMA_HOST}", flush=True)
     uvicorn.run(app, host=args.host, port=args.port)
 
 

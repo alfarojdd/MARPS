@@ -1,6 +1,6 @@
-"""Servidor local del mapa y las reconstrucciones. Sólo biblioteca estándar.
+"""Local server for the map and the reconstructions. Standard library only.
 
-Ejecutar: python3 backend/viewer.py [--port 8765] [--dataset /ruta/MARPS_Jezero_3D]
+Run: python3 backend/viewer.py [--port 8765] [--dataset /path/to/MARPS_Jezero_3D]
 """
 import argparse
 import json
@@ -26,7 +26,7 @@ def map_config():
     b, k = ctx["bounds_lonlat"], math.pi * RADIUS / 180
     return dict(left=b["west"] * k, right=b["east"] * k, bottom=b["south"] * k, top=b["north"] * k,
                 radius=RADIUS, res0=128, tile=256, ctx=ctx, probe=None,
-                layers=[dict(id="ctx_mosaic", group="Imagen", title="Ortomosaico CTX · 6 m/píxel",
+                layers=[dict(id="ctx_mosaic", group="Imagery", title="CTX orthomosaic · 6 m/pixel",
                              observed=True, coverage=100, legend=dict(type="image"))])
 
 
@@ -84,7 +84,7 @@ class ViewerHandler(SimpleHTTPRequestHandler):
                 value = build_catalog(self.dataset) if path.endswith("reconstructions") else build_route(self.dataset)
             body = json.dumps(value, ensure_ascii=False).encode("utf-8")
         except (OSError, ValueError, KeyError) as error:
-            self.send_error(500, f"No se pudo leer el paquete 3D: {error}")
+            self.send_error(500, f"Could not read the 3D package: {error}")
             return True
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -112,7 +112,7 @@ def main():
     args = parser.parse_args()
     catalog = build_catalog(args.dataset)
     server = ThreadingHTTPServer((args.host, args.port), partial(ViewerHandler, dataset=args.dataset))
-    print(f"MARPS · http://{args.host}:{args.port} · {catalog['counts']['placed']} escenas en el mapa", flush=True)
+    print(f"MARPS · http://{args.host}:{args.port} · {catalog['counts']['placed']} scenes on the map", flush=True)
     for warning in catalog["warnings"]:
         print(warning, flush=True)
     try:

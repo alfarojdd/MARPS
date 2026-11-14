@@ -126,7 +126,7 @@ class H(BaseHTTPRequestHandler):
             self._send(dict(error=str(e)), code=400)
 
 
-PAGE = r"""<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Planificador en vivo</title>
+PAGE = r"""<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Live planner</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 :root{--bg:#14171c;--panel:#1d2229;--line:#2e3641;--fg:#e6e9ee;--mute:#8d97a5;--acc:#e4572e;--ok:#5fd38d;--bad:#ff7a66;--warn:#f3c14b}
@@ -153,39 +153,39 @@ button{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding
 #feas{font-weight:600}pre{font-size:11px;white-space:pre-wrap;background:var(--bg);padding:8px;border-radius:4px;max-height:360px;overflow:auto}
 </style></head><body>
 <div id="side">
- <h2>Mapa</h2>
- <select id="bg"><option value="relief">Relieve</option><option value="crism" selected>Relieve + mineralogía CRISM</option><option value="slope">Pendiente</option><option value="shadow">Sombras a la hora de salida</option></select>
- <h2>Origen y destino <span class="val">(clic en el mapa)</span></h2>
+ <h2>Map</h2>
+ <select id="bg"><option value="relief">Relief</option><option value="crism" selected>Relief + CRISM mineralogy</option><option value="slope">Slope</option><option value="shadow">Shadows at departure time</option></select>
+ <h2>Origin and destination <span class="val">(click on the map)</span></h2>
  <div class="row"><select id="origin"></select><select id="destination"></select></div>
- <div class="row" style="margin-top:6px"><button id="setA" class="on">Clic = A</button><button id="setB">Clic = B</button></div>
- <h2>Parámetros del LLM</h2>
- <label><input type="checkbox" id="human"> human (tripulación a bordo)</label>
- <label><input type="checkbox" id="power"> power (ahorrar energía)</label>
- <label><input type="checkbox" id="return_to_origin"> return_to_origin (ida y vuelta)</label>
+ <div class="row" style="margin-top:6px"><button id="setA" class="on">Click = A</button><button id="setB">Click = B</button></div>
+ <h2>SLM parameters</h2>
+ <label><input type="checkbox" id="human"> human (crew on board)</label>
+ <label><input type="checkbox" id="power"> power (save energy)</label>
+ <label><input type="checkbox" id="return_to_origin"> return_to_origin (round trip)</label>
  <div class="row"><div>safety<select id="safety"></select></div>
   <div>route_preference<select id="route_preference"><option value="">null</option><option>shortest</option><option>fastest</option></select></div></div>
  <h2>science_targets</h2><div id="targets"></div>
  <div style="margin-top:6px">science_detour<select id="science_detour"><option>low</option><option selected>medium</option><option>high</option></select></div>
- <h2>Estado del sistema (no lo pone el LLM)</h2>
- <label>Hora de salida (LTST) <span class="val" id="hourv"></span></label><input type="range" id="start_hour" min="5" max="18" step="0.25" value="9">
- <label>Batería <span class="val" id="battv"></span></label><input type="range" id="battery_kwh" min="0" max="40" step="0.5" value="30">
+ <h2>System state (not set by the SLM)</h2>
+ <label>Departure time (LTST) <span class="val" id="hourv"></span></label><input type="range" id="start_hour" min="5" max="18" step="0.25" value="9">
+ <label>Battery <span class="val" id="battv"></span></label><input type="range" id="battery_kwh" min="0" max="40" step="0.5" value="30">
  <div id="status"></div>
 </div>
 <div id="main">
  <div id="mapwrap"><canvas id="cv"></canvas></div>
  <div id="bottom">
-  <div class="legend"><span id="feas"></span><span><i class="sw" style="border-top:3px dashed #fff;height:0"></i>A* clásico</span>
-   <span><i class="sw" style="background:#ff8a3d"></i>ruta con contexto</span><span style="color:#b266ff">● parada científica</span>
-   <span style="color:#ffd84a">■ parada de carga</span><span id="sunv" class="val"></span><button id="jsonBtn" style="margin-left:auto">Ver JSON</button></div>
+  <div class="legend"><span id="feas"></span><span><i class="sw" style="border-top:3px dashed #fff;height:0"></i>Classic A*</span>
+   <span><i class="sw" style="background:#ff8a3d"></i>context-aware route</span><span style="color:#b266ff">● science stop</span>
+   <span style="color:#ffd84a">■ charging stop</span><span id="sunv" class="val"></span><button id="jsonBtn" style="margin-left:auto">View JSON</button></div>
   <div id="warn"></div><div id="tbl"></div><pre id="json" hidden></pre>
  </div>
 </div>
 <script>
 const $=id=>document.getElementById(id);let M,img=new Image(),res=null,click='origin',timer=null,pend=0;
-const ROWS=[["distance_km","Distancia (km)",2],["time_h","Tiempo de conducción (h)",2],["drive_kwh","Energía de tracción (kWh)",2],["energy_kwh","Energía total (kWh)",1],
-["ascent_m","Subida acumulada (m)",0],["max_pitch_deg","Pendiente máx. (°)",1],["max_cross_deg","Pendiente lateral máx. (°)",1],
-["rough_km","Tramo rugoso (km)",2],["soft_km","Suelo blando (km)",2],["dunes_km","Dunas (km)",2],["unknown_km","Sin dato térmico (km)",2],
-["shadow_km","En sombra del terreno (km)",2],["night_km","De noche (km)",2]];
+const ROWS=[["distance_km","Distance (km)",2],["time_h","Driving time (h)",2],["drive_kwh","Traction energy (kWh)",2],["energy_kwh","Total energy (kWh)",1],
+["ascent_m","Cumulative ascent (m)",0],["max_pitch_deg","Max. slope (°)",1],["max_cross_deg","Max. cross slope (°)",1],
+["rough_km","Rough terrain (km)",2],["soft_km","Soft ground (km)",2],["dunes_km","Dunes (km)",2],["unknown_km","No thermal data (km)",2],
+["shadow_km","In terrain shadow (km)",2],["night_km","At night (km)",2]];
 async function init(){M=await (await fetch('/meta')).json();
  for(const id of ['origin','destination'])$(id).innerHTML=Object.keys(M.places).map(n=>`<option>${n}</option>`).join('');
  $('origin').value='crater_floor_south';$('destination').value='delta_top';
@@ -195,7 +195,7 @@ async function init(){M=await (await fetch('/meta')).json();
  document.querySelectorAll('#side input,#side select').forEach(e=>e.addEventListener('input',()=>{labels();if(e.id=='bg'||(e.id=='start_hour'&&$('bg').value=='shadow'))setBg();if(e.id!='bg')schedule()}));
  $('setA').onclick=()=>{click='origin';$('setA').className='on';$('setB').className=''};
  $('setB').onclick=()=>{click='destination';$('setB').className='on';$('setA').className=''};
- $('jsonBtn').onclick=()=>{$('json').hidden=!$('json').hidden;$('jsonBtn').textContent=$('json').hidden?'Ver JSON':'Ocultar JSON'};
+ $('jsonBtn').onclick=()=>{$('json').hidden=!$('json').hidden;$('jsonBtn').textContent=$('json').hidden?'View JSON':'Hide JSON'};
  cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect(),c=(e.clientX-r.left)*M.width/r.width,rr=(e.clientY-r.top)*M.height/r.height;
   const k=3396190*Math.PI/180,lon=(M.left+(c+.5)*M.res)/k,lat=(M.top-(rr+.5)*M.res)/k,v=lon.toFixed(5)+','+lat.toFixed(5);
   const o=document.createElement('option');o.value=v;o.textContent=(click=='origin'?'A ':'B ')+v;$(click).appendChild(o);$(click).value=v;schedule()});
@@ -209,7 +209,7 @@ function payload(){const t=[...document.querySelectorAll('[data-t]')].filter(e=>
   science_targets:t,science_detour:$('science_detour').value},
   system:{start_hour:+$('start_hour').value,battery_kwh:+$('battery_kwh').value,battery_capacity_kwh:40}}}
 function schedule(){clearTimeout(timer);timer=setTimeout(run,150)}
-async function run(){const my=++pend;$('status').textContent='calculando…';$('status').className='';
+async function run(){const my=++pend;$('status').textContent='computing…';$('status').className='';
  const r=await fetch('/plan',{method:'POST',body:JSON.stringify(payload())});const d=await r.json();if(my!=pend)return;
  if(d.error){$('status').textContent=d.error;$('status').className='err';return}
  res=d;draw();panel();$('status').textContent=`ok · ${d.seconds.toFixed(1)} s`}
@@ -225,18 +225,18 @@ function draw(){const cv=$('cv'),x=cv.getContext('2d');if(!M)return;x.clearRect(
  const p=D.route.length?D.route:D.classic;if(p.length){mark(...p[0],'#fff',16,'A');mark(...p[p.length-1],'#fff',16,'B')}}
 function panel(){const R=res.report;$('json').textContent=JSON.stringify(R,null,1);
  $('sunv').textContent=R.sun?`☀ ${R.sun.sunrise}–${R.sun.sunset} (${R.sun.source})`:'';
- $('feas').innerHTML=R.feasible?'<span class="good">✔ viable</span>':'<span class="bad">✖ no viable</span>';
+ $('feas').innerHTML=R.feasible?'<span class="good">✔ feasible</span>':'<span class="bad">✖ not feasible</span>';
  $('warn').innerHTML=(R.warnings||[]).map(w=>`<div class="${w.severity}">${w.code}: ${w.message}</div>`).join('')+
-  (R.suggestions||[]).map(s=>`<div class="sugg">${s.code}: ${s.energy_kwh} kWh, batería al llegar ${s.battery_end_kwh} kWh${s.fits_reserve?'':' (no basta)'}</div>`).join('');
+  (R.suggestions||[]).map(s=>`<div class="sugg">${s.code}: ${s.energy_kwh} kWh, battery on arrival ${s.battery_end_kwh} kWh${s.fits_reserve?'':' (not enough)'}</div>`).join('');
  if(!R.route){$('tbl').innerHTML='';return}const a=R.classic_astar,b=R.route,C=R.comparison;
- let h='<table><tr><th></th><th>A* clásico</th><th>con contexto</th><th>Δ</th></tr>';
+ let h='<table><tr><th></th><th>Classic A*</th><th>context-aware</th><th>Δ</th></tr>';
  for(const [k,l,dg] of ROWS){if(!(k in b))continue;const x=a[k],y=b[k],d=x?(y-x)/x*100:0,cls=Math.abs(d)<1?'':(d<0?'good':'bad');
   h+=`<tr><td>${l}</td><td>${x.toFixed(dg)}</td><td>${y.toFixed(dg)}</td><td class="${cls}">${x?(d>0?'+':'')+d.toFixed(0)+' %':'–'}</td></tr>`}
- for(const k of Object.keys(b).filter(k=>k.startsWith('on_')))h+=`<tr><td>Sobre ${k.slice(3,-3)} (km)</td><td></td><td>${b[k].toFixed(2)}</td><td></td></tr>`;
- h+=`<tr><td>Paradas científicas</td><td></td><td>${b.science_stops.length}</td><td></td></tr>`;
- h+=`<tr><td>Salida → llegada (límite ${b.daylight_limit})</td><td></td><td>${b.departure} → ${b.arrival}</td><td class="${b.daylight_margin_h<0?'bad':'good'}">${b.daylight_margin_h>=0?'+':''}${b.daylight_margin_h.toFixed(1)} h</td></tr>`;
- h+=`<tr><td>Batería al llegar</td><td></td><td>${b.battery_end_kwh.toFixed(1)} kWh (${b.battery_end_pct.toFixed(0)} %)</td><td></td></tr>`;
- h+=`<tr><td>Por qué (coste evitado)</td><td colspan="3">${R.why.map(w=>w.factor+' '+w.share_pct+' %').join(' · ')||'–'}</td></tr>`;
+ for(const k of Object.keys(b).filter(k=>k.startsWith('on_')))h+=`<tr><td>Over ${k.slice(3,-3)} (km)</td><td></td><td>${b[k].toFixed(2)}</td><td></td></tr>`;
+ h+=`<tr><td>Science stops</td><td></td><td>${b.science_stops.length}</td><td></td></tr>`;
+ h+=`<tr><td>Departure → arrival (limit ${b.daylight_limit})</td><td></td><td>${b.departure} → ${b.arrival}</td><td class="${b.daylight_margin_h<0?'bad':'good'}">${b.daylight_margin_h>=0?'+':''}${b.daylight_margin_h.toFixed(1)} h</td></tr>`;
+ h+=`<tr><td>Battery on arrival</td><td></td><td>${b.battery_end_kwh.toFixed(1)} kWh (${b.battery_end_pct.toFixed(0)} %)</td><td></td></tr>`;
+ h+=`<tr><td>Why (cost avoided)</td><td colspan="3">${R.why.map(w=>w.factor+' '+w.share_pct+' %').join(' · ')||'–'}</td></tr>`;
  $('tbl').innerHTML=h+'</table>'}
 init();
 </script></body></html>

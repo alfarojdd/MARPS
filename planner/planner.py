@@ -1,4 +1,4 @@
-"""Mission-aware route planner (demo spike).
+"""Mission-aware route planner.
 
 Native 20 m grid (the CTX DTM grid), 16-neighbour connectivity, A* with per-edge cost in "equivalent metres":
 
@@ -32,12 +32,12 @@ HERE = Path(__file__).resolve().parent
 
 
 def _find_data():
-    """data/jezero from the MARPS repo (planner/../data/jezero) or from the local notebook (tools/planner/../../data/jezero)."""
+    """data/jezero from the MARPS repo (planner/../data/jezero) or from a sibling checkout layout (tools/planner/../../data/jezero)."""
     cands = [os.environ.get("JEZERO_DATA"), HERE.parent / "data/jezero", HERE.parents[1] / "data/jezero"]
     for c in cands:
         if c and ((Path(c) / "stack").exists() or (Path(c) / "layers20m").exists()):
             return Path(c).resolve()
-    raise FileNotFoundError("No encuentro data/jezero (stack/ o layers20m/). Define JEZERO_DATA.")
+    raise FileNotFoundError("data/jezero not found (stack/ or layers20m/). Set JEZERO_DATA.")
 
 
 DATA = _find_data()
@@ -46,7 +46,7 @@ R_MARS = 3396190.0
 G_MARS = 3.71
 RES = 20.0
 
-# ---------------------------------------------------------------- mission parameters (produced by the LLM)
+# ---------------------------------------------------------------- mission parameters (produced by the SLM)
 
 DETOUR = {"low": 0.2, "medium": 0.5, "high": 1.0}
 
@@ -68,14 +68,14 @@ class Params:
     def from_dict(cls, d):
         p = cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
         if p.safety not in SAFETY:
-            raise ValueError(f"safety desconocido: {p.safety}")
+            raise ValueError(f"unknown safety: {p.safety}")
         if p.route_preference not in (None, "shortest", "fastest"):
-            raise ValueError(f"route_preference desconocido: {p.route_preference}")
+            raise ValueError(f"unknown route_preference: {p.route_preference}")
         for t in p.science_targets:
             if t.get("target") not in TARGETS and t.get("target") != "aqueous":
-                raise ValueError(f"science_target desconocido: {t.get('target')}")
+                raise ValueError(f"unknown science_target: {t.get('target')}")
         if isinstance(p.science_detour, str) and p.science_detour not in DETOUR:
-            raise ValueError(f"science_detour desconocido: {p.science_detour}")
+            raise ValueError(f"unknown science_detour: {p.science_detour}")
         return p
 
     @property
@@ -110,7 +110,7 @@ PLACES = {
     "north_plains": (77.5500, 18.6600),
 }
 
-# science_targets: name → (source, values). Set by the code, not by the LLM.
+# science_targets: name → (source, values). Set by the code, not by the SLM.
 TARGETS = {
     "carbonates": ("crism", [2, 6]),
     "clays": ("crism", [3, 4, 5, 9, 10]),
@@ -161,7 +161,7 @@ def load_grid():
         if a is None:
             if n in ("crism_class", "crism_conf", "geo_unit"):
                 continue  # optional: without them there is no science (or confidence) from that source
-            raise FileNotFoundError(f"Falta la capa {n} en {DATA}")
+            raise FileNotFoundError(f"Missing layer {n} in {DATA}")
         out[n] = np.nan_to_num(a, nan=-1).astype(np.int16) if n in ("crism_class", "crism_conf", "geo_unit") else a
         out["origin_xy"] = np.array(origin)
     shape = out["elev_ctx"].shape
@@ -185,7 +185,7 @@ def rc_to_lonlat(grid, r, c):
     return (left + (c + 0.5) * RES) / k, (top - (r + 0.5) * RES) / k
 
 
-# Names the LLM or the frontend may write (platform places.json) → PLACES key
+# Names the SLM or the frontend may write (platform places.json) → PLACES key
 ALIASES = {
     "octaviaebutlerlanding": "landing_site", "octaviaebutlerlandingperseverance": "landing_site",
     "octaviaebutler": "landing_site", "landing": "landing_site", "landingsite": "landing_site",
@@ -488,7 +488,7 @@ class Planner:
                 self.sun = SunShadows(self.F["h"], RES, DATA)
             except (FileNotFoundError, ImportError, ValueError) as e:  # without shadows: insolation_rel is used
                 self.sun_error = str(e)
-                print(f"aviso: sin mapa de sombras ({e}); se usa la insolación media")
+                print(f"warning: no shadow map ({e}); using mean insolation")
 
     def sun_fields(self, origin_rc, start_hour):
         """Illumination and shadow of each cell at the estimated passing time (distance to origin / V_ETA)."""

@@ -2,10 +2,10 @@
  "origin": "crater_floor_south",
  "destination": "delta_top",
  "scenarios": {
-  "base_mas_corta":   {"route_preference": "shortest", "safety": "low", "context_free": true},
-  "rapida":           {"route_preference": "fastest"},
-  "ahorro_energia":   {"power": true},
-  "tripulada_segura": {"human": true, "safety": "high"},
-  "cientifica_agua":  {"science_targets": [{"target": "aqueous", "priority": 1.0}], "science_detour": 0.5}
+  "shortest_path":   {"route_preference": "shortest", "safety": "low", "context_free": true},
+  "fastest":           {"route_preference": "fastest"},
+  "energy_saving":   {"power": true},
+  "crewed_safe": {"human": true, "safety": "high"},
+  "science_water":  {"science_targets": [{"target": "aqueous", "priority": 1.0}], "science_detour": 0.5}
  }
 }

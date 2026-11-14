@@ -1,14 +1,13 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jezero multicapa</title>
+<title>Jezero multilayer map</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="reconstructions.css">
 <link rel="stylesheet" href="route-view.css">
-<link rel="stylesheet" href="mission.css">
 <script type="importmap">
 {"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}
 </script>
@@ -84,80 +83,78 @@
 <body>
 <div id="app">
   <aside>
-    <h1>Cráter Jezero · mapa multicapa</h1>
+    <h1>Jezero Crater · multilayer map</h1>
     <div class="sub">77.160–77.699 °E · 18.211–18.721 °N · ~32 × 30 km</div>
 
-    <section id="mission" aria-label="Mission planning"></section>
-
-    <section id="reconstructions" aria-label="Reconstrucciones 3D">
-      <h2>Explorar la superficie</h2>
-      <p class="muted">Selecciona un punto 3D y entra en su reconstrucción.</p>
-      <div id="sceneStatus" role="status">Cargando catálogo 3D…</div>
-      <div class="scene-actions"><button id="sceneFit">Ver puntos 3D</button><button id="sceneFeatured" disabled>Entrar en Cheyava Falls</button></div>
-      <label class="row"><input id="sceneMarkers" type="checkbox" checked>Mostrar puntos 3D</label>
-      <label class="row"><input id="sceneRoute" type="checkbox">Recorrido de Perseverance</label>
-      <input id="sceneSearch" type="search" placeholder="Buscar lugar, autor o sol…" aria-label="Buscar reconstrucciones">
-      <select id="sceneFilter" aria-label="Filtrar reconstrucciones">
-        <option value="placed">Con ubicación en el mapa</option>
-        <option value="local">Archivos 3D locales</option>
-        <option value="landscape">Escenas y afloramientos</option>
-        <option value="detail">Detalles de roca</option>
-        <option value="unplaced">Sin ubicación verificada</option>
-        <option value="all">Todo el catálogo</option>
+    <section id="reconstructions" aria-label="3D reconstructions">
+      <h2>Explore the surface</h2>
+      <p class="muted">Select a 3D point to enter its reconstruction.</p>
+      <div id="sceneStatus" role="status">Loading 3D catalogue…</div>
+      <div class="scene-actions"><button id="sceneFit">Show 3D points</button><button id="sceneFeatured" disabled>Enter Cheyava Falls</button></div>
+      <label class="row"><input id="sceneMarkers" type="checkbox" checked>Show 3D points</label>
+      <label class="row"><input id="sceneRoute" type="checkbox">Perseverance traverse</label>
+      <input id="sceneSearch" type="search" placeholder="Search by place, author or sol…" aria-label="Search reconstructions">
+      <select id="sceneFilter" aria-label="Filter reconstructions">
+        <option value="placed">Placed on the map</option>
+        <option value="local">Local 3D files</option>
+        <option value="landscape">Scenes and outcrops</option>
+        <option value="detail">Rock details</option>
+        <option value="unplaced">No verified location</option>
+        <option value="all">Entire catalogue</option>
       </select>
-      <div id="sceneList" aria-label="Catálogo de reconstrucciones"></div>
-      <p class="muted scene-note">Los puntos indican orígenes de escena o posiciones aproximadas del rover; no delimitan la cobertura 3D.</p>
+      <div id="sceneList" aria-label="Reconstruction catalogue"></div>
+      <p class="muted scene-note">Points mark scene origins or approximate rover positions; they do not delimit the 3D coverage.</p>
     </section>
 
-    <h2>Fondo</h2>
+    <h2>Basemap</h2>
     <div id="bases"></div>
 
-    <h2>Capa temática</h2>
+    <h2>Thematic layer</h2>
     <div class="stepper">
-      <button id="prev" aria-label="Capa anterior">◀</button>
-      <button id="next" aria-label="Capa siguiente">▶</button>
-      <span><kbd>←</kbd> <kbd>→</kbd> cambian de capa · <kbd>0</kbd> la quita</span>
+      <button id="prev" aria-label="Previous layer">◀</button>
+      <button id="next" aria-label="Next layer">▶</button>
+      <span><kbd>←</kbd> <kbd>→</kbd> switch layer · <kbd>0</kbd> clears it</span>
     </div>
-    <div class="ctrl"><span class="muted">Opacidad</span><input id="opacity" type="range" min="0" max="100" value="80" aria-label="Opacidad de la capa temática"></div>
+    <div class="ctrl"><span class="muted">Opacity</span><input id="opacity" type="range" min="0" max="100" value="80" aria-label="Thematic layer opacity"></div>
     <div id="themes"></div>
     <div id="info"></div>
 
-    <h2>Comparar con cortinilla</h2>
+    <h2>Swipe comparison</h2>
     <div class="ctrl">
-      <select id="cmp" aria-label="Capa para el lado derecho"><option value="">Desactivado</option></select>
+      <select id="cmp" aria-label="Layer for the right side"><option value="">Off</option></select>
     </div>
-    <p class="muted" style="margin:6px 0 0">La capa elegida se muestra a la derecha de la barra naranja; arrástrala para comparar.</p>
+    <p class="muted" style="margin:6px 0 0">The selected layer is shown to the right of the orange bar; drag the bar to compare.</p>
 
-    <h2>Vectores</h2>
+    <h2>Vectors</h2>
     <div id="vectors"></div>
 
   </aside>
   <div class="mapwrap">
     <div id="map"></div>
-    <div id="divider" role="separator" aria-label="Divisor de comparación"></div>
+    <div id="divider" role="separator" aria-label="Comparison divider"></div>
     <div class="cmp-label" id="cmpL"></div>
     <div class="cmp-label" id="cmpR"></div>
     <div id="coords">—</div>
-    <section id="inspectBox" aria-label="Inspector de valores">
-      <div class="ih"><b>Inspector</b><button id="inspectClose" aria-label="Cerrar inspector">×</button></div>
-      <div id="inspect" class="muted">Haz clic en el mapa para ver el valor de todas las capas en ese punto.</div>
+    <section id="inspectBox" aria-label="Value inspector">
+      <div class="ih"><b>Inspector</b><button id="inspectClose" aria-label="Close inspector">×</button></div>
+      <div id="inspect" class="muted">Click the map to see the value of every layer at that point.</div>
     </section>
   </div>
 </div>
 <dialog id="surfaceDialog" aria-labelledby="surfaceTitle">
-  <header><div><strong id="surfaceTitle"></strong><div id="surfaceByline" class="muted"></div></div><button id="surfaceClose">Volver al mapa ×</button></header>
+  <header><div><strong id="surfaceTitle"></strong><div id="surfaceByline" class="muted"></div></div><button id="surfaceClose">Back to map ×</button></header>
   <div id="surfaceViewport"></div>
-  <footer><span id="surfaceNote"></span><a id="surfaceSource" target="_blank" rel="noopener noreferrer">Fuente original ↗</a></footer>
+  <footer><span id="surfaceNote"></span><a id="surfaceSource" target="_blank" rel="noopener noreferrer">Original source ↗</a></footer>
 </dialog>
 
 <script src="vendor/leaflet/leaflet.js"></script>
 <script>
 const EMPTY = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const VECTORS = [
-  { id: "geo_units", title: "Contactos geológicos (SIM 3464)", on: false, style: { color: "#f2e6a0", weight: 0.8, fill: false } },
-  { id: "geo_linear_features", title: "Crestas, frentes de delta, canales", on: false, style: { color: "#7fd0ff", weight: 1.2 } },
-  { id: "geo_surface_features", title: "Mantos oscuros y terreno estriado", on: false, style: { color: "#c0a0ff", weight: 1, fillOpacity: .15 } },
-  { id: "geo_location_features", title: "Cráteres pequeños cartografiados", on: false, point: { radius: 3, color: "#ffd166", fillOpacity: .9 } },
+  { id: "geo_units", title: "Geologic contacts (SIM 3464)", on: false, style: { color: "#f2e6a0", weight: 0.8, fill: false } },
+  { id: "geo_linear_features", title: "Ridges, delta fronts, channels", on: false, style: { color: "#7fd0ff", weight: 1.2 } },
+  { id: "geo_surface_features", title: "Dark mantles and fluted terrain", on: false, style: { color: "#c0a0ff", weight: 1, fillOpacity: .15 } },
+  { id: "geo_location_features", title: "Mapped small craters", on: false, point: { radius: 3, color: "#ffd166", fillOpacity: .9 } },
 ];
 
 let cfg, map, base, theme, cmpLayer, themeIdx = -1, opacity = 0.8, probe = null, marker = null;
@@ -205,10 +202,10 @@ function legendHTML(l) {
 
 function infoCard(l) {
   return `<div class="card"><div class="t">${l.title}</div>${legendHTML(l)}
-    <p><b>Para qué sirve:</b> ${l.why}</p>
-    <p><b>Fuente:</b> ${l.source}</p>
-    <p><b>Tipo:</b> ${l.observed ? "dato observado (resampleado a la rejilla)" : "derivado o inferido por nosotros"}</p>
-    <p><b>Cobertura del recuadro:</b> ${l.coverage} %${l.base ? "" : " (fuera del stack base)"}</p></div>`;
+    <p><b>Purpose:</b> ${l.why}</p>
+    <p><b>Source:</b> ${l.source}</p>
+    <p><b>Type:</b> ${l.observed ? "observed data (resampled to the grid)" : "derived or inferred"}</p>
+    <p><b>Bounding-box coverage:</b> ${l.coverage} %${l.base ? "" : " (outside the base stack)"}</p></div>`;
 }
 
 function setBase(id) {
@@ -219,7 +216,7 @@ function setBase(id) {
   document.querySelectorAll("#bases input").forEach(e => { e.checked = e.value === (id || ""); });
 }
 
-const themeLayers = () => cfg.layers.filter(l => l.group !== "Imagen");
+const themeLayers = () => cfg.layers.filter(l => l.group !== "Imagery");
 
 function setTheme(i) {
   const list = themeLayers();
@@ -234,15 +231,15 @@ function setTheme(i) {
 }
 
 function tags(l) {
-  const cov = l.coverage < 99.9 ? `<span class="tag part" title="Porcentaje del recuadro con dato">${l.coverage} %</span>` : "";
-  return `${cov}<span class="tag ${l.observed ? "obs" : "inf"}">${l.observed ? "observado" : "derivado"}</span>`;
+  const cov = l.coverage < 99.9 ? `<span class="tag part" title="Percentage of the bounding box with data">${l.coverage} %</span>` : "";
+  return `${cov}<span class="tag ${l.observed ? "obs" : "inf"}">${l.observed ? "observed" : "derived"}</span>`;
 }
 
 function buildPanel() {
-  const bases = cfg.layers.filter(l => l.group === "Imagen");
+  const bases = cfg.layers.filter(l => l.group === "Imagery");
   $("#bases").innerHTML = bases.map(l => `<label class="row" data-id="${l.id}"><input type="radio" name="base" value="${l.id}">
       ${l.title}${tags(l)}</label>`).join("")
-    + `<label class="row" data-id=""><input type="radio" name="base" value="">Sin fondo</label>`;
+    + `<label class="row" data-id=""><input type="radio" name="base" value="">No basemap</label>`;
   $("#bases").addEventListener("change", e => setBase(e.target.value));
 
   let html = "", group = "";
@@ -250,7 +247,7 @@ function buildPanel() {
     if (l.group !== group) { group = l.group; html += `<h3>${group}</h3>`; }
     html += `<label class="row" data-i="${i}"><input type="radio" name="theme" value="${i}">${l.title}${tags(l)}</label>`;
   });
-  html += `<label class="row" data-i="-1"><input type="radio" name="theme" value="-1">Ninguna</label>`;
+  html += `<label class="row" data-i="-1"><input type="radio" name="theme" value="-1">None</label>`;
   $("#themes").innerHTML = html;
   $("#themes").addEventListener("change", e => setTheme(+e.target.value));
 
@@ -308,7 +305,7 @@ function setCompare(id) {
   updateClip();
 }
 function updateClip() {
-  $("#cmpL").textContent = theme ? themeLayers()[themeIdx].title : "Vista actual";
+  $("#cmpL").textContent = theme ? themeLayers()[themeIdx].title : "Current view";
   if (!cmpLayer) return;
   const size = map.getSize();
   dividerX = Math.max(0, Math.min(size.x, dividerX));
@@ -337,7 +334,7 @@ function initDivider() {
 const CAT_LABELS = {};
 async function loadProbe() {
   if (probe) return probe;
-  $("#inspect").innerHTML = `<span class="muted">Cargando valores de las ${cfg.probe.bands.length} capas…</span>`;
+  $("#inspect").innerHTML = `<span class="muted">Loading values for ${cfg.probe.bands.length} layers…</span>`;
   const bands = await Promise.all(cfg.probe.bands.map(async b => {
     const buf = await fetch(`data/probe/${b.id}.bin`).then(r => r.arrayBuffer());
     return { ...b, data: new Int16Array(buf) };
@@ -349,12 +346,12 @@ async function loadProbe() {
   return probe;
 }
 function fmt(b, raw) {
-  if (raw === -32768) return '<span class="muted">sin dato</span>';
+  if (raw === -32768) return '<span class="muted">no data</span>';
   const v = raw * b.scale + b.offset;
   if (b.categorical) {
-    if (b.id === "crism_class") return v === 0 ? "sin identificar" : v < 0 ? '<span class="muted">fuera</span>' : (CAT_LABELS.crism_class?.[v] || v);
-    if (b.id === "crism_conf") return ["nula", "media", "alta"][v] ?? '<span class="muted">fuera</span>';
-    if (b.id === "geo_unit") return v === 0 ? '<span class="muted">sin unidad</span>' : (CAT_LABELS.geo_unit?.[v] || v);
+    if (b.id === "crism_class") return v === 0 ? "unidentified" : v < 0 ? '<span class="muted">outside</span>' : (CAT_LABELS.crism_class?.[v] || v);
+    if (b.id === "crism_conf") return ["none", "medium", "high"][v] ?? '<span class="muted">outside</span>';
+    if (b.id === "geo_unit") return v === 0 ? '<span class="muted">no unit</span>' : (CAT_LABELS.geo_unit?.[v] || v);
     return v;
   }
   const d = Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2;
@@ -364,7 +361,7 @@ async function inspect(e) {
   if (!cfg.probe) {
     const [lon, lat] = toLonLat(e.latlng);
     $("#inspectBox").classList.remove("hidden");
-    $("#inspect").textContent = `${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E. Sólo está disponible el fondo CTX. Genera las capas con el pipeline de data/jezero para inspeccionar sus valores.`;
+    $("#inspect").textContent = `${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E. Only the CTX basemap is available. Generate the layers with the data/jezero pipeline to inspect their values.`;
     return;
   }
   const p = cfg.probe;
@@ -374,7 +371,7 @@ async function inspect(e) {
   const [lon, lat] = toLonLat(e.latlng);
   const i = row * p.width + col;
   $("#inspectBox").classList.remove("hidden");
-  $("#inspect").innerHTML = `<div class="muted" style="margin-bottom:4px">${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E · celda de 40 m</div>
+  $("#inspect").innerHTML = `<div class="muted" style="margin-bottom:4px">${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E · 40 m cell</div>
     <table>${bands.map(b => `<tr><td title="${b.desc}">${b.desc}</td><td>${fmt(b, b.data[i])}</td></tr>`).join("")}</table>`;
   if (marker) marker.setLatLng(e.latlng); else marker = L.circleMarker(e.latlng, { radius: 6, color: "#e8794a", weight: 2, fill: false, pane: "vectorPane" }).addTo(map);
 }
@@ -382,16 +379,16 @@ async function inspect(e) {
 // ---------- startup
 (async function () {
   const response = await fetch("/api/map-config");
-  if (!response.ok) throw new Error("No se encuentra el mapa. Inicia python3 backend/viewer.py desde el repositorio.");
+  if (!response.ok) throw new Error("Map configuration not found. Start the server with python3 backend/app.py from the repository root.");
   cfg = await response.json();
   if (cfg.ctx) {
-    $("#inspect").textContent = "Fondo CTX disponible. Las capas temáticas se pueden generar con el pipeline de data/jezero.";
+    $("#inspect").textContent = "CTX basemap available. Thematic layers can be generated with the data/jezero pipeline.";
   }
   map = L.map("map", { crs: makeCRS(cfg), zoomSnap: 0.5, keyboard: false, attributionControl: true, minZoom: 0, maxZoom: 7, maxBoundsViscosity: 1 });
   for (const [name, z] of [["basePane", 200], ["themePane", 300], ["cmpPane", 350], ["vectorPane", 450]]) {
     map.createPane(name).style.zIndex = z;
   }
-  map.attributionControl.setPrefix(false).addAttribution("NASA/JPL/UArizona/USGS/ESA · ver fuentes en cada capa");
+  map.attributionControl.setPrefix(false).addAttribution("NASA/JPL/UArizona/USGS/ESA · see each layer for sources");
   L.control.scale({ imperial: false, maxWidth: 160 }).addTo(map);
   const full = L.latLngBounds(ll(cfg.left, cfg.bottom), ll(cfg.right, cfg.top));
   map.setMaxBounds(full);
@@ -402,7 +399,7 @@ async function inspect(e) {
   buildPanel();
   initDivider();
   if (cfg.ctx) {
-    $("#vectors").textContent = "Genera las capas del pipeline para activar los vectores geológicos.";
+    $("#vectors").textContent = "Generate the pipeline layers to enable the geologic vectors.";
     $("#cmp").disabled = true;
   }
   const firstBase = cfg.ctx ? "ctx_mosaic" : "ctx_ortho_6m";
@@ -414,12 +411,9 @@ async function inspect(e) {
     const [lon, lat] = toLonLat(e.latlng);
     $("#coords").textContent = `${lat.toFixed(5)}° N  ${lon.toFixed(5)}° E`;
   });
-  let mission = null;
-  map.on("click", e => { if (!mission?.isPicking()) inspect(e); });
+  map.on("click", inspect);
   const { initRouteView } = await import("./route-view.mjs");
   const routeView = await initRouteView({map, cfg, container: $(".mapwrap")});
-  const { initMission } = await import("./mission.mjs");
-  mission = await initMission({map, cfg, panel: $("#mission"), routeView});
   const { initReconstructions } = await import("./reconstructions.mjs");
   await initReconstructions({map, cfg, terrain: routeView.terrain, container: $(".mapwrap"), fitOnLoad: false});
 })().catch(error => {

@@ -20,7 +20,7 @@ def main():
             prof.update(count=1)
             with rasterio.open(bl.L20 / f"{name}.tif", "w", **prof) as d:
                 d.write(s.read(i), 1)
-        print(f"{s.count} capas -> {bl.L20}")
+        print(f"{s.count} layers -> {bl.L20}")
     extra = bl.DATA / "extra/geo_unit.tif"
     if extra.exists():
         shutil.copy(extra, bl.L20 / "geo_unit.tif")
@@ -28,7 +28,7 @@ def main():
     if ortho.exists() and not (bl.RAW / ORTHO).exists():
         bl.RAW.mkdir(parents=True, exist_ok=True)
         shutil.copy(ortho, bl.RAW / ORTHO)
-        print("ortoimagen CTX copiada de assets/")
+        print("CTX orthoimage copied from assets/")
 
 
 if __name__ == "__main__":
