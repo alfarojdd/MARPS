@@ -231,3 +231,9 @@ data/processed/
 node_modules/
 models/
 *.gguf
+
+# Jezero: descargas, capas intermedias y teselas del visor (se regeneran con data/jezero/pipeline)
+data/jezero/raw/
+data/jezero/layers20m/
+data/jezero/hires/
+platform/viewer/data/

@@ -1,0 +1,68 @@
+[
+ {
+  "symbol": "Aeb",
+  "name": "Eolian bedform unit",
+  "unit": "7",
+  "code": 1
+ },
+ {
+  "symbol": "NHjf1",
+  "name": "Jezero fan 1 unit",
+  "unit": "1",
+  "code": 2
+ },
+ {
+  "symbol": "NHjf2",
+  "name": "Jezero fan 2 unit",
+  "unit": "0",
+  "code": 3
+ },
+ {
+  "symbol": "Njf",
+  "name": "Jezero floor unit",
+  "unit": "2",
+  "code": 4
+ },
+ {
+  "symbol": "Nle",
+  "name": "Lower etched unit",
+  "unit": "3",
+  "code": 5
+ },
+ {
+  "symbol": "Nnp1",
+  "name": "Nili Planum 1 unit",
+  "unit": "6",
+  "code": 6
+ },
+ {
+  "symbol": "Nnp2",
+  "name": "Nili Planum 2 unit",
+  "unit": "5",
+  "code": 7
+ },
+ {
+  "symbol": "Nrb",
+  "name": "Rugged bright unit",
+  "unit": "9",
+  "code": 8
+ },
+ {
+  "symbol": "Nue",
+  "name": "Upper etched unit",
+  "unit": "10",
+  "code": 9
+ },
+ {
+  "symbol": "cr",
+  "name": "Crater rim unit",
+  "unit": "11",
+  "code": 10
+ },
+ {
+  "symbol": "su",
+  "name": "Smooth unit, undivided",
+  "unit": "8",
+  "code": 11
+ }
+]

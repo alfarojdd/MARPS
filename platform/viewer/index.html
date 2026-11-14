@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jezero multicapa</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --bg: #0f1114; --panel: #171a1f; --panel-2: #1f232a; --line: #2c313a;
+    --text: #e6e8eb; --muted: #9aa3ae; --accent: #e8794a; --accent-2: #f2a679;
+    --obs: #5fb37f; --inf: #c9a54a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 13px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  #app { display: grid; grid-template-columns: 340px 1fr; height: 100%; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 14px 14px 40px; }
+  h1 { font-size: 16px; margin: 0 0 2px; letter-spacing: .2px; }
+  .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    margin: 18px 0 6px; font-weight: 600; }
+  h3 { font-size: 12px; color: var(--accent-2); margin: 10px 0 4px; font-weight: 600; }
+  label.row { display: flex; align-items: center; gap: 8px; padding: 4px 6px; border-radius: 6px; cursor: pointer; }
+  label.row:hover { background: var(--panel-2); }
+  label.row.active { background: #2a2018; outline: 1px solid #5a3a26; }
+  input[type=radio], input[type=checkbox] { accent-color: var(--accent); margin: 0; }
+  .tag { margin-left: auto; font-size: 10px; padding: 1px 6px; border-radius: 9px; border: 1px solid; white-space: nowrap; }
+  .tag.obs { color: var(--obs); border-color: #2f5a40; }
+  .tag.inf { color: var(--inf); border-color: #5d4c24; }
+  .tag.part { color: #e07a7a; border-color: #6a3434; }
+  .tag + .tag { margin-left: 4px; }
+  .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px; margin-top: 8px; }
+  .card .t { font-weight: 600; margin-bottom: 4px; }
+  .card p { margin: 6px 0; color: var(--muted); }
+  .card p b { color: var(--text); font-weight: 500; }
+  .ramp { height: 10px; border-radius: 3px; margin: 6px 0 2px; }
+  .ramp-l { display: flex; justify-content: space-between; color: var(--muted); font-size: 11px; }
+  .cls { display: grid; grid-template-columns: 12px 1fr; gap: 3px 6px; align-items: center; font-size: 11.5px; margin-top: 6px; }
+  .sw { width: 12px; height: 12px; border-radius: 2px; }
+  .ctrl { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .ctrl input[type=range] { flex: 1; accent-color: var(--accent); }
+  button, select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 9px; font: inherit; cursor: pointer; }
+  button:hover, select:hover { border-color: var(--accent); }
+  button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .stepper { display: flex; gap: 6px; align-items: center; }
+  .stepper span { color: var(--muted); font-size: 11px; }
+  kbd { background: #2a2f38; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; font-size: 11px; }
+  #map { height: 100%; background: #0b0c0e; }
+  .leaflet-container { background: #0b0c0e; font: inherit; }
+  #coords { position: absolute; z-index: 800; right: 10px; bottom: 26px; background: rgba(15,17,20,.85);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-variant-numeric: tabular-nums; pointer-events: none; }
+  #divider { position: absolute; z-index: 790; top: 0; bottom: 0; width: 4px; margin-left: -2px; background: var(--accent);
+    cursor: ew-resize; display: none; }
+  #divider::after { content: "⇆"; position: absolute; top: 50%; left: -11px; width: 26px; height: 26px; margin-top: -13px;
+    background: var(--accent); color: #111; border-radius: 50%; display: grid; place-items: center; font-size: 14px; }
+  .cmp-label { position: absolute; z-index: 795; top: 10px; background: rgba(15,17,20,.85); border: 1px solid var(--line);
+    border-radius: 6px; padding: 3px 8px; display: none; pointer-events: none; }
+  #inspect table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-variant-numeric: tabular-nums; }
+  #inspect td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  #inspect td:last-child { text-align: right; white-space: nowrap; }
+  .muted { color: var(--muted); }
+  .mapwrap { position: relative; }
+  #inspectBox { position: absolute; z-index: 820; top: 10px; right: 10px; width: min(300px, 45%); max-height: calc(100% - 70px);
+    overflow-y: auto; background: rgba(23,26,31,.95); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  #inspectBox.hidden { display: none; }
+  .ih { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .ih button { padding: 0 7px; line-height: 20px; }
+  @media (max-width: 760px) {
+    #app { grid-template-columns: 1fr; grid-template-rows: 55vh 1fr; }
+    .mapwrap { order: -1; }
+    aside { border-right: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <h1>Cráter Jezero · mapa multicapa</h1>
+    <div class="sub">77.160–77.699 °E · 18.211–18.721 °N · ~32 × 30 km</div>
+
+    <h2>Fondo</h2>
+    <div id="bases"></div>
+
+    <h2>Capa temática</h2>
+    <div class="stepper">
+      <button id="prev" aria-label="Capa anterior">◀</button>
+      <button id="next" aria-label="Capa siguiente">▶</button>
+      <span><kbd>←</kbd> <kbd>→</kbd> cambian de capa · <kbd>0</kbd> la quita</span>
+    </div>
+    <div class="ctrl"><span class="muted">Opacidad</span><input id="opacity" type="range" min="0" max="100" value="80" aria-label="Opacidad de la capa temática"></div>
+    <div id="themes"></div>
+    <div id="info"></div>
+
+    <h2>Comparar con cortinilla</h2>
+    <div class="ctrl">
+      <select id="cmp" aria-label="Capa para el lado derecho"><option value="">Desactivado</option></select>
+    </div>
+    <p class="muted" style="margin:6px 0 0">La capa elegida se muestra a la derecha de la barra naranja; arrástrala para comparar.</p>
+
+    <h2>Vectores</h2>
+    <div id="vectors"></div>
+
+  </aside>
+  <div class="mapwrap">
+    <div id="map"></div>
+    <div id="divider" role="separator" aria-label="Divisor de comparación"></div>
+    <div class="cmp-label" id="cmpL"></div>
+    <div class="cmp-label" id="cmpR"></div>
+    <div id="coords">—</div>
+    <section id="inspectBox" aria-label="Inspector de valores">
+      <div class="ih"><b>Inspector</b><button id="inspectClose" aria-label="Cerrar inspector">×</button></div>
+      <div id="inspect" class="muted">Haz clic en el mapa para ver el valor de todas las capas en ese punto.</div>
+    </section>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const EMPTY = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+const VECTORS = [
+  { id: "m20_traverse", title: "Traza de Perseverance", on: true, style: { color: "#ff4fd8", weight: 2.5 } },
+  { id: "m20_waypoints", title: "Paradas del rover (waypoints)", on: false, point: { radius: 2.5, color: "#ff4fd8", fillOpacity: 1 } },
+  { id: "landing_ellipse", title: "Elipse de aterrizaje M2020", on: true, style: { color: "#ffffff", weight: 1.5, dashArray: "6 4", fill: false } },
+  { id: "geo_units", title: "Contactos geológicos (SIM 3464)", on: false, style: { color: "#f2e6a0", weight: 0.8, fill: false } },
+  { id: "geo_linear_features", title: "Crestas, frentes de delta, canales", on: false, style: { color: "#7fd0ff", weight: 1.2 } },
+  { id: "geo_surface_features", title: "Mantos oscuros y terreno estriado", on: false, style: { color: "#c0a0ff", weight: 1, fillOpacity: .15 } },
+  { id: "geo_location_features", title: "Cráteres pequeños cartografiados", on: false, point: { radius: 3, color: "#ffd166", fillOpacity: .9 } },
+];
+
+let cfg, map, base, theme, cmpLayer, themeIdx = -1, opacity = 0.8, probe = null, marker = null;
+const $ = (s) => document.querySelector(s);
+
+function makeCRS(c) {
+  return L.extend({}, L.CRS.Simple, {
+    transformation: new L.Transformation(1 / c.res0, -c.left / c.res0, -1 / c.res0, c.top / c.res0),
+  });
+}
+const ll = (x, y) => L.latLng(y, x);  // lat = norte (m), lng = este (m)
+
+function tileLayer(l, pane) {
+  const b = l.bounds;
+  return L.tileLayer(`data/tiles/${l.id}/{z}/{x}/{y}.${l.ext}`, {
+    maxNativeZoom: l.maxzoom, maxZoom: 7, minZoom: 0, tileSize: cfg.tile, noWrap: true,
+    bounds: L.latLngBounds(ll(b[0], b[1]), ll(b[2], b[3])), errorTileUrl: EMPTY,
+    className: l.kind === "categorical" ? "pixelated" : "", pane: pane || "tilePane",
+  });
+}
+
+function toLonLat(p) {
+  const k = 180 / (Math.PI * cfg.radius);
+  return [p.lng * k, p.lat * k];
+}
+
+function legendHTML(l) {
+  const g = l.legend;
+  if (g.type === "ramp") {
+    return `<div class="ramp" style="background:linear-gradient(90deg,${g.stops.join(",")})"></div>
+      <div class="ramp-l"><span>${g.vmin} ${g.units}</span><span>${g.vmax} ${g.units}</span></div>`;
+  }
+  if (g.type === "classes") {
+    return `<div class="cls">${g.items.map(i => `<span class="sw" style="background:${i.color}"></span><span>${i.label}</span>`).join("")}</div>
+      ${g.note ? `<p>${g.note}</p>` : ""}`;
+  }
+  return "";
+}
+
+function infoCard(l) {
+  return `<div class="card"><div class="t">${l.title}</div>${legendHTML(l)}
+    <p><b>Para qué sirve:</b> ${l.why}</p>
+    <p><b>Fuente:</b> ${l.source}</p>
+    <p><b>Tipo:</b> ${l.observed ? "dato observado (resampleado a la rejilla)" : "derivado o inferido por nosotros"}</p>
+    <p><b>Cobertura del recuadro:</b> ${l.coverage} %${l.base ? "" : " (fuera del stack base)"}</p></div>`;
+}
+
+function setBase(id) {
+  if (base) map.removeLayer(base);
+  const l = cfg.layers.find(x => x.id === id);
+  base = l ? tileLayer(l, "basePane").addTo(map) : null;
+  document.querySelectorAll("#bases label").forEach(e => e.classList.toggle("active", e.dataset.id === (id || "")));
+  document.querySelectorAll("#bases input").forEach(e => { e.checked = e.value === (id || ""); });
+}
+
+const themeLayers = () => cfg.layers.filter(l => l.group !== "Imagen");
+
+function setTheme(i) {
+  const list = themeLayers();
+  if (theme) { map.removeLayer(theme); theme = null; }
+  themeIdx = i;
+  document.querySelectorAll("#themes label").forEach(e => e.classList.toggle("active", +e.dataset.i === i));
+  document.querySelectorAll("#themes input").forEach(e => { e.checked = +e.value === i; });
+  if (i < 0) { $("#info").innerHTML = ""; return; }
+  const l = list[i];
+  theme = tileLayer(l, "themePane").setOpacity(opacity).addTo(map);
+  $("#info").innerHTML = infoCard(l);
+}
+
+function tags(l) {
+  const cov = l.coverage < 99.9 ? `<span class="tag part" title="Porcentaje del recuadro con dato">${l.coverage} %</span>` : "";
+  return `${cov}<span class="tag ${l.observed ? "obs" : "inf"}">${l.observed ? "observado" : "derivado"}</span>`;
+}
+
+function buildPanel() {
+  const bases = cfg.layers.filter(l => l.group === "Imagen");
+  $("#bases").innerHTML = bases.map(l => `<label class="row" data-id="${l.id}"><input type="radio" name="base" value="${l.id}">
+      ${l.title}${tags(l)}</label>`).join("")
+    + `<label class="row" data-id=""><input type="radio" name="base" value="">Sin fondo</label>`;
+  $("#bases").addEventListener("change", e => setBase(e.target.value));
+
+  let html = "", group = "";
+  themeLayers().forEach((l, i) => {
+    if (l.group !== group) { group = l.group; html += `<h3>${group}</h3>`; }
+    html += `<label class="row" data-i="${i}"><input type="radio" name="theme" value="${i}">${l.title}${tags(l)}</label>`;
+  });
+  html += `<label class="row" data-i="-1"><input type="radio" name="theme" value="-1">Ninguna</label>`;
+  $("#themes").innerHTML = html;
+  $("#themes").addEventListener("change", e => setTheme(+e.target.value));
+
+  const n = themeLayers().length;
+  $("#prev").onclick = () => setTheme(themeIdx <= 0 ? n - 1 : themeIdx - 1);
+  $("#next").onclick = () => setTheme(themeIdx >= n - 1 ? 0 : themeIdx + 1);
+  document.addEventListener("keydown", e => {
+    if (e.target.tagName === "SELECT" || e.target.type === "range") return;
+    if (e.key === "ArrowRight") $("#next").click();
+    else if (e.key === "ArrowLeft") $("#prev").click();
+    else if (e.key === "0") setTheme(-1);
+  });
+  $("#opacity").addEventListener("input", e => { opacity = e.target.value / 100; if (theme) theme.setOpacity(opacity); });
+
+  $("#cmp").innerHTML += cfg.layers.map(l => `<option value="${l.id}">${l.title}</option>`).join("");
+  $("#cmp").addEventListener("change", e => setCompare(e.target.value));
+
+  $("#vectors").innerHTML = VECTORS.map(v => `<label class="row"><input type="checkbox" data-id="${v.id}" ${v.on ? "checked" : ""}>${v.title}</label>`).join("");
+  $("#vectors").addEventListener("change", e => toggleVector(e.target.dataset.id, e.target.checked));
+}
+
+// ---------- vectores
+const vecLayers = {};
+async function toggleVector(id, on) {
+  if (!vecLayers[id]) {
+    const v = VECTORS.find(x => x.id === id);
+    const gj = await fetch(`data/vectors/${id}.geojson`).then(r => r.json());
+    vecLayers[id] = L.geoJSON(gj, {
+      pane: "vectorPane",
+      style: () => v.style || {},
+      pointToLayer: (f, p) => L.circleMarker(p, { pane: "vectorPane", weight: 0, ...v.point }),
+      onEachFeature: (f, lay) => {
+        const p = f.properties || {};
+        const txt = Object.entries(p).filter(([k, val]) => val !== null && val !== "").slice(0, 6)
+          .map(([k, val]) => `<b>${k}</b>: ${val}`).join("<br>");
+        if (txt) lay.bindTooltip(txt, { sticky: true });
+      },
+    });
+  }
+  if (on) vecLayers[id].addTo(map); else map.removeLayer(vecLayers[id]);
+}
+
+// ---------- comparación
+let dividerX = null;
+function setCompare(id) {
+  if (cmpLayer) { map.removeLayer(cmpLayer); cmpLayer = null; }
+  const on = !!id;
+  $("#divider").style.display = $("#cmpL").style.display = $("#cmpR").style.display = on ? "block" : "none";
+  if (!on) { map.getPane("cmpPane").style.clip = ""; return; }
+  const l = cfg.layers.find(x => x.id === id);
+  cmpLayer = tileLayer(l, "cmpPane").addTo(map);
+  $("#cmpR").textContent = l.title;
+  if (dividerX === null) dividerX = map.getSize().x / 2;
+  updateClip();
+}
+function updateClip() {
+  $("#cmpL").textContent = theme ? themeLayers()[themeIdx].title : "Vista actual";
+  if (!cmpLayer) return;
+  const size = map.getSize();
+  dividerX = Math.max(0, Math.min(size.x, dividerX));
+  const nw = map.containerPointToLayerPoint([0, 0]);
+  const se = map.containerPointToLayerPoint(size);
+  const cx = map.containerPointToLayerPoint([dividerX, 0]).x;
+  map.getPane("cmpPane").style.clip = `rect(${nw.y}px, ${se.x}px, ${se.y}px, ${cx}px)`;
+  $("#divider").style.left = dividerX + "px";
+  $("#cmpL").style.left = "52px";
+  $("#cmpR").style.left = (dividerX + 10) + "px";
+}
+function initDivider() {
+  const d = $("#divider");
+  let drag = false;
+  d.addEventListener("pointerdown", e => { drag = true; d.setPointerCapture(e.pointerId); map.dragging.disable(); });
+  d.addEventListener("pointermove", e => {
+    if (!drag) return;
+    dividerX = e.clientX - map.getContainer().getBoundingClientRect().left;
+    updateClip();
+  });
+  d.addEventListener("pointerup", () => { drag = false; map.dragging.enable(); });
+  map.on("move zoom resize", updateClip);
+}
+
+// ---------- inspector
+const CAT_LABELS = {};
+async function loadProbe() {
+  if (probe) return probe;
+  $("#inspect").innerHTML = `<span class="muted">Cargando valores de las ${cfg.probe.bands.length} capas…</span>`;
+  const bands = await Promise.all(cfg.probe.bands.map(async b => {
+    const buf = await fetch(`data/probe/${b.id}.bin`).then(r => r.arrayBuffer());
+    return { ...b, data: new Int16Array(buf) };
+  }));
+  for (const l of cfg.layers) {
+    if (l.legend.type === "classes") CAT_LABELS[l.id] = Object.fromEntries(l.legend.items.map(i => [i.value, i.label]));
+  }
+  probe = bands;
+  return probe;
+}
+function fmt(b, raw) {
+  if (raw === -32768) return '<span class="muted">sin dato</span>';
+  const v = raw * b.scale + b.offset;
+  if (b.categorical) {
+    if (b.id === "crism_class") return v === 0 ? "sin identificar" : v < 0 ? '<span class="muted">fuera</span>' : (CAT_LABELS.crism_class?.[v] || v);
+    if (b.id === "crism_conf") return ["nula", "media", "alta"][v] ?? '<span class="muted">fuera</span>';
+    if (b.id === "geo_unit") return v === 0 ? '<span class="muted">sin unidad</span>' : (CAT_LABELS.geo_unit?.[v] || v);
+    return v;
+  }
+  const d = Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2;
+  return `${v.toFixed(d)} <span class="muted">${b.units}</span>`;
+}
+async function inspect(e) {
+  const p = cfg.probe;
+  const col = Math.floor((e.latlng.lng - p.left) / p.res), row = Math.floor((p.top - e.latlng.lat) / p.res);
+  if (col < 0 || row < 0 || col >= p.width || row >= p.height) return;
+  const bands = await loadProbe();
+  const [lon, lat] = toLonLat(e.latlng);
+  const i = row * p.width + col;
+  $("#inspectBox").classList.remove("hidden");
+  $("#inspect").innerHTML = `<div class="muted" style="margin-bottom:4px">${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E · celda de 40 m</div>
+    <table>${bands.map(b => `<tr><td title="${b.desc}">${b.desc}</td><td>${fmt(b, b.data[i])}</td></tr>`).join("")}</table>`;
+  if (marker) marker.setLatLng(e.latlng); else marker = L.circleMarker(e.latlng, { radius: 6, color: "#e8794a", weight: 2, fill: false, pane: "vectorPane" }).addTo(map);
+}
+
+// ---------- arranque
+(async function () {
+  cfg = await fetch("data/config.json").then(r => r.json());
+  map = L.map("map", { crs: makeCRS(cfg), zoomSnap: 0.5, keyboard: false, attributionControl: true, minZoom: 0, maxZoom: 7, maxBoundsViscosity: 1 });
+  for (const [name, z] of [["basePane", 200], ["themePane", 300], ["cmpPane", 350], ["vectorPane", 450]]) {
+    map.createPane(name).style.zIndex = z;
+  }
+  map.attributionControl.setPrefix(false).addAttribution("NASA/JPL/UArizona/USGS/ESA · ver fuentes en cada capa");
+  L.control.scale({ imperial: false, maxWidth: 160 }).addTo(map);
+  const full = L.latLngBounds(ll(cfg.left, cfg.bottom), ll(cfg.right, cfg.top));
+  map.setMaxBounds(full);
+  L.rectangle(full, { pane: "vectorPane", color: "#e8794a", weight: 1.5, fill: false, interactive: false }).addTo(map);
+  map.invalidateSize();
+  map.fitBounds(full, { animate: false });
+  setTimeout(() => { map.invalidateSize(); if (map.getZoom() < map.getBoundsZoom(full)) map.fitBounds(full, { animate: false }); }, 0);
+  buildPanel();
+  initDivider();
+  const firstBase = "ctx_ortho_6m";
+  setBase(firstBase);
+  $("#inspectClose").onclick = () => $("#inspectBox").classList.add("hidden");
+  setTheme(-1);
+  VECTORS.filter(v => v.on).forEach(v => toggleVector(v.id, true));
+  map.on("mousemove", e => {
+    const [lon, lat] = toLonLat(e.latlng);
+    $("#coords").textContent = `${lat.toFixed(5)}° N  ${lon.toFixed(5)}° E`;
+  });
+  map.on("click", inspect);
+})();
+</script>
+<style>.pixelated img { image-rendering: pixelated; }</style>
+</body>
+</html>

@@ -37,6 +37,14 @@ Rellenar al incorporar cada capa.
 | Capa | Fuente y enlace | Versión o fecha de consulta | Licencia / condiciones | Resolución y cobertura | Procesado aplicado | Quién |
 |---|---|---|---|---|---|---|
 | _ejemplo: elevation_ | _HiRISE DTM XXXX_ | | | | _reproyectado, remuestreado a N m_ | |
+| elevation (`elev_ctx`, `slope_ctx`, `tri_ctx`, `tpi_ctx_500m`, `aspect_ctx`, `hillshade_ctx`) | USGS Mars 2020 TRN, DTM de MRO CTX, https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/ (doi:10.5066/P9GV1ND3) | consultado 2026-11-14 | Dominio público (USGS) | 20 m, todo el bbox | Pendiente, rugosidad TRI, TPI, orientación y sombreado calculados por nosotros | data |
+| elevación HRSC (`elev_hrsc`) | ESA Mars Express HRSC h0988, incluido en USGS SIM 3464 (https://pubs.usgs.gov/sim/3464/) | 2026-11-14 | ESA/DLR/FU Berlin, atribución | 75 m, todo el bbox | Reproyectado a la rejilla de 20 m | data |
+| ortoimagen CTX | USGS Mars 2020 TRN CTX orthomosaic 6 m | 2026-11-14 | Dominio público (USGS) | 6 m, todo el bbox (`assets/`) | Teselas para el visor | data |
+| thermal_inertia | Edwards & Buz 2021, THEMIS-derived thermal inertia of Jezero, https://zenodo.org/records/4931348 | 2026-11-14 | CC-BY-4.0 (citar) | 100 m, 96,1 % del bbox (falta franja oeste de 1,2 km) | Remuestreo bilineal a 20 m | data |
+| themis_day_ir, themis_night_ir | USGS THEMIS controlled mosaics MC-13 Syrtis Major (STAC `mo_themis_controlled_mosaics`) | 2026-11-14 | Dominio público (NASA/JPL/ASU) | 100 m, todo el bbox; DN cualitativos | Recorte y remuestreo a 20 m | data |
+| insolation_rel, atm_column_pct, dist_traverse | Cálculo propio sobre `elev_ctx` y la traza de Perseverance | 2026-11-14 | n/a | 20 m | Insolación media sin sombras; proxy de columna atmosférica (no es radiación); distancia euclídea a la traza | data |
+| traza y waypoints de Perseverance | NASA/JPL MMGIS, https://mars.nasa.gov/mmgis-maps/M20/Layers/json/ (hasta sol 2022) | 2026-11-14 | Datos públicos NASA | vectores | Recorte al bbox y reproyección | data |
+| geología (`geo_unit` y vectores) | Sun & Stack 2020, USGS SIM 3464, https://doi.org/10.3133/sim3464 | 2026-11-14 | Dominio público (USGS) | 1:75 000, 95,8 % del bbox | Rasterizado a 20 m; vectores simplificados a 5 m | data |
 
 Para cada capa responder: ¿qué mide y en qué unidades?, ¿hay valores ausentes?, ¿qué NO permite concluir?, ¿qué es observación y qué es transformación o inferencia nuestra?
 
@@ -52,3 +60,7 @@ Declarar aquí qué herramientas de IA se usan en el desarrollo y cómo (la entr
 
 - Asistente de código: _por rellenar_
 - LLM local del producto: _modelo y runtime por rellenar_
+
+## 6. Capas procesadas y descartadas de la base (Jezero)
+
+Descartadas por no cubrir todo el recuadro, aunque están procesadas y documentadas en [CAPAS_JEZERO.md](CAPAS_JEZERO.md): DTM y ortoimagen HiRISE (USGS Mars 2020 TRN y STAC, 32-37 %), mineralogía CRISM (Parente, Saranathan & Itoh 2021, Zenodo 5575824, CC-BY-4.0, 41 %) y la inercia térmica global cuantitativa de USGS (100 %, pero con bandas entre pasadas).
