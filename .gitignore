@@ -222,7 +222,6 @@ __marimo__/
 # MARPS: datos pesados (documentar su origen en docs/FUENTES.md, no subirlos)
 data/raw/
 data/processed/
-*.tif
 *.tiff
 *.IMG
 *.img
