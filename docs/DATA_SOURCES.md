@@ -62,4 +62,4 @@ Declarar aquí qué herramientas de IA se usan en el desarrollo y cómo (la entr
 
 ## 6. Capas procesadas y descartadas de la base (Jezero)
 
-Descartadas por no cubrir todo el recuadro, aunque están procesadas y documentadas en [CAPAS_JEZERO.md](CAPAS_JEZERO.md): DTM y ortoimagen HiRISE (USGS Mars 2020 TRN y STAC, 32-37 %), mineralogía CRISM (Parente, Saranathan & Itoh 2021, Zenodo 5575824, CC-BY-4.0, 41 %) y la inercia térmica global cuantitativa de USGS (100 %, pero con bandas entre pasadas).
+Descartadas por no cubrir todo el recuadro, aunque están procesadas y documentadas en [JEZERO_LAYERS.md](JEZERO_LAYERS.md): DTM y ortoimagen HiRISE (USGS Mars 2020 TRN y STAC, 32-37 %), mineralogía CRISM (Parente, Saranathan & Itoh 2021, Zenodo 5575824, CC-BY-4.0, 41 %) y la inercia térmica global cuantitativa de USGS (100 %, pero con bandas entre pasadas).

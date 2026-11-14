@@ -1,6 +1,6 @@
 # Capas de Jezero
 
-Qué capas tiene el mapa, de dónde salen, cómo se generan y qué se descartó. Quien cambie las capas actualiza este fichero y `docs/FUENTES.md`.
+Qué capas tiene el mapa, de dónde salen, cómo se generan y qué se descartó. Quien cambie las capas actualiza este fichero y `docs/DATA_SOURCES.md`.
 
 ## Zona de trabajo
 - **Bbox (lon/lat, esfera Mars 2000 R = 3 396 190 m)**: 77.1604655–77.6991776 °E, 18.2110274–18.7211945 °N. Unos 32 × 30 km en el borde oeste del cráter Jezero: delta, suelo del cráter, Séítah y borde oeste.

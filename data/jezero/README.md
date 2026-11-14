@@ -10,7 +10,7 @@ Descargad y colocad así:
 - `data/jezero/extra/`: `geo_unit.tif` (unidades geológicas, 95,8 %) y `crism_class.tif` (mineralogía CRISM, 41 %), fuera del stack.
 - `pipeline/`: código que genera todo y sus pruebas (sí está en GitHub).
 
-Detalle de cada capa, fuentes, avisos y capas descartadas: [../../docs/CAPAS_JEZERO.md](../../docs/CAPAS_JEZERO.md).
+Detalle de cada capa, fuentes, avisos y capas descartadas: [../../docs/JEZERO_LAYERS.md](../../docs/JEZERO_LAYERS.md).
 
 Leer una banda por nombre:
 ```python

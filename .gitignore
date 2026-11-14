@@ -219,7 +219,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# MARPS: datos pesados (documentar su origen en docs/FUENTES.md, no subirlos)
+# MARPS: datos pesados (documentar su origen en docs/DATA_SOURCES.md, no subirlos)
 data/raw/
 data/processed/
 *.tiff

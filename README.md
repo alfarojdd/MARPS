@@ -12,7 +12,7 @@ Challenge: *Interplanetary Survival Guide: Martian Map* (NASA Space Apps Challen
 - A local LLM converts this description into a set of weights and constraints (in JSON format).
 - The route planner calculates the path based on these weights. The LLM handles translation only; it does not perform any planning.
 
-See details in [docs/IDEA.md](docs/IDEA.md) and [docs/ARQUITECTURA.md](docs/ARQUITECTURA.md).
+See details in [docs/IDEA.md](docs/IDEA.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Directories
 

@@ -20,13 +20,13 @@ Propuesta inicial:
 - Nombres de capa estándar: `elevation`, `slope`, `roughness`, `thermal_inertia`, `mineralogy_<objetivo>`, `geology`, `radiation`, `rock_abundance`.
 - Valores normalizados a 0-1 en una versión aparte para el planificador (`*_norm`), manteniendo los valores físicos para mostrarlos en la interfaz.
 
-**Estado (2026-11-14):** zona Jezero y rejilla de 20 m decididas. Las capas se publican como un único GeoTIFF multibanda en `data/jezero/stack/` con `layers.json` (ver [CAPAS_JEZERO.md](CAPAS_JEZERO.md)). Los nombres de banda son los reales (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...) y no los estándar propuestos arriba; no hay mineralogía, radiación ni abundancia de rocas en la base. Normalización 0-1 y `metadata.json` por zona: sin hacer.
+**Estado (2026-11-14):** zona Jezero y rejilla de 20 m decididas. Las capas se publican como un único GeoTIFF multibanda en `data/jezero/stack/` con `layers.json` (ver [JEZERO_LAYERS.md](JEZERO_LAYERS.md)). Los nombres de banda son los reales (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...) y no los estándar propuestos arriba; no hay mineralogía, radiación ni abundancia de rocas en la base. Normalización 0-1 y `metadata.json` por zona: sin hacer.
 
 Decisiones por tomar: zona (Gale/Monte Sharp o Jezero), resolución (HiRISE es mucho más fina que CTX/MOLA) y qué capas llegan a tiempo.
 
 ## [B] Parámetros de misión: `llm/` → `planner/`
 
-**Estado (2026-11-14): acordado e implementado** en `planner/api.py` (`POST /plan-route`). La entrada son dos bloques: `mission`, que rellena el LLM (los 5 campos actuales de `backend/llm/api.py` más `safety`, `science_targets`, `science_detour` y `return_to_origin`), y `system` (hora solar local y batería, que pone el vehículo). Contrato exacto en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md). La propuesta inicial de abajo queda como histórico.
+**Estado (2026-11-14): acordado e implementado** en `planner/api.py` (`POST /plan-route`). La entrada son dos bloques: `mission`, que rellena el LLM (los 5 campos actuales de `backend/llm/api.py` más `safety`, `science_targets`, `science_detour` y `return_to_origin`), y `system` (hora solar local y batería, que pone el vehículo). Contrato exacto en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). La propuesta inicial de abajo queda como histórico.
 
 El LLM convierte el texto de misión en este JSON. **Se valida contra un esquema**; si falla, se reintenta o se usan pesos por defecto. El planificador nunca recibe texto libre.
 
@@ -61,7 +61,7 @@ Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afi
 
 ## [C] Ruta: `planner/` → `platform/`
 
-**Estado (2026-11-14): implementado.** La respuesta de `POST /plan-route` tiene tres partes: `report` (métricas, comparación con un A* clásico, avisos de luz y batería, parada de carga y `why`, para el resumen del LLM y el panel), `geojson` (ruta, A* clásico y paradas en lon/lat planetocéntricas) y `ctx_px` (las líneas en píxeles del mapa base CTX de 6 m para Leaflet `CRS.Simple`). Detalle en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md). La propuesta inicial de abajo queda como histórico.
+**Estado (2026-11-14): implementado.** La respuesta de `POST /plan-route` tiene tres partes: `report` (métricas, comparación con un A* clásico, avisos de luz y batería, parada de carga y `why`, para el resumen del LLM y el panel), `geojson` (ruta, A* clásico y paradas en lon/lat planetocéntricas) y `ctx_px` (las líneas en píxeles del mapa base CTX de 6 m para Leaflet `CRS.Simple`). Detalle en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). La propuesta inicial de abajo queda como histórico.
 
 ```json
 {

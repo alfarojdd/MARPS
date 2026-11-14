@@ -4,7 +4,7 @@ Código en `planner/`:
 - `planner.py`: modelo de coste, A*, ciencia y métricas.
 - `report.py`: **informe JSON** para el resumen del LLM del casco (comparación con el A* clásico, batería, luz y parada de carga).
 - `shadows.py`: sombras e iluminación por hora, con `mars_shadows.py` (raíz del repo) y `assets/SunAngle.csv`.
-- `api.py`: endpoint FastAPI `POST /plan-route` para el backend. Contrato completo en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md).
+- `api.py`: endpoint FastAPI `POST /plan-route` para el backend. Contrato completo en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md).
 - `live.py`: banco de pruebas interactivo.
 - `demo.py` y `scenarios.json`: figura y tabla de escenarios.
 - `examples/`: petición y respuesta reales de la API, e informe con parada de carga.

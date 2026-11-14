@@ -1,6 +1,6 @@
 # Integración del planificador con el backend y el frontend
 
-Contrato entre `planner/` (rutas), `backend/` (LLM + API) y el frontend (React + Leaflet). Si cambia, actualizad este fichero y `ARQUITECTURA.md` en el mismo PR.
+Contrato entre `planner/` (rutas), `backend/` (LLM + API) y el frontend (React + Leaflet). Si cambia, actualizad este fichero y `ARCHITECTURE.md` en el mismo PR.
 
 ## Flujo
 
@@ -83,7 +83,7 @@ Ejemplo completo: [../planner/examples/plan_route_request.json](../planner/examp
 | `delta` | Sedimentos del abanico deltaico | SIM 3464 (Jezero fan 1 y 2) | Delta occidental |
 | `crater_floor` | Unidad del suelo del cráter | SIM 3464 (Jezero floor) | Centro y sur |
 
-CRISM solo cubre el **41 % central**. Para la demo, A y B deben estar cerca de esa zona (por ejemplo, de `landing_site` o `crater_floor_south` a `delta_top`). Guía de frases para el prompt del LLM: [PLANIFICADOR.md](PLANIFICADOR.md) (sección "Esquema de `mission`").
+CRISM solo cubre el **41 % central**. Para la demo, A y B deben estar cerca de esa zona (por ejemplo, de `landing_site` o `crater_floor_south` a `delta_top`). Guía de frases para el prompt del LLM: [PLANNER.md](PLANNER.md) (sección "Esquema de `mission`").
 
 ### `system` (lo pone el vehículo, no el LLM)
 | Campo | Defecto | Significado |

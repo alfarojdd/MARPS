@@ -10,8 +10,8 @@ cd planner && python -m pytest -q       # pruebas
 
 Datos: `data/jezero/` (Drive, ver [../data/jezero/README.md](../data/jezero/README.md)) o la ruta de `JEZERO_DATA`.
 
-- Modelo, sombras y pendientes: [../docs/PLANIFICADOR.md](../docs/PLANIFICADOR.md).
-- Contrato con backend y frontend (`POST /plan-route`): [../docs/INTEGRACION_PLANIFICADOR.md](../docs/INTEGRACION_PLANIFICADOR.md).
+- Modelo, sombras y pendientes: [../docs/PLANNER.md](../docs/PLANNER.md).
+- Contrato con backend y frontend (`POST /plan-route`): [../docs/PLANNER_INTEGRATION.md](../docs/PLANNER_INTEGRATION.md).
 - Ejemplos reales: [examples/](examples/).
 
 Sombras: usa `../mars_shadows.py` y `../assets/SunAngle.csv`. Si faltan, funciona igual sin ellas.
