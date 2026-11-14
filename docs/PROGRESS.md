@@ -33,6 +33,12 @@ One entry per work session, most recent first. Format: date, area, what was done
 - Removed the Perseverance traverse: `dist_traverse` layer, traverse vectors and waypoints, and the landing ellipse. 13-band base stack.
 - Pending decision: rewrite the history of `main` to remove the traverse from earlier commits (328d796). Not done.
 
+## 2026-11-14 (afternoon): 3D view of the route over the relief
+- Demo of a **3D** button: the map tilts, the relief is exaggerated and the planner's route is drawn on top, with an elevation profile. Details and integration steps in [TERRAIN_3D.md](TERRAIN_3D.md).
+- Mars Trek STL (400 × 400 grid, no georeference) georeferenced by correlation with the CTX DTM: horizontal mirror, r = 0.978, 29.04 m per unit, RMSE 55 m. Converted to a float32 heightmap + CTX texture with `data/jezero/pipeline/build_terrain3d.py`. The same format can be made from the CTX DTM.
+- Module `platform/viewer/terrain3d/terrain3d.mjs` and demo `platform/viewer/terrain3d/demo.html`, with a real `/plan-route` response.
+- Pending: vendor the line addons of Three.js in `backend/viewer_dependencies.json`, decide the default relief (DTM or STL) and wire the button into the main map.
+
 ## Pending decisions
 - [x] Mars area: Jezero
 - [x] Specific layers and sources: see [JEZERO_LAYERS.md](JEZERO_LAYERS.md) (the planner still has to choose which ones it uses)
