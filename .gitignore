@@ -237,3 +237,7 @@ data/jezero/raw/
 data/jezero/layers20m/
 data/jezero/hires/
 platform/viewer/data/
+# Jezero: datos en Google Drive, no en GitHub
+data/jezero/stack/
+data/jezero/vectors/
+data/jezero/extra/
