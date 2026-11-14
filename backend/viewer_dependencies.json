@@ -1,0 +1,52 @@
+[
+  {
+    "path": "leaflet/images/marker-icon-2x.png",
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+    "sha256": "00179c4c1ee830d3a108412ae0d294f55776cfeb085c60129a39aa6fc4ae2528"
+  },
+  {
+    "path": "leaflet/images/marker-icon.png",
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+    "sha256": "574c3a5cca85f4114085b6841596d62f00d7c892c7b03f28cbfa301deb1dc437"
+  },
+  {
+    "path": "leaflet/images/marker-shadow.png",
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+    "sha256": "264f5c640339f042dd729062cfc04c17f8ea0f29882b538e3848ed8f10edb4da"
+  },
+  {
+    "path": "leaflet/leaflet.css",
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css",
+    "sha256": "b570abbda963c60b4de4b4ff4b26f9326f53fb2ccf1461fdf0955ca094fb2539"
+  },
+  {
+    "path": "leaflet/leaflet.js",
+    "url": "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js",
+    "sha256": "5c9aecfc30e4564519dbdcddcc53a418227dcc7568e619e9762ddcec7609ed47"
+  },
+  {
+    "path": "spark/spark.module.js",
+    "url": "https://sparkjs.dev/releases/spark/0.1.10/spark.module.js",
+    "sha256": "e2841904c3facdf2ab5177b13b4827cdc72118cb8b613673ca08d8e983c5bf9d"
+  },
+  {
+    "path": "three/addons/controls/OrbitControls.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/controls/OrbitControls.js",
+    "sha256": "b97879c748170baadeb3fb84cea1ffdf4674e283dc06042f34e2acb95a76042c"
+  },
+  {
+    "path": "three/addons/loaders/OBJLoader.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/loaders/OBJLoader.js",
+    "sha256": "e3ceb6a8ed48ca146049a8f0879c7acbf884d430f2e728779af26c6ea3a57c65"
+  },
+  {
+    "path": "three/three.core.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.core.js",
+    "sha256": "562b72799ef1145f77997ece49a34f578422873757b0a13e41d76dcbfb776f06"
+  },
+  {
+    "path": "three/three.module.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.module.js",
+    "sha256": "bc0d236927f5163414e7c59a5567257dfe925f1929ce0a151ac4185dc45ca5a2"
+  }
+]

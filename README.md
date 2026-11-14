@@ -24,6 +24,19 @@ See details in [docs/IDEA.md](docs/IDEA.md) and [docs/ARQUITECTURA.md](docs/ARQU
 
 How we work: [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Map and 3D reconstructions
+
+With `MARPS_Jezero_3D_datos/MARPS_Jezero_3D` extracted at the repository root:
+
+```bash
+python3 backend/prepare_viewer.py  # first run only; downloads the web libraries
+python3 backend/viewer.py
+```
+
+Open **http://127.0.0.1:8765**. Select a **3D** marker to enter a reconstruction, or use **Entrar en Cheyava Falls** to open the local scene in first person. Drag to look around and use **W A S D / arrow keys** to walk. Touch controls, an orbital view and a return-to-map button are also available.
+
+The CTX basemap and local models work offline once the libraries are prepared. Sketchfab models require an internet connection. The catalog distinguishes approximate locations and scenes without verified coordinates. See [platform/viewer/README.md](platform/viewer/README.md) for details and limitations.
+
 ## License
 
 To be determined.

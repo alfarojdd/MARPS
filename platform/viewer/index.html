@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Jezero multicapa</title>
 <link rel="icon" href="data:,">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="reconstructions.css">
 <style>
   :root {
     --bg: #0f1114; --panel: #171a1f; --panel-2: #1f232a; --line: #2c313a;
@@ -81,6 +82,26 @@
     <h1>Cráter Jezero · mapa multicapa</h1>
     <div class="sub">77.160–77.699 °E · 18.211–18.721 °N · ~32 × 30 km</div>
 
+    <section id="reconstructions" aria-label="Reconstrucciones 3D">
+      <h2>Explorar la superficie</h2>
+      <p class="muted">Selecciona un punto 3D y entra en su reconstrucción.</p>
+      <div id="sceneStatus" role="status">Cargando catálogo 3D…</div>
+      <div class="scene-actions"><button id="sceneFit">Ver puntos 3D</button><button id="sceneFeatured" disabled>Entrar en Cheyava Falls</button></div>
+      <label class="row"><input id="sceneMarkers" type="checkbox" checked>Mostrar puntos 3D</label>
+      <label class="row"><input id="sceneRoute" type="checkbox">Recorrido de Perseverance</label>
+      <input id="sceneSearch" type="search" placeholder="Buscar lugar, autor o sol…" aria-label="Buscar reconstrucciones">
+      <select id="sceneFilter" aria-label="Filtrar reconstrucciones">
+        <option value="placed">Con ubicación en el mapa</option>
+        <option value="local">Archivos 3D locales</option>
+        <option value="landscape">Escenas y afloramientos</option>
+        <option value="detail">Detalles de roca</option>
+        <option value="unplaced">Sin ubicación verificada</option>
+        <option value="all">Todo el catálogo</option>
+      </select>
+      <div id="sceneList" aria-label="Catálogo de reconstrucciones"></div>
+      <p class="muted scene-note">Los puntos indican orígenes de escena o posiciones aproximadas del rover; no delimitan la cobertura 3D.</p>
+    </section>
+
     <h2>Fondo</h2>
     <div id="bases"></div>
 
@@ -116,8 +137,13 @@
     </section>
   </div>
 </div>
+<dialog id="surfaceDialog" aria-labelledby="surfaceTitle">
+  <header><div><strong id="surfaceTitle"></strong><div id="surfaceByline" class="muted"></div></div><button id="surfaceClose">Volver al mapa ×</button></header>
+  <div id="surfaceViewport"></div>
+  <footer><span id="surfaceNote"></span><a id="surfaceSource" target="_blank" rel="noopener noreferrer">Fuente original ↗</a></footer>
+</dialog>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 <script>
 const EMPTY = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const VECTORS = [
@@ -138,6 +164,12 @@ function makeCRS(c) {
 const ll = (x, y) => L.latLng(y, x);  // lat = norte (m), lng = este (m)
 
 function tileLayer(l, pane) {
+  if (l.id === "ctx_mosaic") {
+    const k = Math.PI * cfg.radius / 180;
+    return L.layerGroup(cfg.ctx.tiles.map(t => L.imageOverlay(`/assets/ctx/${t.file}`,
+      [ll(t.lon_min * k, t.lat_min * k), ll(t.lon_max * k, t.lat_max * k)],
+      { pane: pane || "basePane", interactive: false })));
+  }
   const b = l.bounds;
   return L.tileLayer(`data/tiles/${l.id}/{z}/{x}/{y}.${l.ext}`, {
     maxNativeZoom: l.maxzoom, maxZoom: 7, minZoom: 0, tileSize: cfg.tile, noWrap: true,
@@ -216,10 +248,11 @@ function buildPanel() {
   $("#themes").addEventListener("change", e => setTheme(+e.target.value));
 
   const n = themeLayers().length;
+  $("#prev").disabled = $("#next").disabled = n === 0;
   $("#prev").onclick = () => setTheme(themeIdx <= 0 ? n - 1 : themeIdx - 1);
   $("#next").onclick = () => setTheme(themeIdx >= n - 1 ? 0 : themeIdx + 1);
   document.addEventListener("keydown", e => {
-    if (e.target.tagName === "SELECT" || e.target.type === "range") return;
+    if (["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName) || $("#surfaceDialog").open) return;
     if (e.key === "ArrowRight") $("#next").click();
     else if (e.key === "ArrowLeft") $("#prev").click();
     else if (e.key === "0") setTheme(-1);
@@ -321,6 +354,12 @@ function fmt(b, raw) {
   return `${v.toFixed(d)} <span class="muted">${b.units}</span>`;
 }
 async function inspect(e) {
+  if (!cfg.probe) {
+    const [lon, lat] = toLonLat(e.latlng);
+    $("#inspectBox").classList.remove("hidden");
+    $("#inspect").textContent = `${lat.toFixed(5)}° N, ${lon.toFixed(5)}° E. Sólo está disponible el fondo CTX. Genera las capas con el pipeline de data/jezero para inspeccionar sus valores.`;
+    return;
+  }
   const p = cfg.probe;
   const col = Math.floor((e.latlng.lng - p.left) / p.res), row = Math.floor((p.top - e.latlng.lat) / p.res);
   if (col < 0 || row < 0 || col >= p.width || row >= p.height) return;
@@ -335,7 +374,12 @@ async function inspect(e) {
 
 // ---------- arranque
 (async function () {
-  cfg = await fetch("data/config.json").then(r => r.json());
+  const response = await fetch("/api/map-config");
+  if (!response.ok) throw new Error("No se encuentra el mapa. Inicia python3 backend/viewer.py desde el repositorio.");
+  cfg = await response.json();
+  if (cfg.ctx) {
+    $("#inspect").textContent = "Fondo CTX disponible. Las capas temáticas se pueden generar con el pipeline de data/jezero.";
+  }
   map = L.map("map", { crs: makeCRS(cfg), zoomSnap: 0.5, keyboard: false, attributionControl: true, minZoom: 0, maxZoom: 7, maxBoundsViscosity: 1 });
   for (const [name, z] of [["basePane", 200], ["themePane", 300], ["cmpPane", 350], ["vectorPane", 450]]) {
     map.createPane(name).style.zIndex = z;
@@ -350,7 +394,11 @@ async function inspect(e) {
   setTimeout(() => { map.invalidateSize(); if (map.getZoom() < map.getBoundsZoom(full)) map.fitBounds(full, { animate: false }); }, 0);
   buildPanel();
   initDivider();
-  const firstBase = "ctx_ortho_6m";
+  if (cfg.ctx) {
+    $("#vectors").textContent = "Genera las capas del pipeline para activar los vectores geológicos.";
+    $("#cmp").disabled = true;
+  }
+  const firstBase = cfg.ctx ? "ctx_mosaic" : "ctx_ortho_6m";
   setBase(firstBase);
   $("#inspectClose").onclick = () => $("#inspectBox").classList.add("hidden");
   setTheme(-1);
@@ -360,7 +408,12 @@ async function inspect(e) {
     $("#coords").textContent = `${lat.toFixed(5)}° N  ${lon.toFixed(5)}° E`;
   });
   map.on("click", inspect);
-})();
+  const { initReconstructions } = await import("./reconstructions.mjs");
+  await initReconstructions({map, cfg});
+})().catch(error => {
+  $("#sceneStatus").textContent = error.message;
+  console.error(error);
+});
 </script>
 <style>.pixelated img { image-rendering: pixelated; }</style>
 </body>

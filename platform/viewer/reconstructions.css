@@ -1,0 +1,31 @@
+#reconstructions { border: 1px solid #5a3a26; border-radius: 9px; padding: 10px; background: #211c18; margin: 14px 0; }
+#reconstructions h2 { margin: 0; color: #f2a679; }
+#reconstructions p { margin: 6px 0; }
+#sceneStatus { font-size: 12px; margin: 8px 0; }
+.scene-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+#sceneFeatured, .scene-enter { background: #a94d29; color: white; border-color: #db8e66; }
+button:disabled { opacity: .45; cursor: default; }
+#sceneSearch, #sceneFilter { width: 100%; margin-top: 7px; padding: 8px; border: 1px solid #4a4039; border-radius: 5px; background: #171a1f; color: #e6e8eb; font: inherit; }
+#sceneList { max-height: 270px; overflow: auto; margin-top: 8px; }
+.scene-card { padding: 10px 2px; border-top: 1px solid #42362d; }
+.scene-card strong { display: block; }
+.scene-meta { color: #9aa3ae; font-size: 11px; margin: 4px 0 7px; }
+.scene-card button { margin: 0 4px 4px 0; }
+.scene-note { font-size: 11px; }
+.scene-pin { display: grid; place-items: center; border-radius: 50%; background: #203b3b; border: 2px solid #85d6ca; color: white; box-shadow: 0 2px 8px #0009; font-size: 10px; font-weight: bold; }
+.scene-pin.local { background: #b64e28; border-color: #ffd0a9; }
+.scene-pin.detail { background: #563c64; border-color: #dbb2f0; }
+.leaflet-popup-content .scene-card { border: 0; color: #222; }
+.leaflet-popup-content .scene-meta { color: #555; }
+.leaflet-popup-content button { font: inherit; padding: 8px; cursor: pointer; }
+#surfaceDialog { position: fixed; inset: 0; width: 100%; max-width: none; height: 100dvh; max-height: none; margin: 0; padding: 0; border: 0; background: #0f1114; color: #e6e8eb; }
+#surfaceDialog[open] { display: flex; flex-direction: column; }
+#surfaceDialog::backdrop { background: #000c; }
+#surfaceDialog header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid #3d332c; }
+#surfaceByline { font-size: 11px; margin-top: 3px; }
+#surfaceViewport { flex: 1; min-height: 0; position: relative; }
+#surfaceViewport iframe { width: 100%; height: 100%; display: block; border: 0; background: #181719; }
+#surfaceDialog footer { display: flex; gap: 20px; align-items: center; padding: 10px 18px; font-size: 11px; color: #afb3ba; border-top: 1px solid #3d332c; }
+#surfaceDialog footer span { flex: 1; }
+#surfaceDialog a { color: #f2a679; white-space: nowrap; }
+@media (max-width: 600px) { #surfaceDialog header { padding: 8px; } #surfaceDialog footer { padding: 8px; } #surfaceDialog footer span { max-height: 55px; overflow-y: auto; } }

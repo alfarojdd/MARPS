@@ -237,6 +237,9 @@ data/jezero/raw/
 data/jezero/layers20m/
 data/jezero/hires/
 platform/viewer/data/
+platform/viewer/vendor/
+# Paquete de reconstrucciones local: conservar fuera de Git los modelos y metadatos pesados.
+MARPS_Jezero_3D_datos/
 # Jezero: datos en Google Drive, no en GitHub
 data/jezero/stack/
 data/jezero/vectors/

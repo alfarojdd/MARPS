@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MARPS · Vista de superficie</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="surface.css">
+  <script type="importmap">
+    {"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/","@sparkjsdev/spark":"./vendor/spark/spark.module.js"}}
+  </script>
+</head>
+<body>
+  <div id="view" tabindex="0" aria-label="Reconstrucción 3D. Arrastra para mirar; usa W A S D o las flechas para desplazarte."></div>
+  <div id="loading" role="status"><strong id="loadingTitle">Preparando la reconstrucción…</strong><p id="loadingDetail">El modelo se carga al entrar; puede tardar unos segundos.</p><button id="retry" hidden onclick="location.reload()">Reintentar</button></div>
+  <div id="toolbar"><button id="walk" aria-pressed="true">A pie · 1,65 m</button><button id="orbit" aria-pressed="false">Vista orbital</button><button id="reset">Restablecer vista</button><select id="quality" aria-label="Calidad del modelo"><option value="auto">Calidad automática</option><option value="full">Detalle completo</option><option value="light">Calidad ligera</option></select><button id="fullscreen">Pantalla completa</button></div>
+  <div id="help">Arrastra para mirar · W A S D / flechas para caminar · Esc para volver al mapa</div>
+  <div id="position" role="status"></div>
+  <div id="touchControls" aria-label="Controles de desplazamiento">
+    <button data-move="forward" aria-label="Avanzar">↑</button>
+    <div><button data-move="left" aria-label="Ir a la izquierda">←</button><button data-move="back" aria-label="Retroceder">↓</button><button data-move="right" aria-label="Ir a la derecha">→</button></div>
+  </div>
+  <script type="module">
+    import("./surface.mjs").then(module => module.start()).catch(error => {
+      document.querySelector("#loading").hidden = false;
+      document.querySelector("#loadingTitle").textContent = "No se pudo abrir la reconstrucción";
+      document.querySelector("#loadingDetail").textContent = `${error.message}. Comprueba WebGL2 y ejecuta python3 backend/prepare_viewer.py si faltan las bibliotecas.`;
+      document.querySelector("#retry").hidden = false;
+      console.error(error);
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") parent.postMessage("marps:close-surface", location.origin);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+* { box-sizing: border-box; }
+body { margin: 0; background: #1b1918; color: #eee7dd; font: 13px/1.5 system-ui, sans-serif; overflow: hidden; }
+button, select { background: #242323eb; color: #eee7dd; border: 1px solid #746053; border-radius: 6px; padding: 8px 12px; font: inherit; cursor: pointer; }
+button:hover, button[aria-pressed=true] { background: #844526; border-color: #f0a878; }
+button:focus-visible, #view:focus-visible { outline: 2px solid #f0a878; outline-offset: -2px; }
+#view { position: fixed; inset: 0; touch-action: none; }
+canvas { display: block; width: 100%; height: 100%; }
+#toolbar { position: fixed; top: 12px; left: 12px; right: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+#loading { position: fixed; z-index: 5; left: 50%; top: 50%; transform: translate(-50%,-50%); background: #171a1ff5; padding: 22px; border: 1px solid #8d6347; border-radius: 10px; width: min(440px,90vw); }
+#loading[hidden] { display: none; }
+#loading p { color: #c2b5aa; margin-bottom: 0; }
+#help, #position { position: fixed; left: 12px; bottom: 12px; background: #171a1fe0; border-radius: 6px; padding: 7px 10px; pointer-events: none; max-width: calc(100% - 180px); }
+#position { bottom: 55px; font-size: 11px; color: #c9b5a4; }
+#touchControls { position: fixed; right: 12px; bottom: 12px; display: grid; justify-items: center; gap: 5px; }
+#touchControls[hidden] { display: none; }
+#touchControls div { display: flex; gap: 5px; }
+#touchControls button { width: 44px; height: 44px; padding: 0; font-size: 20px; touch-action: none; user-select: none; }
+@media (max-width: 560px) { #toolbar button { padding: 7px; font-size: 11px; } #help { font-size: 11px; } #position { bottom: 90px; } }

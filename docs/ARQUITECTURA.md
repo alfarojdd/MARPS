@@ -93,3 +93,14 @@ Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afi
 | Interfaz | Mapa web (Leaflet, OpenLayers o deck.gl) | por confirmar |
 
 Cada área anota aquí qué ha elegido y por qué.
+
+## [D] Reconstrucciones de superficie → visor
+
+Implementación local en `backend/viewer.py` y `backend/reconstructions.py`, con biblioteca estándar Python. No depende de la API del LLM. Arranque y preparación: [visor](../platform/viewer/README.md).
+
+- `GET /api/map-config`: configuración del pipeline si existe; en su ausencia, fondo CTX con las teselas versionadas.
+- `GET /api/reconstructions`: `{version:1, body:"Mars", radius:3396190, counts, warnings, scenes}`. Cada escena incluye `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat_planetocéntrica]` o `null`), `anchor`, `sol`, `license`, `source` y `available`. Las locales añaden `asset`, `frame` y `radius`; la OBJ añade `texture`.
+- `GET /api/traverse`: una línea GeoJSON con coordenadas de **Marte**, sólo para mostrar contexto.
+- `/assets/ctx/…`: teselas orbitales del repositorio. `/reconstructions/files/cheyava_falls/…` y `/reconstructions/files/ejemplo_malla_NASA/…`: archivos locales del paquete configurado con `--dataset`.
+
+El mapa proyecta las anclas con la misma equirectangular marciana que [A]. Abrir una escena conserva el estado del mapa en un diálogo; cerrarla destruye su iframe y libera el visor WebGL. Los modelos sin ubicación nunca reciben coordenadas inventadas. La cámara local usa suelo estimado y movimiento limitado, sin garantizar colisiones ni cobertura continua.
