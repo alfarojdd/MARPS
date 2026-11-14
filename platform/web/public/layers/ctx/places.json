@@ -1,0 +1,46 @@
+[
+ {
+  "name": "Octavia E. Butler Landing (Perseverance)",
+  "lat": 18.4447,
+  "lon": 77.4508,
+  "col": 2868,
+  "row": 2731,
+  "tile": "r05_c05",
+  "local_x": 308,
+  "local_y": 171,
+  "source": "ESA SPICE frame kernel MEX_RELAY_LOCATIONS_V03.TF (MARS2020 site); https://spiftp.esac.esa.int/data/PSA/MEX-E-M-SPICE-6-V2.0/DATA/FK/MEX_RELAY_LOCATIONS_V03.TF"
+ },
+ {
+  "name": "Belva (crater)",
+  "lat": 18.48,
+  "lon": 77.38,
+  "col": 2168,
+  "row": 2382,
+  "tile": "r04_c04",
+  "local_x": 120,
+  "local_y": 334,
+  "source": "IAU/USGS Gazetteer of Planetary Nomenclature, feature 15872"
+ },
+ {
+  "name": "Jezero (crater centre)",
+  "lat": 18.41,
+  "lon": 77.69,
+  "col": 5231,
+  "row": 3074,
+  "tile": "r06_c10",
+  "local_x": 111,
+  "local_y": 2,
+  "source": "IAU/USGS Gazetteer of Planetary Nomenclature, feature 14300"
+ },
+ {
+  "name": "Neretva Vallis",
+  "lat": 18.55,
+  "lon": 77.2,
+  "col": 390,
+  "row": 1691,
+  "tile": "r03_c00",
+  "local_x": 390,
+  "local_y": 155,
+  "source": "IAU/USGS Gazetteer of Planetary Nomenclature, feature 15879"
+ }
+]
