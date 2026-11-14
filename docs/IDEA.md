@@ -78,7 +78,7 @@ To meet the challenge requirement, **at least three data types** are enough.
 - **Frontend:** web map (Leaflet / OpenLayers / deck.gl) with a layer selector, click to set origin and destination, a context box and a results panel.
 
 ## Candidate area
-To be decided. Options with plenty of data: **Gale / Mount Sharp** (Curiosity, boxwork, the challenge statement's own example) or **Jezero crater** (Perseverance, delta, HiRISE DTMs available).
+**Jezero crater** (Perseverance, delta, HiRISE DTMs available).
 
 ## What sets us apart
 - Maps like Mars Trek display layers; we **reason over them** to plan.
