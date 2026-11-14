@@ -1,87 +1,87 @@
-# Nuestra idea: planificador de rutas consciente de la misión
+# Our idea: a mission-aware route planner
 
-## Resumen en una frase
-Un mapa multicapa de una zona de Marte sobre el que un planificador de rutas calcula el camino entre dos puntos teniendo en cuenta **el terreno y también los objetivos de la misión**. Un **LLM local pequeño** traduce la descripción de la misión, escrita en lenguaje natural, a un **JSON de pesos** que modifica el coste del camino.
+## One-sentence summary
+A multi-layer map of an area of Mars on which a route planner computes the path between two points taking into account **the terrain and also the mission objectives**. A **small local LLM** translates the mission description, written in natural language, into a **JSON of weights** that modifies the path cost.
 
-## El problema que resolvemos
-Los planificadores clásicos (A*, Dijkstra, D*...) optimizan sobre una función de coste casi siempre geométrica: distancia, pendiente, obstáculos. En una salida real a Marte el "mejor" camino depende de **para qué** se sale:
+## The problem we solve
+Classic planners (A*, Dijkstra, D*...) optimise an almost always geometric cost function: distance, slope, obstacles. On a real Mars outing, the "best" path depends on **why** you are going out:
 
-- Si la misión es geológica, interesa pasar cerca de afloramientos con ciertos minerales aunque el camino sea más largo.
-- Si hay una tormenta solar prevista, interesa minimizar el tiempo expuesto y quedarse cerca de refugio.
-- Si el astronauta va cargado con instrumental pesado, las pendientes penalizan mucho más.
-- Si se va en rover, cambian los límites de pendiente y de rugosidad.
+- If the mission is geological, it pays to pass close to outcrops with certain minerals, even if the path is longer.
+- If a solar storm is forecast, it pays to minimise exposure time and stay close to shelter.
+- If the astronaut is carrying heavy instruments, slopes are penalised much more.
+- If travelling by rover, the slope and roughness limits change.
 
-Nuestra herramienta hace que **la función de coste dependa del contexto de la misión**.
+Our tool makes **the cost function depend on the mission context**.
 
-## Cómo funciona (flujo del usuario)
-1. El usuario abre la plataforma y ve el mapa de la zona elegida.
-2. Activa o desactiva **capas** (relieve, pendiente, rugosidad, mineralogía, inercia térmica, geología, radiación...).
-3. Marca un **origen** y un **destino** en el mapa.
-4. Escribe el **contexto de la misión** en un cuadro de texto. Ejemplo:
-   > "Salida de 4 horas para tomar muestras de arcillas. Vamos dos astronautas a pie con taladro (15 kg). Hay riesgo de evento de partículas solares por la tarde. Evitar pendientes de más de 15°."
-5. Un **LLM local** convierte ese texto en un **JSON de parámetros** validado contra un esquema.
-6. El planificador combina las capas con esos pesos en un **mapa de coste** y calcula la ruta.
-7. Se muestra la ruta sobre el mapa con sus métricas (distancia, desnivel, tiempo estimado, exposición, puntos de interés por los que pasa) y, a ser posible, una explicación de por qué se eligió.
+## How it works (user flow)
+1. The user opens the platform and sees the map of the chosen area.
+2. They switch **layers** on or off (relief, slope, roughness, mineralogy, thermal inertia, geology, radiation...).
+3. They mark an **origin** and a **destination** on the map.
+4. They write the **mission context** in a text box. Example:
+   > "4-hour outing to collect clay samples. Two astronauts on foot with a drill (15 kg). Risk of a solar particle event in the afternoon. Avoid slopes steeper than 15°."
+5. A **local LLM** converts that text into a **JSON of parameters** validated against a schema.
+6. The planner combines the layers with those weights into a **cost map** and computes the route.
+7. The route is shown on the map with its metrics (distance, elevation gain, estimated time, exposure, points of interest it passes through) and, if possible, an explanation of why it was chosen.
 
-## Pieza clave: del texto al JSON de pesos
-El LLM **no planifica la ruta**: solo traduce intención a parámetros. Así el resultado es reproducible, explicable y seguro (el algoritmo de rutas es determinista y los límites de seguridad se aplican siempre).
+## Key piece: from text to a JSON of weights
+The LLM **does not plan the route**: it only translates intent into parameters. This keeps the result reproducible, explainable and safe (the routing algorithm is deterministic and the safety limits are always enforced).
 
-Esquema orientativo (por definir en detalle):
+Draft schema (details to be defined):
 
 ```json
 {
-  "modo_desplazamiento": "a_pie",          // a_pie | rover
-  "carga_kg": 15,
-  "duracion_max_min": 240,
-  "restricciones_duras": {
-    "pendiente_max_grados": 15,
-    "evitar_rugosidad_alta": true
+  "travel_mode": "on_foot",          // on_foot | rover
+  "load_kg": 15,
+  "max_duration_min": 240,
+  "hard_constraints": {
+    "max_slope_deg": 15,
+    "avoid_high_roughness": true
   },
-  "pesos": {
-    "distancia": 1.0,
-    "pendiente": 2.0,
-    "rugosidad": 1.5,
-    "exposicion_radiacion": 3.0,
-    "interes_cientifico": 2.5
+  "weights": {
+    "distance": 1.0,
+    "slope": 2.0,
+    "roughness": 1.5,
+    "radiation_exposure": 3.0,
+    "scientific_interest": 2.5
   },
-  "objetivos_cientificos": ["arcillas", "filosilicatos"],
-  "waypoints_deseados": []
+  "science_targets": ["clays", "phyllosilicates"],
+  "desired_waypoints": []
 }
 ```
 
-Coste de cada celda del mapa (idea inicial):
+Cost of each map cell (initial idea):
 
 ```
-coste(celda) = Σ peso_i · capa_normalizada_i(celda)  − peso_interés · afinidad(celda, objetivos)
+cost(cell) = Σ weight_i · normalised_layer_i(cell)  − interest_weight · affinity(cell, targets)
 ```
 
-Las restricciones duras (pendiente máxima, zonas prohibidas) marcan celdas como intransitables. El "interés científico" actúa como bonificación (menos coste) cerca de lo que la misión busca. El coste se mantiene siempre positivo para que A* siga siendo válido.
+Hard constraints (maximum slope, forbidden zones) mark cells as impassable. "Scientific interest" acts as a bonus (lower cost) near what the mission is looking for. The cost is always kept positive so that A* remains valid.
 
-## Capas de datos candidatas
-| Capa | Origen probable | Uso en el coste |
+## Candidate data layers
+| Layer | Likely source | Use in the cost |
 |---|---|---|
-| Elevación (DEM) | HiRISE DTM / CTX / MOLA vía Mars Trek | Base para pendiente y desnivel |
-| Pendiente | Derivada del DEM | Penalización y restricción dura |
-| Rugosidad / rocas | Derivada del DEM, mapas de rocas HiRISE | Penalización |
-| Inercia térmica | THEMIS | Indicador de terreno suelto o roca firme |
-| Mineralogía | CRISM | Interés científico |
-| Geología | Mapas USGS | Interés científico y tipo de terreno |
-| Radiación y clima | RAD (Curiosity), MEDA (Perseverance), modelos | Exposición y ventanas temporales |
-| Imágenes de superficie | Raw images de rovers | Vista en primera persona en la ruta |
+| Elevation (DEM) | HiRISE DTM / CTX / MOLA via Mars Trek | Basis for slope and elevation gain |
+| Slope | Derived from the DEM | Penalty and hard constraint |
+| Roughness / rocks | Derived from the DEM, HiRISE rock maps | Penalty |
+| Thermal inertia | THEMIS | Indicator of loose ground vs. firm rock |
+| Mineralogy | CRISM | Scientific interest |
+| Geology | USGS maps | Scientific interest and terrain type |
+| Radiation and weather | RAD (Curiosity), MEDA (Perseverance), models | Exposure and time windows |
+| Surface images | Rover raw images | First-person view along the route |
 
-Para cumplir el requisito del reto basta con **al menos tres tipos de datos**.
+To meet the challenge requirement, **at least three data types** are enough.
 
-## Arquitectura tentativa (sin decidir)
-- **Datos:** preprocesado offline de la zona elegida a una rejilla común (mismo CRS y resolución) → GeoTIFF / arrays NumPy.
-- **Backend:** Python (FastAPI) con el planificador (A* sobre rejilla) y el endpoint que llama al LLM.
-- **LLM local:** modelo pequeño (por ejemplo vía Ollama o llama.cpp) con salida JSON estructurada y validación (Pydantic/JSON Schema). Si falla la validación, se reintenta o se usan pesos por defecto.
-- **Frontend:** mapa web (Leaflet / OpenLayers / deck.gl) con selector de capas, clic para origen y destino, cuadro de contexto y panel de resultados.
+## Tentative architecture (not decided)
+- **Data:** offline preprocessing of the chosen area onto a common grid (same CRS and resolution) → GeoTIFF / NumPy arrays.
+- **Backend:** Python (FastAPI) with the planner (A* on a grid) and the endpoint that calls the LLM.
+- **Local LLM:** small model (e.g. via Ollama or llama.cpp) with structured JSON output and validation (Pydantic/JSON Schema). If validation fails, it retries or falls back to default weights.
+- **Frontend:** web map (Leaflet / OpenLayers / deck.gl) with a layer selector, click to set origin and destination, a context box and a results panel.
 
-## Zona candidata
-Pendiente de decidir. Opciones con muchos datos: **Gale / Mount Sharp** (Curiosity, boxwork, el propio ejemplo del enunciado) o **cráter Jezero** (Perseverance, delta, HiRISE DTM disponibles).
+## Candidate area
+To be decided. Options with plenty of data: **Gale / Mount Sharp** (Curiosity, boxwork, the challenge statement's own example) or **Jezero crater** (Perseverance, delta, HiRISE DTMs available).
 
-## Valor diferencial frente a otras soluciones
-- Mapas como Mars Trek muestran capas; nosotros **razonamos sobre ellas** para planificar.
-- Mismo origen y destino → **rutas distintas según la misión**, una demo muy visual.
-- Pesos explícitos en JSON → la decisión es **transparente y editable** por el astronauta o el control de misión.
-- LLM **local**: funciona sin conexión con la Tierra (con 4 a 24 minutos de retardo de comunicación, esto importa).
+## What sets us apart
+- Maps like Mars Trek display layers; we **reason over them** to plan.
+- Same origin and destination → **different routes depending on the mission**, a very visual demo.
+- Explicit weights in JSON → the decision is **transparent and editable** by the astronaut or mission control.
+- **Local** LLM: works without a connection to Earth (with a 4 to 24 minute communication delay, this matters).
