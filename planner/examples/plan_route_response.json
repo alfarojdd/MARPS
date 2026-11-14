@@ -1,0 +1,299 @@
+{
+ "report": {
+  "feasible": true,
+  "mission": {
+   "human": true,
+   "safety": "normal",
+   "power": true,
+   "route_preference": null,
+   "origin": "Octavia E. Butler Landing",
+   "destination": "delta_top",
+   "science_targets": [
+    {
+     "target": "carbonates",
+     "priority": 1.0
+    }
+   ],
+   "science_detour": "medium",
+   "return_to_origin": false
+  },
+  "system": {
+   "start_hour": 9.0,
+   "battery_kwh": 24.0,
+   "battery_capacity_kwh": 40.0,
+   "reserve_pct": 20.0
+  },
+  "sun": {
+   "source": "SunAngle.csv (2026-318)",
+   "sunrise": "05:48",
+   "sunset": "18:12",
+   "daylight_limit": "17:42"
+  },
+  "route": {
+   "distance_km": 16.425,
+   "time_h": 2.887,
+   "energy_kwh": 12.937,
+   "drive_kwh": 7.847,
+   "ascent_m": 342.639,
+   "descent_m": 131.441,
+   "max_pitch_deg": 11.725,
+   "max_cross_deg": 5.081,
+   "rough_km": 0.844,
+   "soft_km": 0.0,
+   "dunes_km": 0.109,
+   "unknown_km": 0.0,
+   "mean_exposure": 0.219,
+   "shadow_km": 0.0,
+   "shadow_pct": 0.0,
+   "night_km": 0.0,
+   "on_carbonates_km": 9.316,
+   "duration_h": 3.55,
+   "departure": "09:00",
+   "arrival": "12:28",
+   "daylight_limit": "17:42",
+   "daylight_margin_h": 5.25,
+   "battery_start_kwh": 24.0,
+   "battery_end_kwh": 9.96,
+   "battery_end_pct": 24.9,
+   "science_stops": [
+    {
+     "lon": 77.34385,
+     "lat": 18.49192,
+     "targets": [
+      "carbonates"
+     ],
+     "dwell_min": 20
+    },
+    {
+     "lon": 77.39918,
+     "lat": 18.60698,
+     "targets": [
+      "carbonates"
+     ],
+     "dwell_min": 20
+    }
+   ],
+   "charging_stop": null,
+   "waypoints_lonlat": [
+    [
+     77.45081,
+     18.44469
+    ],
+    [
+     77.44676,
+     18.4457
+    ],
+    [
+     77.44372,
+     18.4457
+    ],
+    "..."
+   ]
+  },
+  "classic_astar": {
+   "distance_km": 10.05,
+   "time_h": 2.767,
+   "energy_kwh": 11.833,
+   "drive_kwh": 6.95,
+   "ascent_m": 467.115,
+   "descent_m": 255.917,
+   "max_pitch_deg": 23.181,
+   "max_cross_deg": 14.823,
+   "rough_km": 4.036,
+   "soft_km": 0.85,
+   "dunes_km": 0.777,
+   "unknown_km": 0.0,
+   "mean_exposure": 0.174,
+   "shadow_km": 0.0,
+   "shadow_pct": 0.0,
+   "night_km": 0.0,
+   "on_carbonates_km": 1.424
+  },
+  "comparison": {
+   "energy_saved_pct": -9.3,
+   "drive_energy_saved_pct": -12.9,
+   "time_saved_pct": -4.3,
+   "extra_distance_pct": 63.4,
+   "max_pitch_reduction_deg": 11.5,
+   "max_cross_slope_reduction_deg": 9.7,
+   "rough_km_avoided": 3.19,
+   "soft_km_avoided": 0.85,
+   "dunes_km_avoided": 0.67,
+   "shadow_km_avoided": 0.0,
+   "on_carbonates_km_gained": 7.89
+  },
+  "why": [
+   {
+    "factor": "cross",
+    "share_pct": 28.2
+   },
+   {
+    "factor": "dune",
+    "share_pct": 22.8
+   },
+   {
+    "factor": "rough",
+    "share_pct": 21.3
+   },
+   {
+    "factor": "soft",
+    "share_pct": 16.6
+   },
+   {
+    "factor": "on_carbonates",
+    "km_gained": 7.89
+   }
+  ],
+  "warnings": [],
+  "suggestions": []
+ },
+ "geojson": {
+  "type": "FeatureCollection",
+  "features": [
+   {
+    "type": "Feature",
+    "properties": {
+     "kind": "route"
+    },
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       77.450809,
+       18.444685
+      ],
+      [
+       77.450134,
+       18.445023
+      ],
+      [
+       77.449459,
+       18.44536
+      ],
+      "... 543 puntos"
+     ]
+    }
+   },
+   {
+    "type": "Feature",
+    "properties": {
+     "kind": "classic_astar"
+    },
+    "geometry": {
+     "type": "LineString",
+     "coordinates": [
+      [
+       77.450809,
+       18.444685
+      ],
+      [
+       77.450471,
+       18.44536
+      ],
+      [
+       77.450134,
+       18.446035
+      ],
+      "... 281 puntos"
+     ]
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      77.450809,
+      18.444685
+     ]
+    },
+    "properties": {
+     "kind": "origin",
+     "name": "Octavia E. Butler Landing"
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      77.390074,
+      18.599895
+     ]
+    },
+    "properties": {
+     "kind": "destination",
+     "name": "delta_top"
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      77.34385,
+      18.49192
+     ]
+    },
+    "properties": {
+     "kind": "science_stop",
+     "order": 1,
+     "targets": [
+      "carbonates"
+     ],
+     "dwell_min": 20
+    }
+   },
+   {
+    "type": "Feature",
+    "geometry": {
+     "type": "Point",
+     "coordinates": [
+      77.39918,
+      18.60698
+     ]
+    },
+    "properties": {
+     "kind": "science_stop",
+     "order": 2,
+     "targets": [
+      "carbonates"
+     ],
+     "dwell_min": 20
+    }
+   }
+  ]
+ },
+ "ctx_px": {
+  "route": [
+   [
+    2868.3,
+    2731.7
+   ],
+   [
+    2861.7,
+    2728.3
+   ],
+   [
+    2855.0,
+    2725.0
+   ],
+   "... 543 puntos"
+  ],
+  "classic_astar": [
+   [
+    2868.3,
+    2731.7
+   ],
+   [
+    2865.0,
+    2725.0
+   ],
+   [
+    2861.7,
+    2718.3
+   ],
+   "... 281 puntos"
+  ]
+ }
+}

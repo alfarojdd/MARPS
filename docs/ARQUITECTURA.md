@@ -26,6 +26,8 @@ Decisiones por tomar: zona (Gale/Monte Sharp o Jezero), resolución (HiRISE es m
 
 ## [B] Parámetros de misión: `llm/` → `planner/`
 
+**Estado (2026-11-14): acordado e implementado** en `planner/api.py` (`POST /plan-route`). La entrada son dos bloques: `mission`, que rellena el LLM (los 5 campos actuales de `backend/llm/api.py` más `safety`, `science_targets`, `science_detour` y `return_to_origin`), y `system` (hora solar local y batería, que pone el vehículo). Contrato exacto en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md). La propuesta inicial de abajo queda como histórico.
+
 El LLM convierte el texto de misión en este JSON. **Se valida contra un esquema**; si falla, se reintenta o se usan pesos por defecto. El planificador nunca recibe texto libre.
 
 ```json
@@ -59,6 +61,8 @@ Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afi
 
 ## [C] Ruta: `planner/` → `platform/`
 
+**Estado (2026-11-14): implementado.** La respuesta de `POST /plan-route` tiene tres partes: `report` (métricas, comparación con un A* clásico, avisos de luz y batería, parada de carga y `why`, para el resumen del LLM y el panel), `geojson` (ruta, A* clásico y paradas en lon/lat planetocéntricas) y `ctx_px` (las líneas en píxeles del mapa base CTX de 6 m para Leaflet `CRS.Simple`). Detalle en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md). La propuesta inicial de abajo queda como histórico.
+
 ```json
 {
   "path": [[x0, y0], [x1, y1]],
@@ -83,7 +87,7 @@ Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afi
 
 | Pieza | Propuesta | Estado |
 |---|---|---|
-| Planificador | Python + NumPy; A* sobre rejilla | por confirmar |
+| Planificador | Python + NumPy + Numba; A* sobre la rejilla de 20 m, sombras con `mars_shadows.py` | hecho (`planner/`) |
 | API | FastAPI | por confirmar |
 | LLM local | Ollama o llama.cpp con salida JSON y validación (Pydantic / JSON Schema) | por confirmar |
 | Interfaz | Mapa web (Leaflet, OpenLayers o deck.gl) | por confirmar |

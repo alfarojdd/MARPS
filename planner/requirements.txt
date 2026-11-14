@@ -5,3 +5,5 @@ rasterio
 matplotlib
 pillow
 pytest
+fastapi
+httpx

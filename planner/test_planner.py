@@ -106,3 +106,54 @@ def test_report_charging_stop_leaves_reserve(planner):
         assert rep["route"]["battery_end_kwh"] >= 0.2 * 40 - 0.01
     else:
         assert not rep["feasible"]
+
+
+def test_sun_table_maps_to_local_solar_time(planner):
+    sun = planner.sun
+    if sun is None:
+        pytest.skip(f"sin mapa de sombras: {planner.sun_error}")
+    assert 5 < sun.sunrise < 7 and 17 < sun.sunset < 19
+    assert sun.at([12.0], [700], [800])[0] > 0.5      # a mediodía, suelo del cráter iluminado
+    assert sun.at([2.0], [700], [800])[0] == 0          # de noche, sin luz
+
+
+def test_shadow_metrics_and_daylight_window_from_csv(planner):
+    if planner.sun is None:
+        pytest.skip("sin mapa de sombras")
+    rep, codes = _report(planner, {}, {"start_hour": 4.0, "battery_kwh": 40})
+    assert "NO_DAYLIGHT_AT_DEPARTURE" in codes
+    assert rep["sun"]["source"].startswith("SunAngle.csv")
+    assert {"shadow_km", "night_km"} <= set(rep["route"])
+
+
+def test_charging_spot_is_lit(planner):
+    if planner.sun is None:
+        pytest.skip("sin mapa de sombras")
+    rep, codes = _report(planner, {"power": True}, {"start_hour": 6.0, "battery_kwh": 10})
+    ch = rep["route"]["charging_stop"]
+    assert ch is not None and ch["mean_direct_light"] > 0.3
+
+
+def test_api_contract(planner):
+    from fastapi import FastAPI
+    from fastapi.testclient import TestClient
+    import api
+    api._PL = planner
+    app = FastAPI()
+    app.include_router(api.router)
+    cl = TestClient(app)
+    body = {"mission": {"human": True, "origin": "Octavia E. Butler Landing", "destination": "18.60N, 77.39E",
+                        "power": True, "route_preference": None,
+                        "science_targets": [{"target": "carbonates", "priority": 1.0}]},
+            "system": {"start_hour": 9.0, "battery_kwh": 35}}
+    r = cl.post("/plan-route", json=body)
+    assert r.status_code == 200, r.text
+    d = r.json()
+    kinds = {f["properties"]["kind"] for f in d["geojson"]["features"]}
+    assert {"route", "classic_astar", "origin", "destination"} <= kinds
+    assert d["report"]["comparison"] and len(d["ctx_px"]["route"]) > 10
+    lon, lat = d["geojson"]["features"][0]["geometry"]["coordinates"][0]
+    assert 77.16 < lon < 77.70 and 18.21 < lat < 18.73
+    bad = cl.post("/plan-route", json={**body, "mission": {**body["mission"], "origin": "Three Forks"}})
+    assert bad.status_code == 400 and "unknown place" in bad.json()["detail"]
+    assert cl.post("/plan-route", json={**body, "mission": {**body["mission"], "safety": "extreme"}}).status_code == 422

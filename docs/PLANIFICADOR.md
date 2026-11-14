@@ -3,9 +3,12 @@
 Código en `planner/`:
 - `planner.py`: modelo de coste, A*, ciencia y métricas.
 - `report.py`: **informe JSON** para el resumen del LLM del casco (comparación con el A* clásico, batería, luz y parada de carga).
+- `shadows.py`: sombras e iluminación por hora, con `mars_shadows.py` (raíz del repo) y `assets/SunAngle.csv`.
+- `api.py`: endpoint FastAPI `POST /plan-route` para el backend. Contrato completo en [INTEGRACION_PLANIFICADOR.md](INTEGRACION_PLANIFICADOR.md).
 - `live.py`: banco de pruebas interactivo.
 - `demo.py` y `scenarios.json`: figura y tabla de escenarios.
-- `test_planner.py`: pruebas (10).
+- `examples/`: petición y respuesta reales de la API, e informe con parada de carga.
+- `test_planner.py`: pruebas (14).
 
 Es un spike: solo está probado lo básico y no ha pasado por el flujo de subagentes y revisión. Si se lleva al producto (`planner/` de MARPS), habrá que repasarlo con ese flujo.
 
@@ -30,7 +33,7 @@ Dependencias: `pip install -r planner/requirements.txt`. **Datos**: los de `data
 ### Esquema de `mission` (para el prompt y la validación del LLM)
 ```python
 class Mission(BaseModel):
-    human: bool = False                      # hay tripulación a bordo (no significa "a pie")
+    human: bool = True                       # hay tripulación a bordo (no significa "a pie"); como el LLM del backend
     safety: Literal["low", "normal", "high"] = "normal"   # personas o carga frágil → "high"
     power: bool = False                      # priorizar el ahorro de energía
     route_preference: Literal["shortest", "fastest"] | None = None
@@ -59,7 +62,7 @@ class ScienceTarget(BaseModel):
 | "carbonatos sobre todo, y arcillas si pilla de paso" | `[{"target": "carbonates", "priority": 1}, {"target": "clays", "priority": 0.3}]` |
 | "tenemos tiempo de sobra" / "lo justo" | `science_detour: "high"` / `"low"` |
 
-Los campos desconocidos se ignoran. Los valores no válidos dan error 400 con el motivo, para que el LLM pueda reintentar.
+Por la API, un valor no válido da 422 y un lugar desconocido 400, en ambos casos con el motivo, para que el backend pueda pedir al LLM que corrija. Lugares aceptados: `GET /places` (nombres como "Octavia E. Butler Landing" o "Belva crater", o coordenadas "77.45,18.44" o "18.44N, 77.45E").
 
 ## Modelo
 **Rejilla nativa de 20 m** (la del DTM CTX, 1512 × 1596 = 2,4 M celdas) con 16 vecinos. No tiene sentido bajar de 20 m: la pendiente y la rugosidad salen del DTM CTX a 20 m, y la inercia térmica es de 100 m. HiRISE a 1 m solo cubre el 32 % central (ver mejoras).
@@ -123,30 +126,42 @@ Ejemplo completo en `planner/examples/report_example.json`. Bloques:
 - `warnings` (código, gravedad y mensaje en inglés) y `suggestions`.
 
 ### Avisos de luz y batería
-- **Luz:** ventana de 06:00 a 18:00 LTST con 30 min de margen. Sin estaciones ni sombras por ahora (llegará con el mapa de sombras).
+- **Luz:** amanecer y atardecer de `SunAngle.csv` (06:00–18:00 si no hay mapa de sombras), con 30 min de margen.
   - `NO_DAYLIGHT_AT_DEPARTURE`: la salida cae fuera de la ventana de luz.
   - `ARRIVAL_AFTER_DAYLIGHT`: la llegada pasa del límite. Es **crítico con tripulación** y un aviso sin ella.
 - **Batería:** se necesita la energía de la ruta, más las paradas, más una reserva (20 % de la capacidad).
   - `BATTERY_BELOW_RESERVE`: se llega con menos de la reserva.
   - `SWITCH_TO_POWER_SAVING` (sugerencia): si no alcanza y `power` estaba desactivado, se calcula la ruta de ahorro y se dice si basta.
-  - `CHARGING_STOP_REQUIRED`: si sigue sin alcanzar, se busca un sitio soleado, llano, firme y sin dunas a menos de 1 km de la parte de la ruta alcanzable con la batería actual. Se replanifica pasando por él y se calcula cuánto hay que parar. La carga se estima con un panel desplegado de 3 kW pico × `insolation_rel` × curva solar del día, menos el consumo parado (y el soporte vital si hay tripulación).
+  - `CHARGING_STOP_REQUIRED`: si sigue sin alcanzar, se busca un sitio soleado, llano, firme y sin dunas a menos de 1 km de la parte de la ruta alcanzable con la batería actual. Se replanifica pasando por él y se calcula cuánto hay que parar. La carga se estima con un panel desplegado de 3 kW pico × la luz directa real del sitio (mapa de sombras) hora a hora, menos el consumo parado (y el soporte vital si hay tripulación). Detalle en "Sombras".
   - `BATTERY_INSUFFICIENT`: no se llega ni a la parada de carga.
   - `CHARGING_DOES_NOT_FIT_DAYLIGHT`: no da tiempo a cargar con luz.
 
 ## Herramienta en vivo (`live.py`)
 - **Controles:** parámetros de misión, `science_targets` con prioridad, `science_detour`, ida y vuelta, y estado del sistema (hora y batería). Origen y destino por lista o con clic en el mapa.
-- **Mapa:** ruta con contexto, A* clásico, paradas científicas y parada de carga.
+- **Mapa:** ruta con contexto, A* clásico, paradas científicas y parada de carga. Fondo opcional "Sombras a la hora de salida".
 - **Panel:** avisos, tabla comparativa y botón "Ver JSON" con el informe completo.
 - **Tiempos:** 0,5 s con un perfil ya en caché, 3–8 s con uno nuevo y 10–17 s con ciencia.
 
 No es el frontend del producto.
 
+## Sombras (`shadows.py`, con `mars_shadows.py` de Pablo)
+- **Efeméride:** `SunAngle.csv` da la elevación y el azimut del Sol en hora UTC terrestre (un día, 2026-318). Se pasa a **hora solar local (LTST)**: el mediodía es el máximo de elevación (ajuste parabólico) y una hora LTST dura 3698,9 s. Resultado: amanecer 05:48, atardecer 18:12, Sol a 80° a mediodía.
+- **Iluminación:** para cada uno de los 26 instantes con sol, `mars_shadows.classify` calcula sobre el DTM de 20 m la sombra proyectada (el relieve tapa el Sol) y la autosombra (ladera de espaldas). Se guarda `illum = cos(incidencia)` en las celdas iluminadas (0 en sombra), en uint8. Son unos 7 s la primera vez y después queda en caché (`data/jezero/planner_shadows_20m_<hash>.npz`).
+- **En el coste**, si llega `start_hour`:
+  - Cada celda toma la luz de su hora estimada de paso (`start_hour` + distancia al origen / 1,2 m/s).
+  - La luz cambia la **carga solar en marcha** de la energía (para todos los perfiles, así la física es la misma y la comparación es justa).
+  - Añade un término de **riesgo por sombra** del terreno (no por noche), con peso `safety` (0 / 0,2 / 0,5) + 0,5 si hay tripulación + 1,0 con `power`.
+- **En las métricas:** la ruta final se evalúa con su hora real de paso por cada tramo, lo que da `shadow_km`, `shadow_pct` y `night_km`. En `comparison` aparece `shadow_km_avoided`.
+- **Ventana de luz:** amanecer y atardecer salen del CSV en lugar de la ventana fija 06–18.
+- **Parada de carga:**
+  - Cada candidato (llano, firme, sin dunas, a menos de 1 km del tramo alcanzable) llega a su propia hora.
+  - Se elige el que **termina antes de cargar**: llegada + energía que falta / (3 kW × luz directa real media en las 3 h siguientes − consumo parado).
+  - El tiempo de carga se integra con la luz real de ese punto hora a hora. Así se evitan los sitios en sombra; en una prueba desde el borde oeste a las 06:00, sin sombras se elegía un sitio en sombra total (luz 0,00) y con sombras uno con luz 0,49.
+- **Hallazgo:** en el suelo del cráter apenas hay sombras de día; solo aparecen en la primera y la última hora y junto al borde y los escarpes del delta. Ahí es donde cambian la ruta y, sobre todo, el sitio de carga.
+- **Sin `mars_shadows.py` o sin el CSV,** el planificador funciona igual con `insolation_rel` y la ventana 06–18 (`/planner/health` dice si hay sombras).
+
 ## Pendiente / mejoras
-- **Mapa de sombras** (capa del equipo, aún no está aquí): una serie de imágenes de sombra por franja de tiempo.
-  - Diseño: en cada arista se usa la franja de la hora estimada de paso (`start_hour` + tiempo acumulado), en 2–3 pasadas (ruta → horas → costes → ruta) en lugar de un A* dependiente del tiempo.
-  - Sustituye a `insolation_rel` en la carga solar de `power` y en la elección y duración de la parada de carga.
-  - Añade frío y calefacción en sombra, y fija el límite de luz real en lugar de la ventana 06–18.
-- **Rendimiento:** construir la rejilla de costes (2,5 s) en Numba en paralelo. La ciencia (11 Dijkstras a 20 m) podría seleccionar paradas a 40 m y trazar a 20 m.
+- **Sombras:** la hora de paso se estima en línea recta desde el origen (no sigue la ruta ni las paradas). Faltan la estación (el CSV es de un día), el frío y la calefacción en sombra, y las sombras de relieve fuera del recuadro (el script extiende el borde).- **Rendimiento:** construir la rejilla de costes (2,5 s) en Numba en paralelo. La ciencia (11 Dijkstras a 20 m) podría seleccionar paradas a 40 m y trazar a 20 m.
 - **Explicación más fina:** el `why` mide términos de coste; podría añadir *dónde* (tramos concretos que se evitan).
 - **HiRISE 1 m** en el centro: refinar la ruta dentro de un corredor de unos 200 m.
 - **Suavizado** de la ruta, al estilo Theta*.

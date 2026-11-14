@@ -1,0 +1,24 @@
+{
+ "mission": {
+  "human": true,
+  "origin": "Octavia E. Butler Landing",
+  "destination": "delta_top",
+  "power": true,
+  "route_preference": null,
+  "safety": "normal",
+  "science_targets": [
+   {
+    "target": "carbonates",
+    "priority": 1.0
+   }
+  ],
+  "science_detour": "medium",
+  "return_to_origin": false
+ },
+ "system": {
+  "start_hour": 9.0,
+  "battery_kwh": 24.0,
+  "battery_capacity_kwh": 40.0,
+  "reserve_pct": 20.0
+ }
+}

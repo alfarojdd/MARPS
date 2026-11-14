@@ -85,20 +85,23 @@ class Params:
 
 SAFETY = {
     "low":    dict(max_pitch=25, max_cross=15, margin=0,   rough=0.3, soft=0.3, dune=0.5, pitch=0.3, cross=0.3,
-                   unknown=0.2, forbid_unknown=False),
+                   unknown=0.2, shadow=0.0, forbid_unknown=False),
     "normal": dict(max_pitch=20, max_cross=12, margin=40,  rough=1.0, soft=1.0, dune=2.0, pitch=1.0, cross=1.5,
-                   unknown=0.5, forbid_unknown=False),
+                   unknown=0.5, shadow=0.2, forbid_unknown=False),
     "high":   dict(max_pitch=15, max_cross=8,  margin=100, rough=3.0, soft=3.0, dune=5.0, pitch=2.5, cross=4.0,
-                   unknown=0.0, forbid_unknown=True),
+                   unknown=0.0, shadow=0.5, forbid_unknown=True),
 }
-RISK_TERMS = ["rough", "soft", "dune", "pitch", "cross", "unknown", "exposure"]
+RISK_TERMS = ["rough", "soft", "dune", "pitch", "cross", "unknown", "exposure", "shadow"]
 
 # Vehículo genérico presurizado (orden de magnitud, no un rover concreto).
 VEHICLE = dict(mass=3000.0, v0=2.5, crr_firm=0.08, crr_sand_extra=0.12, eff=0.7,
                p_hotel=800.0, p_life_support=1500.0, p_solar=600.0)
 
 PLACES = {
-    "landing_site": (77.4508, 18.4447),       # Octavia E. Butler, aterrizaje de Perseverance
+    "landing_site": (77.4508, 18.4447),       # Octavia E. Butler, aterrizaje de Perseverance (ESA SPICE)
+    "belva_crater": (77.38, 18.48),           # IAU Gazetteer 15872
+    "neretva_vallis": (77.20, 18.55),         # IAU Gazetteer 15879 (centro del rasgo)
+    "jezero_centre": (77.69, 18.41),          # IAU Gazetteer 14300 (centro del cráter, borde este del mapa)
     "delta_carbonates": (77.3637, 18.5458),   # núcleo de carbonatos y esmectitas (CRISM)
     "north_carbonates": (77.3034, 18.6687),
     "delta_top": (77.3900, 18.6000),
@@ -182,11 +185,50 @@ def rc_to_lonlat(grid, r, c):
     return (left + (c + 0.5) * RES) / k, (top - (r + 0.5) * RES) / k
 
 
+# Nombres que puede escribir el LLM o el frontend (places.json de la plataforma) → clave de PLACES
+ALIASES = {
+    "octaviaebutlerlanding": "landing_site", "octaviaebutlerlandingperseverance": "landing_site",
+    "octaviaebutler": "landing_site", "landing": "landing_site", "landingsite": "landing_site",
+    "belva": "belva_crater", "belvacrater": "belva_crater", "belvacraterrim": "belva_crater",
+    "neretva": "neretva_vallis", "jezero": "jezero_centre", "jezerocratercentre": "jezero_centre",
+    "jezerocrater": "jezero_centre",
+}
+
+
+def _norm(s):
+    return "".join(ch for ch in s.lower() if ch.isalnum())
+
+
+def resolve_lonlat(s):
+    """Nombre de lugar o coordenadas ("lon,lat", "18.44N, 77.45E"...) → (lon, lat). ValueError si no se entiende."""
+    import re
+    if s is None:
+        raise ValueError("origin/destination is required")
+    key = _norm(s)
+    key = _norm(ALIASES.get(key, key))
+    for k, ll in PLACES.items():
+        if _norm(k) == key:
+            return ll
+    nums = re.findall(r"-?\d+(?:\.\d+)?\s*[NSEW]?", s.upper())
+    if len(nums) == 2:
+        vals = {}
+        for n in nums:
+            v, tag = float(re.match(r"-?\d+(?:\.\d+)?", n).group()), n.strip()[-1]
+            vals.setdefault("lat" if tag in "NS" else "lon" if tag in "EW" else None, []).append(-v if tag in "SW" else v)
+        if vals.get("lat") and vals.get("lon"):
+            return vals["lon"][0], vals["lat"][0]
+        a, b = (float(re.match(r"-?\d+(?:\.\d+)?", n).group()) for n in nums)
+        return (a, b) if a > b else (b, a)  # en Jezero la longitud (~77) es mayor que la latitud (~18)
+    raise ValueError(f"unknown place '{s}'. Known: {sorted(PLACES)} or coordinates 'lon,lat'")
+
+
 def resolve_place(grid, s):
-    if s in PLACES:
-        return lonlat_to_rc(grid, *PLACES[s])
-    lon, lat = (float(v) for v in s.split(","))
-    return lonlat_to_rc(grid, lon, lat)
+    lon, lat = resolve_lonlat(s)
+    r, c = lonlat_to_rc(grid, lon, lat)
+    H, W = grid["elev_ctx"].shape
+    if not (0 <= r < H and 0 <= c < W):
+        raise ValueError(f"'{s}' ({lon:.4f}E, {lat:.4f}N) is outside the Jezero map")
+    return r, c
 
 
 def cell_fields(grid):
@@ -241,13 +283,15 @@ def profile(p: Params):
     w["energy"] = 1.5 if p.power else 0.15
     w.update({k: S[k] for k in RISK_TERMS if k in S})
     w["exposure"] = 1.0 if p.human else 0.0
+    # sombra (solo con el mapa de sombras): frío y poca visibilidad con tripulación, sin carga solar con power
+    w["shadow"] = S["shadow"] + (0.5 if p.human else 0.0) + (1.0 if p.power else 0.0)
     if p.context_free:
         w = {k: 0.0 for k in w} | {"dist": 1.0}
     e_ref = V["mass"] * G_MARS * V["crr_firm"] / V["eff"] / 3600 + p_hotel / V["v0"] / 3600  # Wh/m en llano firme
     return S, w, p_hotel, e_ref
 
 
-def edge_terms(at_u, at_v, mr, mc, p: Params, p_hotel):
+def edge_terms(at_u, at_v, mr, mc, p: Params, p_hotel, sun=False):
     """Física de la arista u→v. at_u/at_v(nombre) devuelven el campo en el origen/destino (slices o índices)."""
     V = VEHICLE
     n = np.hypot(mr, mc)
@@ -260,11 +304,13 @@ def edge_terms(at_u, at_v, mr, mc, p: Params, p_hotel):
     sand = np.maximum(soft, dune)
     t = L / (V["v0"] / (1 + 0.08 * np.abs(pitch) + 0.06 * cross + 1.5 * rough + 1.0 * sand))
     k = V["mass"] * G_MARS / V["eff"] / 3600  # Wh por metro·(adimensional)
-    p_net = np.maximum(p_hotel - V["p_solar"] * (avg("insol") if p.power else 1.0), 0)
+    # carga solar en marcha: con el mapa de sombras, la iluminación real a la hora de paso; si no, la media anual
+    solar = avg("illum") if sun else (avg("insol") if p.power else 1.0)
+    p_net = np.maximum(p_hotel - V["p_solar"] * solar, 0)
     return dict(L=L, dh=dh, pitch=pitch, cross=cross, t=t, rough=rough, soft=soft, dune=dune,
                 unknown=np.maximum(at_u("unknown"), at_v("unknown")), exposure=avg("exposure"),
                 e_roll=k * (V["crr_firm"] + V["crr_sand_extra"] * sand) * L, e_climb=k * np.maximum(dh, 0),
-                e_hotel=p_net * t / 3600)
+                e_hotel=p_net * t / 3600, shadow=avg("shadow") if sun else np.zeros_like(L * dh))
 
 
 def components(T, p: Params, S, w, e_ref):
@@ -276,10 +322,11 @@ def components(T, p: Params, S, w, e_ref):
         rough=L * w["rough"] * T["rough"], soft=L * w["soft"] * T["soft"], dune=L * w["dune"] * T["dune"],
         pitch=L * w["pitch"] * (T["pitch"] / S["max_pitch"]) ** 2,
         cross=L * w["cross"] * (T["cross"] / S["max_cross"]) ** 2,
-        unknown=L * w["unknown"] * T["unknown"], exposure=L * w["exposure"] * T["exposure"])
+        unknown=L * w["unknown"] * T["unknown"], exposure=L * w["exposure"] * T["exposure"],
+        shadow=L * w["shadow"] * T["shadow"])
 
 
-def build_costs(F, p: Params, interest=None):
+def build_costs(F, p: Params, interest=None, sun_fields=None):
     """Coste (16, H·W) float32 + constantes de la heurística (hflat, c_climb)."""
     S, w, p_hotel, e_ref = profile(p)
     H, W = F["h"].shape
@@ -289,7 +336,9 @@ def build_costs(F, p: Params, interest=None):
                                          iterations=int(round(S["margin"] / RES)))
     if S["forbid_unknown"]:
         hazard |= F["unknown"] > 0
-    Fx = dict(F, interest=interest) if interest is not None else F
+    Fx = dict(F, interest=interest) if interest is not None else dict(F)
+    if sun_fields is not None:
+        Fx.update(sun_fields)
     cost = np.full((16, H, W), np.inf, np.float32)
     k_climb = VEHICLE["mass"] * G_MARS / VEHICLE["eff"] / 3600
     mult_min = 0.5 if interest is not None else 1.0
@@ -298,7 +347,7 @@ def build_costs(F, p: Params, interest=None):
         r0, r1, c0, c1 = max(0, -mr), H - max(0, mr), max(0, -mc), W - max(0, mc)
         U = (slice(r0, r1), slice(c0, c1))
         Vv = (slice(r0 + mr, r1 + mr), slice(c0 + mc, c1 + mc))
-        T = edge_terms(lambda k: Fx[k][U], lambda k: Fx[k][Vv], mr, mc, p, p_hotel)
+        T = edge_terms(lambda k: Fx[k][U], lambda k: Fx[k][Vv], mr, mc, p, p_hotel, sun=sun_fields is not None)
         comp = components(T, p, S, w, e_ref)
         mult = 1 - 0.5 * 0.5 * (Fx["interest"][U] + Fx["interest"][Vv]) if interest is not None else 1.0
         # la ciencia abarata recorrer (distancia, tiempo, energía), nunca el riesgo
@@ -422,36 +471,59 @@ def _nearest_free(cost, H, W, rc):
 
 # ---------------------------------------------------------------- planificación
 
+V_ETA = 1.2  # m/s en línea recta desde el origen: estima a qué hora se pasa por cada celda
+
+
 class Planner:
-    def __init__(self):
+    def __init__(self, use_sun=True):
         self.grid = load_grid()
         self.F = cell_fields(self.grid)
         self.H, self.W = self.F["h"].shape
         self.elev = self.F["h"].astype(np.float64).ravel()
         self._cache = {}  # rejillas de coste por perfil de pesos (cada una ~150 MB)
+        self.sun, self.sun_error = None, None
+        if use_sun:
+            try:
+                from shadows import SunShadows
+                self.sun = SunShadows(self.F["h"], RES, DATA)
+            except (FileNotFoundError, ImportError, ValueError) as e:  # sin sombras: se usa insolation_rel
+                self.sun_error = str(e)
+                print(f"aviso: sin mapa de sombras ({e}); se usa la insolación media")
 
-    def costs(self, p: Params, interest):
+    def sun_fields(self, origin_rc, start_hour):
+        """Iluminación y sombra de cada celda a la hora estimada de paso (distancia al origen / V_ETA)."""
+        r, c = np.indices((self.H, self.W))
+        eta = start_hour + np.hypot(r - origin_rc[0], c - origin_rc[1]) * RES / V_ETA / 3698.9
+        illum = self.sun.map_at(eta)
+        return dict(illum=illum, shadow=((illum < 0.02) & self.sun.is_day(eta)).astype(np.float32))
+
+    def costs(self, p: Params, interest, origin_rc=None, start_hour=None):
+        use_sun = self.sun is not None and start_hour is not None
         key = (p.human, p.safety, p.power, p.route_preference, p.context_free,
-               json.dumps(p.science_targets, sort_keys=True))
+               json.dumps(p.science_targets, sort_keys=True),
+               (round(start_hour, 2), tuple(origin_rc)) if use_sun else None)
         if key not in self._cache:
             if len(self._cache) >= 4:
                 self._cache.pop(next(iter(self._cache)))
-            self._cache[key] = build_costs(self.F, p, interest)
+            sf = self.sun_fields(origin_rc, start_hour) if use_sun else None
+            self._cache[key] = build_costs(self.F, p, interest, sf)
         return self._cache[key]
 
     def astar(self, cost, a, b, hflat, c_climb):
         return _search(cost, self.H, self.W, a, b, hflat, c_climb, self.elev, RES, NO_STOPS)
 
-    def plan(self, p: Params, via=(), stops=None, pois=None):
+    def plan(self, p: Params, via=(), stops=None, pois=None, start_hour=None):
         """Ruta A→(paradas científicas)→B[→A].
 
         via: celdas (fila, col) obligatorias (p. ej. una parada de carga); se insertan donde menos alargan.
         stops/pois: reutilizar las paradas de una planificación anterior (evita repetir la selección científica).
+        start_hour: hora solar local de salida; con el mapa de sombras, el coste usa la luz a la hora de paso.
         """
         H, W = self.H, self.W
         interest, per_target = interest_map(self.grid, p.science_targets) if p.science_targets else (None, {})
-        cost, hflat, c_climb = self.costs(p, interest)
-        o = _nearest_free(cost, H, W, resolve_place(self.grid, p.origin))
+        o_rc = resolve_place(self.grid, p.origin)
+        cost, hflat, c_climb = self.costs(p, interest, o_rc, start_hour)
+        o = _nearest_free(cost, H, W, o_rc)
         dst = _nearest_free(cost, H, W, resolve_place(self.grid, p.destination))
         start, goal = o[0] * W + o[1], dst[0] * W + dst[1]
         expanded = 0
@@ -478,7 +550,8 @@ class Planner:
             path += seg if not path else seg[1:]
         path = np.array(path)
         return dict(ok=True, params=asdict(p), path=path, stops=stops, pois=pois or [], expanded=expanded,
-                    via=[tuple(v) for v in via], metrics=self.evaluate(path, p, per_target))
+                    via=[tuple(v) for v in via], start_hour=start_hour,
+                    metrics=self.evaluate(path, p, per_target, start_hour))
 
     def _science_stops(self, cost, interest, per_target, start, goal, detour, max_pois=10):
         """Orienteering voraz sobre una matriz de costes exacta (Dijkstra que para al cerrar todos los candidatos)."""
@@ -535,14 +608,24 @@ class Planner:
         pois = [dict(rc=divmod(nodes[j], W), value=value[j], targets=cands[j - 2][2]) for j in route[1:-1]]
         return [nodes[j] for j in route], pois, expanded
 
-    def evaluate(self, path, p: Params, per_target=None):
-        """Métricas físicas y desglose de coste de cualquier ruta, medidas con los pesos de `p`."""
+    def evaluate(self, path, p: Params, per_target=None, start_hour=None):
+        """Métricas físicas y desglose de coste de cualquier ruta, medidas con los pesos de `p`.
+
+        Con start_hour y mapa de sombras, la luz de cada tramo es la de su hora real de paso.
+        """
         F, W = self.F, self.W
         path = np.asarray(path)
         r, c = path // W, path % W
         u, v = (r[:-1], c[:-1]), (r[1:], c[1:])
         S, w, p_hotel, e_ref = profile(p)
         T = edge_terms(lambda k: F[k][u], lambda k: F[k][v], np.diff(r), np.diff(c), p, p_hotel)
+        sun = self.sun is not None and start_hour is not None
+        if sun:  # el tiempo no depende de la luz: primero las horas de paso, luego la luz a esas horas
+            hours = start_hour + np.concatenate([[0.0], np.cumsum(T["t"])]) / 3698.9
+            il = self.sun.at(hours, r, c)
+            sh = ((il < 0.02) & self.sun.is_day(hours)).astype(np.float32)  # sombra del terreno, no la noche
+            get = lambda idx, sl: (lambda k: il[sl] if k == "illum" else sh[sl] if k == "shadow" else F[k][idx])
+            T = edge_terms(get(u, slice(None, -1)), get(v, slice(1, None)), np.diff(r), np.diff(c), p, p_hotel, sun=True)
         comp = {k: float(x.sum()) for k, x in components(T, p, S, w, e_ref).items()}
         L = T["L"]
         e = T["e_roll"] + T["e_climb"] + T["e_hotel"]
@@ -556,6 +639,11 @@ class Planner:
             mean_exposure=float((T["exposure"] * L).sum() / L.sum()),
             cost_breakdown=comp,
         )
+        if sun:
+            m["shadow_km"] = float(L[T["shadow"] > 0.5].sum() / 1000)
+            m["shadow_pct"] = float(100 * m["shadow_km"] / max(m["distance_km"], 1e-9))
+            night = ~self.sun.is_day(0.5 * (hours[:-1] + hours[1:]))
+            m["night_km"] = float(L[night].sum() / 1000)
         for name, mask in (per_target or {}).items():
             m[f"on_{name}_km"] = float(L[mask[u] | mask[v]].sum() / 1000)
         m["cum_energy_kwh"] = np.concatenate([[0.0], np.cumsum(e) / 1000])  # para la batería (no va al JSON)

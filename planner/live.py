@@ -46,6 +46,23 @@ def background(kind):
 BG = {k: background(k) for k in ("relief", "crism", "slope")}
 
 
+def shadow_background(hour):
+    """Relieve con la sombra (azul) y la noche a una hora solar local, del mapa de sombras."""
+    hs = np.nan_to_num(PL.grid["hillshade_ctx"], nan=0.5)
+    rgb = np.dstack([hs * 255] * 3)
+    if PL.sun is not None:
+        H, W = hs.shape
+        light = PL.sun.map_at(np.full((H, W), hour))
+        if not PL.sun.is_day(hour):
+            rgb *= 0.2
+        else:
+            m = light < 0.02
+            rgb[m] = 0.35 * rgb[m] + 0.65 * np.array([25, 55, 165])
+    buf = io.BytesIO()
+    Image.fromarray(rgb.astype(np.uint8)).save(buf, "PNG")
+    return buf.getvalue()
+
+
 def meta():
     H, W = PL.H, PL.W
     places = {n: dict(zip(("r", "c"), P.lonlat_to_rc(PL.grid, *ll))) for n, ll in P.PLACES.items()}
@@ -91,6 +108,9 @@ class H(BaseHTTPRequestHandler):
             self._send(PAGE.encode(), "text/html; charset=utf-8")
         elif self.path == "/meta":
             self._send(meta())
+        elif self.path.startswith("/bg/shadow.png"):
+            h = float(self.path.split("h=")[1]) if "h=" in self.path else 12.0
+            self._send(shadow_background(h), "image/png")
         elif self.path.startswith("/bg/") and self.path[4:].removesuffix(".png") in BG:
             self._send(BG[self.path[4:].removesuffix(".png")], "image/png")
         else:
@@ -134,7 +154,7 @@ button{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding
 </style></head><body>
 <div id="side">
  <h2>Mapa</h2>
- <select id="bg"><option value="relief">Relieve</option><option value="crism" selected>Relieve + mineralogía CRISM</option><option value="slope">Pendiente</option></select>
+ <select id="bg"><option value="relief">Relieve</option><option value="crism" selected>Relieve + mineralogía CRISM</option><option value="slope">Pendiente</option><option value="shadow">Sombras a la hora de salida</option></select>
  <h2>Origen y destino <span class="val">(clic en el mapa)</span></h2>
  <div class="row"><select id="origin"></select><select id="destination"></select></div>
  <div class="row" style="margin-top:6px"><button id="setA" class="on">Clic = A</button><button id="setB">Clic = B</button></div>
@@ -156,7 +176,7 @@ button{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding
  <div id="bottom">
   <div class="legend"><span id="feas"></span><span><i class="sw" style="border-top:3px dashed #fff;height:0"></i>A* clásico</span>
    <span><i class="sw" style="background:#ff8a3d"></i>ruta con contexto</span><span style="color:#b266ff">● parada científica</span>
-   <span style="color:#ffd84a">■ parada de carga</span><button id="jsonBtn" style="margin-left:auto">Ver JSON</button></div>
+   <span style="color:#ffd84a">■ parada de carga</span><span id="sunv" class="val"></span><button id="jsonBtn" style="margin-left:auto">Ver JSON</button></div>
   <div id="warn"></div><div id="tbl"></div><pre id="json" hidden></pre>
  </div>
 </div>
@@ -164,14 +184,15 @@ button{background:var(--bg);color:var(--fg);border:1px solid var(--line);padding
 const $=id=>document.getElementById(id);let M,img=new Image(),res=null,click='origin',timer=null,pend=0;
 const ROWS=[["distance_km","Distancia (km)",2],["time_h","Tiempo de conducción (h)",2],["drive_kwh","Energía de tracción (kWh)",2],["energy_kwh","Energía total (kWh)",1],
 ["ascent_m","Subida acumulada (m)",0],["max_pitch_deg","Pendiente máx. (°)",1],["max_cross_deg","Pendiente lateral máx. (°)",1],
-["rough_km","Tramo rugoso (km)",2],["soft_km","Suelo blando (km)",2],["dunes_km","Dunas (km)",2],["unknown_km","Sin dato térmico (km)",2]];
+["rough_km","Tramo rugoso (km)",2],["soft_km","Suelo blando (km)",2],["dunes_km","Dunas (km)",2],["unknown_km","Sin dato térmico (km)",2],
+["shadow_km","En sombra del terreno (km)",2],["night_km","De noche (km)",2]];
 async function init(){M=await (await fetch('/meta')).json();
  for(const id of ['origin','destination'])$(id).innerHTML=Object.keys(M.places).map(n=>`<option>${n}</option>`).join('');
  $('origin').value='crater_floor_south';$('destination').value='delta_top';
  $('safety').innerHTML=M.safety.map(s=>`<option ${s=='normal'?'selected':''}>${s}</option>`).join('');
  $('targets').innerHTML=M.targets.map(t=>`<div class="tgt"><input type="checkbox" data-t="${t}"><span>${t}</span><input type="range" min="0.1" max="1" step="0.1" value="1" data-p="${t}"></div>`).join('');
  const cv=$('cv');cv.width=M.width;cv.height=M.height;setBg();
- document.querySelectorAll('#side input,#side select').forEach(e=>e.addEventListener('input',()=>{labels();if(e.id=='bg')setBg();else schedule()}));
+ document.querySelectorAll('#side input,#side select').forEach(e=>e.addEventListener('input',()=>{labels();if(e.id=='bg'||(e.id=='start_hour'&&$('bg').value=='shadow'))setBg();if(e.id!='bg')schedule()}));
  $('setA').onclick=()=>{click='origin';$('setA').className='on';$('setB').className=''};
  $('setB').onclick=()=>{click='destination';$('setB').className='on';$('setA').className=''};
  $('jsonBtn').onclick=()=>{$('json').hidden=!$('json').hidden;$('jsonBtn').textContent=$('json').hidden?'Ver JSON':'Ocultar JSON'};
@@ -179,7 +200,7 @@ async function init(){M=await (await fetch('/meta')).json();
   const k=3396190*Math.PI/180,lon=(M.left+(c+.5)*M.res)/k,lat=(M.top-(rr+.5)*M.res)/k,v=lon.toFixed(5)+','+lat.toFixed(5);
   const o=document.createElement('option');o.value=v;o.textContent=(click=='origin'?'A ':'B ')+v;$(click).appendChild(o);$(click).value=v;schedule()});
  labels();schedule()}
-function setBg(){img=new Image();img.onload=draw;img.src='/bg/'+$('bg').value+'.png'}
+function setBg(){img=new Image();img.onload=draw;const v=$('bg').value;img.src='/bg/'+v+'.png'+(v=='shadow'?'?h='+$('start_hour').value:'')}
 function hhmm(h){return String(Math.floor(h)).padStart(2,'0')+':'+String(Math.round(h%1*60)).padStart(2,'0')}
 function labels(){$('hourv').textContent=hhmm(+$('start_hour').value);$('battv').textContent=$('battery_kwh').value+' / 40 kWh'}
 function payload(){const t=[...document.querySelectorAll('[data-t]')].filter(e=>e.checked).map(e=>({target:e.dataset.t,priority:+document.querySelector(`[data-p="${e.dataset.t}"]`).value}));
@@ -203,12 +224,13 @@ function draw(){const cv=$('cv'),x=cv.getContext('2d');if(!M)return;x.clearRect(
  D.pois.forEach(p=>mark(p.c,p.r,'#b266ff',13));if(D.charge)mark(D.charge.c,D.charge.r,'#ffd84a',15,'',true);
  const p=D.route.length?D.route:D.classic;if(p.length){mark(...p[0],'#fff',16,'A');mark(...p[p.length-1],'#fff',16,'B')}}
 function panel(){const R=res.report;$('json').textContent=JSON.stringify(R,null,1);
+ $('sunv').textContent=R.sun?`☀ ${R.sun.sunrise}–${R.sun.sunset} (${R.sun.source})`:'';
  $('feas').innerHTML=R.feasible?'<span class="good">✔ viable</span>':'<span class="bad">✖ no viable</span>';
  $('warn').innerHTML=(R.warnings||[]).map(w=>`<div class="${w.severity}">${w.code}: ${w.message}</div>`).join('')+
   (R.suggestions||[]).map(s=>`<div class="sugg">${s.code}: ${s.energy_kwh} kWh, batería al llegar ${s.battery_end_kwh} kWh${s.fits_reserve?'':' (no basta)'}</div>`).join('');
  if(!R.route){$('tbl').innerHTML='';return}const a=R.classic_astar,b=R.route,C=R.comparison;
  let h='<table><tr><th></th><th>A* clásico</th><th>con contexto</th><th>Δ</th></tr>';
- for(const [k,l,dg] of ROWS){const x=a[k],y=b[k],d=x?(y-x)/x*100:0,cls=Math.abs(d)<1?'':(d<0?'good':'bad');
+ for(const [k,l,dg] of ROWS){if(!(k in b))continue;const x=a[k],y=b[k],d=x?(y-x)/x*100:0,cls=Math.abs(d)<1?'':(d<0?'good':'bad');
   h+=`<tr><td>${l}</td><td>${x.toFixed(dg)}</td><td>${y.toFixed(dg)}</td><td class="${cls}">${x?(d>0?'+':'')+d.toFixed(0)+' %':'–'}</td></tr>`}
  for(const k of Object.keys(b).filter(k=>k.startsWith('on_')))h+=`<tr><td>Sobre ${k.slice(3,-3)} (km)</td><td></td><td>${b[k].toFixed(2)}</td><td></td></tr>`;
  h+=`<tr><td>Paradas científicas</td><td></td><td>${b.science_stops.length}</td><td></td></tr>`;
