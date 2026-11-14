@@ -1,5 +1,5 @@
-// Prueba opcional de navegador: servidor del visor activo y Playwright instalado.
-// MARPS_PLAYWRIGHT=/ruta/node_modules/playwright node platform/viewer/test_viewer.cjs
+// Optional browser test: requires the viewer server running and Playwright installed.
+// MARPS_PLAYWRIGHT=/path/node_modules/playwright node platform/viewer/test_viewer.cjs
 const assert = require('node:assert/strict');
 const { chromium } = require(process.env.MARPS_PLAYWRIGHT || 'playwright');
 const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
@@ -32,7 +32,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     await page.fill('#sceneSearch', '');
     console.log('Mapa, catálogo, filtros y visibilidad: OK');
 
-    // Comprobar la integración externa sin depender de la disponibilidad de Sketchfab.
+    // Check the external integration without depending on Sketchfab availability.
     await page.route('https://sketchfab.com/models/**/embed*', route => route.fulfill({body: '<p>Visor externo de prueba</p>', contentType: 'text/html'}));
     await page.selectOption('#sceneFilter', 'landscape');
     const external = page.locator('#sceneList .scene-card').filter({hasText: 'Sketchfab'}).first();
@@ -43,7 +43,7 @@ const base = process.env.MARPS_VIEWER_URL || 'http://127.0.0.1:8765';
     assert.equal(await page.locator('#surfaceViewport iframe').count(), 0);
     console.log('Apertura externa y cierre: OK');
 
-    // Resolución moderada: el navegador de CI usa renderizado por software.
+    // Moderate resolution: the CI browser uses software rendering.
     await page.setViewportSize({width: 640, height: 480});
     for (const id of ['cheyava-falls', 'nasa-navcam-sol180']) {
       if (!catalog.scenes.some(s => s.id === id && s.available)) continue;

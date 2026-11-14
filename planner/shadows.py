@@ -1,12 +1,12 @@
-"""Sombras e iluminación por hora para el planificador, a partir de `mars_shadows.py` (Pablo) y `SunAngle.csv`.
+"""Hourly shadows and illumination for the planner, based on `mars_shadows.py` (Pablo) and `SunAngle.csv`.
 
-- Lee la efeméride solar (Time UTC, Elevation, Azimuth) y la pasa a hora solar local (LTST): el mediodía es
-  el máximo de elevación y una hora LTST dura 3698,9 s (1/24 de sol).
-- Para cada instante con sol usa `mars_shadows.classify` sobre el DTM de 20 m: sombra proyectada y autosombra.
-- Guarda por instante `illum` = cos(incidencia) en celdas iluminadas (0 en sombra o de noche), en uint8.
-  Es la fracción de la potencia solar pico que recibe un panel apoyado en el terreno.
+- Reads the solar ephemeris (Time UTC, Elevation, Azimuth) and converts it to local solar time (LTST): noon is
+  the elevation maximum and one LTST hour lasts 3698.9 s (1/24 of a sol).
+- For each sunlit instant it runs `mars_shadows.classify` on the 20 m DTM: cast shadow and self-shadow.
+- Stores per instant `illum` = cos(incidence) on lit cells (0 in shadow or at night), as uint8.
+  It is the fraction of peak solar power received by a panel lying on the terrain.
 
-Se cachea en data/jezero/planner_shadows_20m.npz (se rehace si cambia el CSV).
+Cached in data/jezero/planner_shadows_20m.npz (rebuilt if the CSV changes).
 """
 import hashlib
 import os
@@ -28,7 +28,7 @@ def _find(name, extra=()):
 
 
 def _import_mars_shadows(data_dir):
-    os.environ.setdefault("JEZERO_DATA", str(data_dir))  # evita que el script busque el stack por el disco
+    os.environ.setdefault("JEZERO_DATA", str(data_dir))  # keeps the script from searching the disk for the stack
     path = _find("mars_shadows.py", [os.environ.get("MARS_SHADOWS_DIR")])
     if path is None:
         raise FileNotFoundError("No encuentro mars_shadows.py (raíz del repo o MARS_SHADOWS_DIR)")
@@ -39,7 +39,7 @@ def _import_mars_shadows(data_dir):
 
 
 def ltst_of(rows):
-    """Hora solar local de cada fila del CSV (el mediodía se ajusta con una parábola sobre el máximo)."""
+    """Local solar time of each CSV row (noon is fitted with a parabola around the maximum)."""
     t = [datetime.strptime(r["time"].split(".")[0], "%Y-%jT%H:%M:%S") for r in rows]
     s = np.array([(x - t[0]).total_seconds() for x in t])
     el = np.array([r["elevation"] for r in rows])
@@ -83,7 +83,7 @@ class SunShadows:
         return float(up[0]) if up else 6.0, float(down[-1]) if down else 18.0
 
     def index(self, hours):
-        """Índice del instante con sol más cercano a cada hora (-1 de noche)."""
+        """Index of the nearest sunlit instant for each hour (-1 at night)."""
         hours = np.asarray(hours, np.float64)
         i = np.clip(np.searchsorted(self.hours, hours), 1, len(self.hours) - 1)
         i = np.where(np.abs(self.hours[i - 1] - hours) <= np.abs(self.hours[i] - hours), i - 1, i)
@@ -95,19 +95,19 @@ class SunShadows:
         return (hours >= self.sunrise) & (hours <= self.sunset)
 
     def at(self, hours, r, c):
-        """Iluminación 0-1 en las celdas (r, c) a las horas dadas (arrays del mismo tamaño)."""
+        """0-1 illumination at cells (r, c) at the given hours (arrays of the same size)."""
         idx = self.index(hours)
         out = self.illum[np.maximum(idx, 0), r, c].astype(np.float32) / 255
         return np.where(idx < 0, 0.0, out).astype(np.float32)
 
     def map_at(self, hours_map):
-        """Iluminación 0-1 de toda la rejilla, cada celda a su hora (mapa de horas del mismo tamaño)."""
+        """0-1 illumination of the whole grid, each cell at its own hour (hour map of the same size)."""
         H, W = hours_map.shape
         r, c = np.indices((H, W))
         return self.at(hours_map.ravel(), r.ravel(), c.ravel()).reshape(H, W)
 
     def window_mean(self, h0, h1):
-        """Iluminación media de cada celda entre h0 y h1 (para elegir dónde cargar)."""
+        """Mean illumination of each cell between h0 and h1 (to choose where to charge)."""
         hs = np.arange(h0, h1 + 1e-9, self.step_h)
         idx = self.index(hs)
         idx = idx[idx >= 0]

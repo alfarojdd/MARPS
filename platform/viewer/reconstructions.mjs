@@ -21,7 +21,7 @@ export async function initReconstructions({map, cfg}) {
     dialog.close();
   }
   dialog.addEventListener("close", () => {
-    $("#surfaceViewport").replaceChildren(); // destruye WebGL, workers y descargas del iframe
+    $("#surfaceViewport").replaceChildren(); // tears down the iframe's WebGL, workers and downloads
     previousFocus?.focus();
     map.invalidateSize();
   });
@@ -47,7 +47,7 @@ export async function initReconstructions({map, cfg}) {
     dialog.showModal();
     $("#surfaceClose").focus();
   }
-  // Escape funciona también cuando el foco está en nuestro iframe WebGL.
+  // Escape also works when focus is inside our WebGL iframe.
   window.addEventListener("message", event => {
     if (event.origin === location.origin && event.source === $("#surfaceViewport iframe")?.contentWindow && event.data === "marps:close-surface") close();
   });

@@ -1,21 +1,21 @@
-"""Catálogo de capas: qué es cada una, de dónde sale y cómo se pinta en el visor.
+"""Layer catalog: what each layer is, where it comes from and how the viewer renders it.
 
-`src`: fichero en data/jezero (layers20m/<id>.tif por defecto).
-`kind`: 'image' (gris), 'continuous' (rampa de color) o 'categorical' (paleta por clase).
-`maxzoom`: zoom nativo del visor (z7 = 1 m/px, z5 = 4 m/px, z4 = 8 m/px).
+`src`: file under data/jezero (layers20m/<id>.tif by default).
+`kind`: 'image' (grayscale), 'continuous' (color ramp) or 'categorical' (per-class palette).
+`maxzoom`: native viewer zoom (z7 = 1 m/px, z5 = 4 m/px, z4 = 8 m/px).
 """
 
 L20 = "layers20m/{}.tif"
 
 LAYERS = [
-    # ---------------- imagen base (cubren el 100 % del bbox)
+    # ---------------- base imagery (covers 100 % of the bbox)
     dict(id="ctx_ortho_6m", group="Imagen", title="Ortomosaico CTX (6 m)", kind="image",
          src="raw/JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0.tif", maxzoom=5, vmin=1, vmax=255, stretch="percent", obs=True,
          source="USGS Mars 2020 TRN CTX orthomosaic 6 m (doi:10.5066/P9GV1ND3)"),
     dict(id="hillshade_ctx", group="Imagen", title="Sombreado CTX (20 m)", kind="image", src=L20.format("hillshade_ctx"),
          maxzoom=4, vmin=0, vmax=1, obs=False, source="Derivado del DTM CTX 20 m"),
 
-    # ---------------- topografía
+    # ---------------- topography
     dict(id="elev_ctx", group="Topografía", title="Elevación CTX (20 m)", units="m", kind="continuous", cmap="terrain",
          vmin=-2700, vmax=-1500, maxzoom=4, obs=True, src=L20.format("elev_ctx"),
          source="USGS Mars 2020 TRN CTX DTM 20 m (doi:10.5066/P9GV1ND3)"),
@@ -33,7 +33,7 @@ LAYERS = [
          cmap="twilight", vmin=0, vmax=360, maxzoom=4, obs=False, src=L20.format("aspect_ctx"),
          source="Derivada del DTM CTX 20 m"),
 
-    # ---------------- térmico
+    # ---------------- thermal
     dict(id="thermal_inertia", group="Térmico", title="Inercia térmica THEMIS (100 m)", units="J m⁻² K⁻¹ s⁻½",
          kind="continuous", cmap="inferno", vmin=120, vmax=420, maxzoom=3, obs=True, src=L20.format("thermal_inertia"),
          source="Edwards & Buz 2021, THEMIS-derived TI of Jezero (Zenodo 4931348, CC-BY-4.0); sin dato en 1,2 km del borde oeste"),
@@ -44,7 +44,7 @@ LAYERS = [
          vmin=1, vmax=255, stretch="percent", maxzoom=3, obs=True, src=L20.format("themis_night_ir"),
          source="USGS THEMIS controlled mosaic MC-13 Syrtis Major, night IR (STAC mo_themis_controlled_mosaics)"),
 
-    # ---------------- inferidas para la misión
+    # ---------------- inferred for the mission
     dict(id="insolation_rel", group="Misión (inferido)", title="Insolación directa media relativa", units="× llano",
          kind="continuous", cmap="RdYlBu_r", vmin=0.9, vmax=1.05, maxzoom=4, obs=False, src=L20.format("insolation_rel"),
          source="Modelo propio a partir de pendiente y orientación CTX"),
@@ -52,7 +52,7 @@ LAYERS = [
          kind="continuous", cmap="viridis", vmin=0, vmax=11, maxzoom=4, obs=False, src=L20.format("atm_column_pct"),
          source="Proxy propio: columna atmosférica relativa (H = 11.1 km) sobre el DTM CTX"),
 
-    # ---------------- complementaria: no entra en el stack base porque no cubre todo el bbox
+    # ---------------- supplementary: not in the base stack because it does not cover the whole bbox
     dict(id="geo_unit", group="Complementaria (no cubre todo)", title="Unidades geológicas (SIM 3464)", kind="categorical",
          maxzoom=4, obs=True, src=L20.format("geo_unit"), base=False,
          source="Sun & Stack 2020, USGS SIM 3464 (doi:10.3133/sim3464)"),
@@ -61,7 +61,7 @@ LAYERS = [
          source="Parente, Itoh & Saranathan 2021, CRISM mineral map of Jezero (Zenodo 5575824, CC-BY-4.0); 4 escenas, 41 % del bbox"),
 ]
 
-# Capas descargadas y procesadas pero retiradas por no cubrir todo el bbox (los ficheros siguen en data/jezero).
+# Layers downloaded and processed but dropped for not covering the whole bbox (files remain in data/jezero).
 DISCARDED = [
     dict(id="ortho_hirise", file="hires/ortho_hirise_1m.tif", coverage=37, why="Mosaico de 6 ortos HiRISE: solo la franja central"),
     dict(id="slope_hirise_1m", file="hires/slope_hirise_1m.tif", coverage=32, why="DTM HiRISE TRN solo cubre el centro"),
@@ -70,7 +70,7 @@ DISCARDED = [
          why="TI global cuantitativa USGS: cubre todo pero tiene bandas entre pasadas THEMIS; se prefirió la de Jezero"),
 ]
 
-# Bandas del stack de 20 m para el planificador (orden fijo).
+# 20 m stack bands for the planner (fixed order).
 STACK_BANDS = [
     dict(id="elev_ctx", units="m", desc="Elevación DTM CTX (areoide)"),
     dict(id="elev_hrsc", units="m", desc="Elevación DTM HRSC h0988"),
@@ -82,13 +82,13 @@ STACK_BANDS = [
     dict(id="insolation_rel", units="ratio", desc="Insolación directa media relativa al llano (sin sombras)"),
     dict(id="atm_column_pct", units="%", desc="Columna atmosférica extra respecto a la cota máxima"),
     dict(id="thermal_inertia", units="TIU", desc="Inercia térmica THEMIS de Jezero (Edwards & Buz 2021)",
-         min_coverage=0.95),  # excepción aceptada: falta la franja oeste de 1,2 km (NaN)
+         min_coverage=0.95),  # accepted exception: the 1.2 km western strip is missing (NaN)
     dict(id="themis_day_ir", units="DN", desc="THEMIS IR diurno (cualitativo)"),
     dict(id="themis_night_ir", units="DN", desc="THEMIS IR nocturno (cualitativo)"),
     dict(id="ctx_ortho", units="DN", desc="Ortoimagen CTX promediada a 20 m"),
 ]
 
-# Para qué sirve cada capa al planificar una salida y qué contexto de misión la vuelve importante.
+# What each layer is for when planning a traverse and which mission context makes it important.
 WHY = {
     "ctx_ortho_6m": "Contexto regional: delta, borde del cráter, campos de dunas. Útil para rutas largas fuera de la huella HiRISE.",
     "hillshade_ctx": "Relieve regional en toda la zona.",

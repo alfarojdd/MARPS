@@ -1,5 +1,5 @@
 # data
 
-Scripts para descargar y preprocesar las capas de una zona (misma rejilla para todas). Los datos pesados no se suben; las fuentes van en [../docs/DATA_SOURCES.md](../docs/DATA_SOURCES.md).
+Scripts to download and preprocess the layers of an area (same grid for all of them). Large data is not pushed; sources go in [../docs/DATA_SOURCES.md](../docs/DATA_SOURCES.md).
 
-Zona actual: [jezero/](jezero/README.md) (stack de 14 capas, vectores y pipeline).
+Current area: [jezero/](jezero/README.md) (14-layer stack, vectors and pipeline).

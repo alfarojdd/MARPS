@@ -161,7 +161,7 @@ function makeCRS(c) {
     transformation: new L.Transformation(1 / c.res0, -c.left / c.res0, -1 / c.res0, c.top / c.res0),
   });
 }
-const ll = (x, y) => L.latLng(y, x);  // lat = norte (m), lng = este (m)
+const ll = (x, y) => L.latLng(y, x);  // lat = north (m), lng = east (m)
 
 function tileLayer(l, pane) {
   if (l.id === "ctx_mosaic") {
@@ -266,7 +266,7 @@ function buildPanel() {
   $("#vectors").addEventListener("change", e => toggleVector(e.target.dataset.id, e.target.checked));
 }
 
-// ---------- vectores
+// ---------- vectors
 const vecLayers = {};
 async function toggleVector(id, on) {
   if (!vecLayers[id]) {
@@ -287,7 +287,7 @@ async function toggleVector(id, on) {
   if (on) vecLayers[id].addTo(map); else map.removeLayer(vecLayers[id]);
 }
 
-// ---------- comparación
+// ---------- comparison
 let dividerX = null;
 function setCompare(id) {
   if (cmpLayer) { map.removeLayer(cmpLayer); cmpLayer = null; }
@@ -372,7 +372,7 @@ async function inspect(e) {
   if (marker) marker.setLatLng(e.latlng); else marker = L.circleMarker(e.latlng, { radius: 6, color: "#e8794a", weight: 2, fill: false, pane: "vectorPane" }).addTo(map);
 }
 
-// ---------- arranque
+// ---------- startup
 (async function () {
   const response = await fetch("/api/map-config");
   if (!response.ok) throw new Error("No se encuentra el mapa. Inicia python3 backend/viewer.py desde el repositorio.");

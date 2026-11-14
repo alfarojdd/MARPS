@@ -8,7 +8,7 @@ def test_classify_crism_tolerates_compression_noise():
                     [[0, 76, 154, 255, 0, 200]],
                     [[0, 68, 0, 255, 0, 40]]], np.uint8)
     cls, conf = bl.classify_crism(rgb)
-    # olivino alta, olivino+esmectita media, carbonato media, fuera, sin identificar, ambiguo
+    # olivine high, olivine+smectite medium, carbonate medium, outside, unidentified, ambiguous
     assert cls[0].tolist() == [1, 4, 2, -1, 0, 0]
     assert conf[0].tolist() == [2, 1, 1, -1, 0, 0]
 

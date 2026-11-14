@@ -10,9 +10,9 @@ Natural-language to structured JSON extractor built on **Ollama (`gemma4:e2b`)**
 
 ---
 
-## Setup & Run (from `marps/` root)
+## Setup and run (from the `marps/` root)
 
-1. **Build the custom Ollama model**  
+1. **Build the custom Ollama model**
    This automatically pulls `gemma4:e2b` if not already cached and bakes the system prompt, parameters, and few-shot examples from `Modelfile`:
    ```bash
    ollama create jezero-extractor -f backend/Modelfile
@@ -42,7 +42,7 @@ Natural-language to structured JSON extractor built on **Ollama (`gemma4:e2b`)**
 
 ---
 
-## Expose Local Backend to Vercel (Cloudflare Quick Tunnel)
+## Expose the local backend to Vercel (Cloudflare Quick Tunnel)
 
 To allow the hosted Vercel web app (and multiple devices/users) to reach your locally running model:
 
@@ -53,24 +53,24 @@ To allow the hosted Vercel web app (and multiple devices/users) to reach your lo
    ```
 3. Copy the generated `https://*.trycloudflare.com` URL and set it as your API base URL in Vercel's Environment Variables (e.g., `NEXT_PUBLIC_API_URL` or `VITE_API_URL`), then redeploy if needed.
 
-> **Tip for Multi-User Demos:** Start Ollama with `OLLAMA_NUM_PARALLEL=4 OLLAMA_KEEP_ALIVE=-1 ollama serve` to keep the model warm in memory and handle concurrent requests from multiple devices smoothly.
+> **Tip for multi-user demos:** Start Ollama with `OLLAMA_NUM_PARALLEL=4 OLLAMA_KEEP_ALIVE=-1 ollama serve` to keep the model warm in memory and handle concurrent requests from multiple devices smoothly.
 
 ---
 
-## API Reference
+## API reference
 
 ### `POST /parse-mission`
 
 Extracts mission routing requirements from natural language into strict, schema-validated JSON.
 
-**Schema Fields:**
+**Schema fields:**
 - `human` (`boolean`): Defaults to `true`. Set to `false` only when an uncrewed/robotic asset (e.g., rover, drone, autonomous) is explicitly specified.
 - `origin` (`string | null`): Starting Jezero Crater landmark name or coordinates, or `null` if omitted.
 - `destination` (`string | null`): Target Jezero Crater landmark name or coordinates, or `null` if omitted.
 - `power` (`boolean`): `true` if the pathfinder must include a solar-rich/sunlit surface for charging along the route; `false` otherwise.
 - `route_preference` (`"shortest" | "fastest" | null`): Route optimization preference, or `null` if unspecified/neutral.
 
-**Request Body:**
+**Request body:**
 ```json
 {
   "prompt": "Dispatch an autonomous rover from Octavia E. Butler Landing to Three Forks on the Western Delta, low battery so it needs solar exposure to charge, take the fastest traverse."
@@ -88,7 +88,7 @@ Extracts mission routing requirements from natural language into strict, schema-
 }
 ```
 
-**Quick Test via cURL:**
+**Quick test with cURL:**
 ```bash
 curl -X POST http://localhost:8000/parse-mission \
   -H "Content-Type: application/json" \

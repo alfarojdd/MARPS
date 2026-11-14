@@ -5,7 +5,7 @@ import terrain
 
 
 def plane(dx_per_m=0.0, dy_per_m=0.0, n=20, res=10.0):
-    """Plano con pendiente hacia el este (dx) y hacia el norte (dy); fila 0 = norte."""
+    """Plane sloping toward the east (dx) and north (dy); row 0 = north."""
     x = np.arange(n) * res
     y = (n - 1 - np.arange(n)) * res
     X, Y = np.meshgrid(x, y)
@@ -18,9 +18,9 @@ def test_slope_of_45_degree_plane():
 
 
 def test_aspect_points_downhill():
-    # sube hacia el este -> la ladera mira al oeste (270)
+    # rises toward the east -> slope faces west (270)
     assert np.allclose(terrain.aspect_deg(plane(dx_per_m=0.5), 10.0), 270.0)
-    # sube hacia el norte -> mira al sur (180)
+    # rises toward the north -> faces south (180)
     assert np.allclose(terrain.aspect_deg(plane(dy_per_m=0.5), 10.0), 180.0)
 
 

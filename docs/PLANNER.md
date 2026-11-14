@@ -1,168 +1,169 @@
-# planner: planificador de rutas consciente de la misión
+# Planner: mission-aware route planner
 
-Código en `planner/`:
-- `planner.py`: modelo de coste, A*, ciencia y métricas.
-- `report.py`: **informe JSON** para el resumen del LLM del casco (comparación con el A* clásico, batería, luz y parada de carga).
-- `shadows.py`: sombras e iluminación por hora, con `mars_shadows.py` (raíz del repo) y `assets/SunAngle.csv`.
-- `api.py`: endpoint FastAPI `POST /plan-route` para el backend. Contrato completo en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md).
-- `live.py`: banco de pruebas interactivo.
-- `demo.py` y `scenarios.json`: figura y tabla de escenarios.
-- `examples/`: petición y respuesta reales de la API, e informe con parada de carga.
-- `test_planner.py`: pruebas (14).
+Code in `planner/`:
+- `planner.py`: cost model, A*, science and metrics.
+- `report.py`: **JSON report** for the helmet LLM summary (comparison with the classic A*, battery, daylight and charging stop).
+- `shadows.py`: shadows and illumination by hour, using `mars_shadows.py` (repo root) and `assets/SunAngle.csv`.
+- `api.py`: FastAPI endpoint `POST /plan-route` for the backend. Full contract in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md).
+- `live.py`: interactive test bench.
+- `demo.py` and `scenarios.json`: scenario figure and table.
+- `examples/`: real API request and response, and a report with a charging stop.
+- `test_planner.py`: tests (14).
 
-Es un spike: solo está probado lo básico y no ha pasado por el flujo de subagentes y revisión. Si se lleva al producto (`planner/` de MARPS), habrá que repasarlo con ese flujo.
+This is a spike: only the basics are tested and it has not gone through the subagent and review workflow. If it is taken into the product (MARPS `planner/`), it will need to be reviewed with that workflow.
 
 ```bash
-python planner/live.py      # http://127.0.0.1:8766 
+python planner/live.py      # http://127.0.0.1:8766
 cd planner
 python demo.py             # → out/demo.png + out/demo.md
 python -m pytest -q
 ```
-Dependencias: `pip install -r planner/requirements.txt`. **Datos**: los de `data/jezero/` (Drive, ver `data/jezero/README.md`): `stack/jezero_stack_20m.tif`, `extra/geo_unit.tif` y `extra/crism_class.tif`. Otra ubicación: variable `JEZERO_DATA`. La primera ejecución crea `data/jezero/planner_cache_20m.npz` (no se versiona). Un ejemplo del informe está en `planner/examples/report_example.json`.
+Dependencies: `pip install -r planner/requirements.txt`. **Data**: the files in `data/jezero/` (Drive, see `data/jezero/README.md`): `stack/jezero_stack_20m.tif`, `extra/geo_unit.tif` and `extra/crism_class.tif`. For another location, set `JEZERO_DATA`. The first run creates `data/jezero/planner_cache_20m.npz` (not versioned). A sample report is in `planner/examples/report_example.json`.
 
-## Entrada: dos bloques
+## Input: two blocks
 
 ```json
 {
-  "mission": { ...lo que saca el LLM del texto del astronauta... },
+  "mission": { ...what the LLM extracts from the astronaut's text... },
   "system":  { "start_hour": 9.0, "battery_kwh": 30, "battery_capacity_kwh": 40, "reserve_pct": 20 }
 }
 ```
-`system` no lo pone el LLM. Lo aporta el vehículo: la hora por su enlace o reloj y la batería por su gestor de energía.
+`system` is not set by the LLM. The vehicle provides it: the time from its link or clock, and the battery from its power manager.
 
-### Esquema de `mission` (para el prompt y la validación del LLM)
+### `mission` schema (for the LLM prompt and validation)
 ```python
 class Mission(BaseModel):
-    human: bool = True                       # hay tripulación a bordo (no significa "a pie"); como el LLM del backend
-    safety: Literal["low", "normal", "high"] = "normal"   # personas o carga frágil → "high"
-    power: bool = False                      # priorizar el ahorro de energía
+    human: bool = True                       # crew on board (does not mean "on foot"); same as the backend LLM
+    safety: Literal["low", "normal", "high"] = "normal"   # people or fragile cargo → "high"
+    power: bool = False                      # prioritise energy saving
     route_preference: Literal["shortest", "fastest"] | None = None
-    origin: str | None = None                # nombre de lugar conocido o "lon,lat"
+    origin: str | None = None                # known place name or "lon,lat"
     destination: str | None = None
     science_targets: list[ScienceTarget] = []
-    science_detour: Literal["low", "medium", "high"] = "medium"  # cuánto rodeo se acepta por la ciencia: +20/50/100 %
-    return_to_origin: bool = False           # ida y vuelta
+    science_detour: Literal["low", "medium", "high"] = "medium"  # detour accepted for science: +20/50/100 %
+    return_to_origin: bool = False           # round trip
 
 class ScienceTarget(BaseModel):
     target: Literal["aqueous", "carbonates", "clays", "smectites", "kaolinite",
                     "olivine", "pyroxene", "delta", "crater_floor"]
-    priority: float = Field(1.0, ge=0.1, le=1.0)   # 1 = objetivo principal, 0.3 = "si pilla de camino"
+    priority: float = Field(1.0, ge=0.1, le=1.0)   # 1 = main target, 0.3 = "if it's on the way"
 ```
-**El parámetro de lo que se quiere investigar es `science_targets`.** Es una lista porque una misión puede tener varios objetivos con prioridad distinta. El LLM solo elige nombres de una lista cerrada; el código traduce cada nombre a zonas del mapa. Guía para el prompt:
+**The parameter for what is to be investigated is `science_targets`.** It is a list because a mission can have several targets with different priorities. The LLM only picks names from a closed list; the code maps each name to map zones. Prompt guide:
 
-| Lo que dice el astronauta | `science_targets` |
+| What the astronaut says | `science_targets` |
 |---|---|
-| "evidencias de agua", "antiguo lago", "habitabilidad" | `[{"target": "aqueous"}]` (= carbonatos + arcillas + delta) |
-| "carbonatos" | `[{"target": "carbonates"}]` |
-| "arcillas", "filosilicatos" | `[{"target": "clays"}]` |
-| "esmectitas" / "caolinita" | `smectites` / `kaolinite` |
-| "roca ígnea", "basalto", "olivino" / "piroxeno" | `olivine` / `pyroxene` |
-| "sedimentos del delta", "abanico" | `delta` |
-| "suelo del cráter" | `crater_floor` |
-| "carbonatos sobre todo, y arcillas si pilla de paso" | `[{"target": "carbonates", "priority": 1}, {"target": "clays", "priority": 0.3}]` |
-| "tenemos tiempo de sobra" / "lo justo" | `science_detour: "high"` / `"low"` |
+| "evidence of water", "ancient lake", "habitability" | `[{"target": "aqueous"}]` (= carbonates + clays + delta) |
+| "carbonates" | `[{"target": "carbonates"}]` |
+| "clays", "phyllosilicates" | `[{"target": "clays"}]` |
+| "smectites" / "kaolinite" | `smectites` / `kaolinite` |
+| "igneous rock", "basalt", "olivine" / "pyroxene" | `olivine` / `pyroxene` |
+| "delta sediments", "fan" | `delta` |
+| "crater floor" | `crater_floor` |
+| "mainly carbonates, and clays if they're on the way" | `[{"target": "carbonates", "priority": 1}, {"target": "clays", "priority": 0.3}]` |
+| "we have plenty of time" / "time is tight" | `science_detour: "high"` / `"low"` |
 
-Por la API, un valor no válido da 422 y un lugar desconocido 400, en ambos casos con el motivo, para que el backend pueda pedir al LLM que corrija. Lugares aceptados: `GET /places` (nombres como "Octavia E. Butler Landing" o "Belva crater", o coordenadas "77.45,18.44" o "18.44N, 77.45E").
+Through the API, an invalid value returns 422 and an unknown place 400, both with the reason, so the backend can ask the LLM to correct it. Accepted places: `GET /places` (names such as "Octavia E. Butler Landing" or "Belva crater", or coordinates "77.45,18.44" or "18.44N, 77.45E").
 
-## Modelo
-**Rejilla nativa de 20 m** (la del DTM CTX, 1512 × 1596 = 2,4 M celdas) con 16 vecinos. No tiene sentido bajar de 20 m: la pendiente y la rugosidad salen del DTM CTX a 20 m, y la inercia térmica es de 100 m. HiRISE a 1 m solo cubre el 32 % central (ver mejoras).
+## Model
+**Native 20 m grid** (the CTX DTM grid, 1512 × 1596 = 2.4 M cells) with 16 neighbours. Going below 20 m makes no sense: slope and roughness come from the 20 m CTX DTM, and thermal inertia is 100 m. HiRISE at 1 m only covers the central 32 % (see improvements).
 
 ```
-coste(u→v) = mult · [w_dist·L + w_time·t·v0 + w_E·E/e_ref] + L · Σ w_k · riesgo_k
+cost(u→v) = mult · [w_dist·L + w_time·t·v0 + w_E·E/e_ref] + L · Σ w_k · risk_k
 ```
-- **Depende de la dirección:** la pendiente longitudinal sale de Δh (subir ≠ bajar). La lateral es el gradiente perpendicular a la dirección de avance.
-- **Velocidad:** `v0 / (1 + 0,08·|pendiente| + 0,06·lateral + 1,5·rugosidad + 1,0·arena)`, con v0 = 2,5 m/s. "Arena" es el máximo entre el suelo blando (inercia térmica) y las dunas.
-- **Energía:** rodadura (Crr 0,08 en firme, hasta 0,20 en arena) + subida + consumo fijo (800 W, más 1,5 kW de soporte vital si hay tripulación) − solar. Vehículo genérico de 3 t; las cifras son órdenes de magnitud y no se calibran (es un producto mínimo).
-- **Riesgo:** rugosidad (TRI), suelo blando (inercia térmica < 260), **dunas** (unidad "Eolian bedform" de SIM 3464, 119 km²; su inercia térmica es casi normal, así que solo así se detectan), (pendiente/máx)², (lateral/máx)², dato desconocido y exposición (si hay tripulación). No se usa `dist_traverse`.
-- **`mult`:** descuento científico `1 − 0,5·interés`, que se aplica **solo a distancia, tiempo y energía, nunca al riesgo**. Ir a ver minerales no debe hacer que una duna parezca más segura.
-- **Restricciones duras** (el JSON no puede relajarlas): pendiente y lateral máximas, margen alrededor de celdas peligrosas y, con `safety=high`, celdas sin dato.
+- **Direction-dependent:** longitudinal slope comes from Δh (uphill ≠ downhill). Cross slope is the gradient perpendicular to the direction of travel.
+- **Speed:** `v0 / (1 + 0.08·|slope| + 0.06·cross + 1.5·roughness + 1.0·sand)`, with v0 = 2.5 m/s. "Sand" is the maximum of soft ground (thermal inertia) and dunes.
+- **Energy:** rolling resistance (Crr 0.08 on firm ground, up to 0.20 in sand) + climbing + fixed load (800 W, plus 1.5 kW life support if crewed) − solar. Generic 3 t vehicle; figures are orders of magnitude and are not calibrated (this is a minimum viable product).
+- **Risk:** roughness (TRI), soft ground (thermal inertia < 260), **dunes** ("Eolian bedform" unit from SIM 3464, 119 km²; their thermal inertia is almost normal, so this is the only way to detect them), (slope/max)², (cross/max)², unknown data and exposure (if crewed). `dist_traverse` is not used.
+- **`mult`:** science discount `1 − 0.5·interest`, applied **only to distance, time and energy, never to risk**. Going to look at minerals must not make a dune look safer.
+- **Hard constraints** (the JSON cannot relax them): maximum slope and cross slope, buffer around hazardous cells and, with `safety=high`, cells with no data.
 
 | `safety` | low | normal | high |
 |---|---|---|---|
-| Pendiente / lateral máx. | 25° / 15° | 20° / 12° | 15° / 8° |
-| Margen | 0 | 40 m | 100 m |
-| Pesos rugosidad / blando / dunas | 0,3 / 0,3 / 0,5 | 1 / 1 / 2 | 3 / 3 / 5 |
+| Max slope / cross slope | 25° / 15° | 20° / 12° | 15° / 8° |
+| Buffer | 0 | 40 m | 100 m |
+| Roughness / soft / dune weights | 0.3 / 0.3 / 0.5 | 1 / 1 / 2 | 3 / 3 / 5 |
 
-### Heurística
-`h(n) = hflat · distancia_euclídea(n, meta) + c_subida · max(h_meta − h_n, 0)`:
-- **Primer término:** `hflat` es el menor coste por metro de toda la rejilla, sin contar la subida.
-- **Segundo término:** cualquier ruta tiene que subir al menos el desnivel hasta la meta, y eso cuesta energía.
+### Heuristic
+`h(n) = hflat · euclidean_distance(n, goal) + c_climb · max(h_goal − h_n, 0)`:
+- **First term:** `hflat` is the lowest cost per metre over the whole grid, excluding climbing.
+- **Second term:** any route must climb at least the elevation gain to the goal, and that costs energy.
 
-Es admisible y consistente. Las pruebas comparan el resultado con un Dijkstra, tanto en problemas aleatorios como en la rejilla real. Medido en crater_floor_south → delta_top:
+It is admissible and consistent. The tests compare the result with Dijkstra, on both random problems and the real grid. Measured on crater_floor_south → delta_top:
 
-| Escenario | Sin heurística | Heurística anterior | Nueva |
+| Scenario | No heuristic | Previous heuristic | New |
 |---|---|---|---|
-| A* clásico | 1 632 357 nodos | 105 510 | 105 293 (0,05 s) |
+| Classic A* | 1 632 357 nodes | 105 510 | 105 293 (0.05 s) |
 | power | 1 304 552 | 605 659 | **511 623 (−15 %)** |
 | fastest | 1 314 328 | 817 554 | 802 223 |
 
-La búsqueda ya tarda 0,05–0,4 s. El cuello de botella es construir la rejilla de costes (≈2,5 s por perfil de pesos), que se guarda en caché (4 perfiles).
+The search now takes 0.05–0.4 s. The bottleneck is building the cost grid (≈2.5 s per weight profile), which is cached (4 profiles).
 
-### science_targets → zonas
-1. Diccionario fijo nombre → máscara: CRISM por clases con confianza 1 / 0,6 y geología SIM 3464 con peso 0,5.
-2. Mapa de interés: Σ prioridad × máscara, suavizado a 120 m y normalizado.
-3. Manchas candidatas: ≥ 2,4 ha, a más de 500 m de A y de B, las 10 de más valor.
-4. Matriz de costes exacta entre candidatos: Dijkstra desde cada uno, que se detiene en cuanto ha alcanzado a todos.
-5. Inserción voraz con presupuesto `(1 + science_detour) × coste(A→B)`, y A* tramo a tramo.
-6. Cada parada suma 20 min al tiempo y a la energía.
+### science_targets → zones
+1. Fixed name → mask dictionary: CRISM classes with confidence 1 / 0.6, and SIM 3464 geology with weight 0.5.
+2. Interest map: Σ priority × mask, smoothed at 120 m and normalised.
+3. Candidate patches: ≥ 2.4 ha, more than 500 m from A and B, the 10 highest-value ones.
+4. Exact cost matrix between candidates: Dijkstra from each one, stopping as soon as it has reached all of them.
+5. Greedy insertion with budget `(1 + science_detour) × cost(A→B)`, and A* leg by leg.
+6. Each stop adds 20 min to time and energy.
 
-## Salida: informe para el LLM del casco (`report.py`)
-Ejemplo completo en `planner/examples/report_example.json`. Bloques:
-- `feasible`: falso si hay algún aviso crítico.
+## Output: report for the helmet LLM (`report.py`)
+Full example in `planner/examples/report_example.json`. Blocks:
+- `feasible`: false if there is any critical warning.
 - `route`:
-  - métricas físicas: distancia, tiempo, energía total y de tracción, subida y bajada, pendientes máximas, km por terreno rugoso, blando, dunas o sin dato, y exposición media;
-  - horario: salida, llegada, límite de luz y margen;
-  - batería al salir y al llegar;
-  - `science_stops` (lon, lat, minerales y minutos de parada);
+  - physical metrics: distance, time, total and traction energy, ascent and descent, maximum slopes, km over rough, soft, dune or no-data terrain, and mean exposure;
+  - schedule: departure, arrival, daylight limit and margin;
+  - battery at departure and arrival;
+  - `science_stops` (lon, lat, minerals and stop minutes);
   - `charging_stop`;
-  - `waypoints_lonlat` (~60 puntos).
-- `classic_astar`: las mismas métricas para la ruta de un A* de distancia pura, **medida con el mismo vehículo y tripulación** (solo cambia el recorrido).
-- `comparison`: lo que el LLM necesita para frases del tipo "has ahorrado un X % de batería":
+  - `waypoints_lonlat` (~60 points).
+- `classic_astar`: the same metrics for the route of a pure-distance A*, **measured with the same vehicle and crew** (only the path changes).
+- `comparison`: what the LLM needs for sentences like "you saved X % battery":
   - `energy_saved_pct`, `drive_energy_saved_pct`, `time_saved_pct`, `extra_distance_pct`;
-  - reducción de pendiente máxima y lateral;
-  - km de rugoso, blando y dunas evitados;
-  - `on_<objetivo>_km_gained`.
-- `why`: qué términos de coste evita la ruta frente al A* clásico, medidos con los pesos de esta misión (p. ej. energía 39 %, tiempo 20 %, suelo blando 14 %), y los km ganados sobre cada objetivo científico.
-- `warnings` (código, gravedad y mensaje en inglés) y `suggestions`.
+  - reduction in maximum slope and cross slope;
+  - rough, soft and dune km avoided;
+  - `on_<target>_km_gained`.
+- `why`: which cost terms the route avoids compared with the classic A*, measured with this mission's weights (e.g. energy 39 %, time 20 %, soft ground 14 %), and the km gained over each science target.
+- `warnings` (code, severity and message in English) and `suggestions`.
 
-### Avisos de luz y batería
-- **Luz:** amanecer y atardecer de `SunAngle.csv` (06:00–18:00 si no hay mapa de sombras), con 30 min de margen.
-  - `NO_DAYLIGHT_AT_DEPARTURE`: la salida cae fuera de la ventana de luz.
-  - `ARRIVAL_AFTER_DAYLIGHT`: la llegada pasa del límite. Es **crítico con tripulación** y un aviso sin ella.
-- **Batería:** se necesita la energía de la ruta, más las paradas, más una reserva (20 % de la capacidad).
-  - `BATTERY_BELOW_RESERVE`: se llega con menos de la reserva.
-  - `SWITCH_TO_POWER_SAVING` (sugerencia): si no alcanza y `power` estaba desactivado, se calcula la ruta de ahorro y se dice si basta.
-  - `CHARGING_STOP_REQUIRED`: si sigue sin alcanzar, se busca un sitio soleado, llano, firme y sin dunas a menos de 1 km de la parte de la ruta alcanzable con la batería actual. Se replanifica pasando por él y se calcula cuánto hay que parar. La carga se estima con un panel desplegado de 3 kW pico × la luz directa real del sitio (mapa de sombras) hora a hora, menos el consumo parado (y el soporte vital si hay tripulación). Detalle en "Sombras".
-  - `BATTERY_INSUFFICIENT`: no se llega ni a la parada de carga.
-  - `CHARGING_DOES_NOT_FIT_DAYLIGHT`: no da tiempo a cargar con luz.
+### Daylight and battery warnings
+- **Daylight:** sunrise and sunset from `SunAngle.csv` (06:00–18:00 if there is no shadow map), with a 30 min margin.
+  - `NO_DAYLIGHT_AT_DEPARTURE`: departure falls outside the daylight window.
+  - `ARRIVAL_AFTER_DAYLIGHT`: arrival is past the limit. It is **critical when crewed** and a warning when not.
+- **Battery:** the route energy is needed, plus stops, plus a reserve (20 % of capacity).
+  - `BATTERY_BELOW_RESERVE`: arrival with less than the reserve.
+  - `SWITCH_TO_POWER_SAVING` (suggestion): if the battery is not enough and `power` was off, the power-saving route is computed and the report says whether it is enough.
+  - `CHARGING_STOP_REQUIRED`: if it is still not enough, the planner looks for a sunny, flat, firm, dune-free site within 1 km of the part of the route reachable with the current battery. It replans through that site and computes how long to stop. Charging is estimated with a deployed 3 kW peak panel × the site's actual direct light (shadow map) hour by hour, minus the idle load (and life support if crewed). Details in "Shadows".
+  - `BATTERY_INSUFFICIENT`: the charging stop cannot even be reached.
+  - `CHARGING_DOES_NOT_FIT_DAYLIGHT`: there is not enough daylight to charge.
 
-## Herramienta en vivo (`live.py`)
-- **Controles:** parámetros de misión, `science_targets` con prioridad, `science_detour`, ida y vuelta, y estado del sistema (hora y batería). Origen y destino por lista o con clic en el mapa.
-- **Mapa:** ruta con contexto, A* clásico, paradas científicas y parada de carga. Fondo opcional "Sombras a la hora de salida".
-- **Panel:** avisos, tabla comparativa y botón "Ver JSON" con el informe completo.
-- **Tiempos:** 0,5 s con un perfil ya en caché, 3–8 s con uno nuevo y 10–17 s con ciencia.
+## Live tool (`live.py`)
+- **Controls:** mission parameters, `science_targets` with priority, `science_detour`, round trip, and system state (time and battery). Origin and destination from a list or by clicking on the map.
+- **Map:** context-aware route, classic A*, science stops and charging stop. Optional "Sombras a la hora de salida" (shadows at departure time) background.
+- **Panel:** warnings, comparison table and a "Ver JSON" button with the full report.
+- **Timings:** 0.5 s with an already cached profile, 3–8 s with a new one and 10–17 s with science.
 
-No es el frontend del producto.
+It is not the product frontend.
 
-## Sombras (`shadows.py`, con `mars_shadows.py` de Pablo)
-- **Efeméride:** `SunAngle.csv` da la elevación y el azimut del Sol en hora UTC terrestre (un día, 2026-318). Se pasa a **hora solar local (LTST)**: el mediodía es el máximo de elevación (ajuste parabólico) y una hora LTST dura 3698,9 s. Resultado: amanecer 05:48, atardecer 18:12, Sol a 80° a mediodía.
-- **Iluminación:** para cada uno de los 26 instantes con sol, `mars_shadows.classify` calcula sobre el DTM de 20 m la sombra proyectada (el relieve tapa el Sol) y la autosombra (ladera de espaldas). Se guarda `illum = cos(incidencia)` en las celdas iluminadas (0 en sombra), en uint8. Son unos 7 s la primera vez y después queda en caché (`data/jezero/planner_shadows_20m_<hash>.npz`).
-- **En el coste**, si llega `start_hour`:
-  - Cada celda toma la luz de su hora estimada de paso (`start_hour` + distancia al origen / 1,2 m/s).
-  - La luz cambia la **carga solar en marcha** de la energía (para todos los perfiles, así la física es la misma y la comparación es justa).
-  - Añade un término de **riesgo por sombra** del terreno (no por noche), con peso `safety` (0 / 0,2 / 0,5) + 0,5 si hay tripulación + 1,0 con `power`.
-- **En las métricas:** la ruta final se evalúa con su hora real de paso por cada tramo, lo que da `shadow_km`, `shadow_pct` y `night_km`. En `comparison` aparece `shadow_km_avoided`.
-- **Ventana de luz:** amanecer y atardecer salen del CSV en lugar de la ventana fija 06–18.
-- **Parada de carga:**
-  - Cada candidato (llano, firme, sin dunas, a menos de 1 km del tramo alcanzable) llega a su propia hora.
-  - Se elige el que **termina antes de cargar**: llegada + energía que falta / (3 kW × luz directa real media en las 3 h siguientes − consumo parado).
-  - El tiempo de carga se integra con la luz real de ese punto hora a hora. Así se evitan los sitios en sombra; en una prueba desde el borde oeste a las 06:00, sin sombras se elegía un sitio en sombra total (luz 0,00) y con sombras uno con luz 0,49.
-- **Hallazgo:** en el suelo del cráter apenas hay sombras de día; solo aparecen en la primera y la última hora y junto al borde y los escarpes del delta. Ahí es donde cambian la ruta y, sobre todo, el sitio de carga.
-- **Sin `mars_shadows.py` o sin el CSV,** el planificador funciona igual con `insolation_rel` y la ventana 06–18 (`/planner/health` dice si hay sombras).
+## Shadows (`shadows.py`, with Pablo's `mars_shadows.py`)
+- **Ephemeris:** `SunAngle.csv` gives the Sun's elevation and azimuth in Earth UTC time (one day, 2026-318). It is converted to **local true solar time (LTST)**: noon is the elevation maximum (parabolic fit) and an LTST hour lasts 3698.9 s. Result: sunrise 05:48, sunset 18:12, Sun at 80° at noon.
+- **Illumination:** for each of the 26 sunlit instants, `mars_shadows.classify` computes on the 20 m DTM the cast shadow (terrain blocks the Sun) and the self-shadow (slope facing away). `illum = cos(incidence)` is stored in illuminated cells (0 in shadow), as uint8. It takes about 7 s the first time and is then cached (`data/jezero/planner_shadows_20m_<hash>.npz`).
+- **In the cost**, if `start_hour` is given:
+  - Each cell takes the light at its estimated pass time (`start_hour` + distance to origin / 1.2 m/s).
+  - Light changes the **solar charging while driving** in the energy term (for all profiles, so the physics is the same and the comparison is fair).
+  - It adds a terrain **shadow risk** term (not night), weighted by `safety` (0 / 0.2 / 0.5) + 0.5 if crewed + 1.0 with `power`.
+- **In the metrics:** the final route is evaluated with its actual pass time on each leg, which gives `shadow_km`, `shadow_pct` and `night_km`. `comparison` includes `shadow_km_avoided`.
+- **Daylight window:** sunrise and sunset come from the CSV instead of the fixed 06–18 window.
+- **Charging stop:**
+  - Each candidate (flat, firm, dune-free, within 1 km of the reachable leg) is reached at its own time.
+  - The one that **finishes charging first** is chosen: arrival + missing energy / (3 kW × mean actual direct light over the next 3 h − idle load).
+  - Charging time is integrated with the actual light at that point hour by hour. This avoids shaded sites; in a test from the western rim at 06:00, without shadows a fully shaded site was chosen (light 0.00), and with shadows one with light 0.49.
+- **Finding:** on the crater floor there are hardly any shadows during the day; they only appear in the first and last hour and near the rim and the delta scarps. That is where they change the route and, above all, the charging site.
+- **Without `mars_shadows.py` or the CSV,** the planner works the same with `insolation_rel` and the 06–18 window (`/planner/health` reports whether shadows are available).
 
-## Pendiente / mejoras
-- **Sombras:** la hora de paso se estima en línea recta desde el origen (no sigue la ruta ni las paradas). Faltan la estación (el CSV es de un día), el frío y la calefacción en sombra, y las sombras de relieve fuera del recuadro (el script extiende el borde).- **Rendimiento:** construir la rejilla de costes (2,5 s) en Numba en paralelo. La ciencia (11 Dijkstras a 20 m) podría seleccionar paradas a 40 m y trazar a 20 m.
-- **Explicación más fina:** el `why` mide términos de coste; podría añadir *dónde* (tramos concretos que se evitan).
-- **HiRISE 1 m** en el centro: refinar la ruta dentro de un corredor de unos 200 m.
-- **Suavizado** de la ruta, al estilo Theta*.
-- El valor de cada mancha científica sigue favoreciendo las grandes, y fuera de CRISM el interés vale 0 (no "desconocido").
+## Open issues / improvements
+- **Shadows:** the pass time is estimated in a straight line from the origin (it does not follow the route or the stops). Missing: season (the CSV covers one day), cold and heating in shadow, and terrain shadows from outside the bounding box (the script extends the edge).
+- **Performance:** build the cost grid (2.5 s) in parallel with Numba. Science (11 Dijkstras at 20 m) could select stops at 40 m and trace at 20 m.
+- **Finer explanation:** `why` measures cost terms; it could add *where* (specific legs that are avoided).
+- **HiRISE 1 m** in the centre: refine the route inside a corridor of about 200 m.
+- **Route smoothing**, Theta*-style.
+- Each science patch's value still favours large patches, and outside CRISM the interest is 0 (not "unknown").

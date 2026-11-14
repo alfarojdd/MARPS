@@ -7,7 +7,7 @@ import planner as P
 
 
 def _random_problem(H, W, c_climb, seed=0):
-    """Costes aleatorios que cumplen coste ≥ L + c_climb·max(Δh, 0), como los del planificador."""
+    """Random costs satisfying cost ≥ L + c_climb·max(Δh, 0), like the planner's."""
     rng = np.random.default_rng(seed)
     elev = rng.normal(0, 30, H * W).cumsum() % 200
     cost = np.full((16, H * W), np.inf)
@@ -63,7 +63,7 @@ def test_hard_constraints_hold_on_real_grid(planner, safety):
 
 
 def test_heuristic_is_admissible_on_real_grid(planner):
-    """El A* con la cota de subida da el mismo coste que sin heurística (Dijkstra)."""
+    """A* with the climb bound gives the same cost as without a heuristic (Dijkstra)."""
     p = P.Params(origin="crater_floor_south", destination="delta_top", power=True)
     cost, hflat, c_climb = P.build_costs(planner.F, p)
     W = planner.W
@@ -96,7 +96,7 @@ def test_report_ok_compares_against_classic(planner):
 
 def test_report_flags_late_arrival(planner):
     rep, codes = _report(planner, {"human": True}, {"start_hour": 16.5, "battery_kwh": 40})
-    assert "ARRIVAL_AFTER_DAYLIGHT" in codes and not rep["feasible"]  # con tripulación es crítico
+    assert "ARRIVAL_AFTER_DAYLIGHT" in codes and not rep["feasible"]  # critical when crewed
 
 
 def test_report_charging_stop_leaves_reserve(planner):
@@ -113,8 +113,8 @@ def test_sun_table_maps_to_local_solar_time(planner):
     if sun is None:
         pytest.skip(f"sin mapa de sombras: {planner.sun_error}")
     assert 5 < sun.sunrise < 7 and 17 < sun.sunset < 19
-    assert sun.at([12.0], [700], [800])[0] > 0.5      # a mediodía, suelo del cráter iluminado
-    assert sun.at([2.0], [700], [800])[0] == 0          # de noche, sin luz
+    assert sun.at([12.0], [700], [800])[0] > 0.5      # at noon, crater floor lit
+    assert sun.at([2.0], [700], [800])[0] == 0          # at night, no light
 
 
 def test_shadow_metrics_and_daylight_window_from_csv(planner):

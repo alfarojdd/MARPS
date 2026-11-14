@@ -1,13 +1,13 @@
-"""Derivadas del terreno sobre rejillas regulares (numpy puro).
+"""Terrain derivatives on regular grids (pure numpy).
 
-Convenciones: `dem` en metros, fila 0 al norte, `res` = tamaño de celda en metros.
-NaN marca datos ausentes y se propaga.
+Conventions: `dem` in meters, row 0 to the north, `res` = cell size in meters.
+NaN marks missing data and propagates.
 """
 import numpy as np
 
 
 def gradient(dem, res):
-    """Devuelve (dz/dx hacia el este, dz/dy hacia el norte)."""
+    """Return (dz/dx eastward, dz/dy northward)."""
     dzdy_rows, dzdx = np.gradient(dem, res)
     return dzdx, -dzdy_rows
 
@@ -18,13 +18,13 @@ def slope_deg(dem, res):
 
 
 def aspect_deg(dem, res):
-    """Dirección hacia la que cae la ladera, 0 = norte, 90 = este."""
+    """Downslope direction, 0 = north, 90 = east."""
     dzdx, dzdy = gradient(dem, res)
     return (np.degrees(np.arctan2(-dzdx, -dzdy)) + 360.0) % 360.0
 
 
 def hillshade(dem, res, azimuth=315.0, altitude=45.0):
-    """Sombreado 0..1 con sol en `azimuth` (desde el norte) y `altitude` grados."""
+    """Hillshade 0..1 with the sun at `azimuth` (from north) and `altitude` degrees."""
     dzdx, dzdy = gradient(dem, res)
     nx, ny, nz = -dzdx, -dzdy, np.ones_like(dem)
     norm = np.sqrt(nx**2 + ny**2 + nz**2)
@@ -34,7 +34,7 @@ def hillshade(dem, res, azimuth=315.0, altitude=45.0):
 
 
 def _box_mean(a, r):
-    """Media en ventana cuadrada de lado 2r+1 ignorando NaN (imagen integral)."""
+    """Mean over a square window of side 2r+1, ignoring NaN (integral image)."""
     valid = np.isfinite(a)
     filled = np.where(valid, a, 0.0)
 
@@ -51,7 +51,7 @@ def _box_mean(a, r):
 
 
 def tri(dem):
-    """Terrain Ruggedness Index: media del |desnivel| con los 8 vecinos (m)."""
+    """Terrain Ruggedness Index: mean |elevation difference| to the 8 neighbors (m)."""
     p = np.pad(dem, 1, mode="edge")
     acc = np.zeros_like(dem)
     for dy in (-1, 0, 1):
@@ -62,12 +62,12 @@ def tri(dem):
 
 
 def tpi(dem, radius_cells):
-    """Topographic Position Index: cota menos la media del entorno (m). >0 lomas, <0 vaguadas."""
+    """Topographic Position Index: elevation minus the neighborhood mean (m). >0 ridges, <0 valleys."""
     return dem - _box_mean(dem, radius_cells)
 
 
 def block_reduce(a, factor, how):
-    """Agrega bloques factor×factor con 'mean', 'max' o 'std' ignorando NaN."""
+    """Aggregate factor×factor blocks with 'mean', 'max' or 'std', ignoring NaN."""
     h, w = (a.shape[0] // factor) * factor, (a.shape[1] // factor) * factor
     b = a[:h, :w].reshape(h // factor, factor, w // factor, factor)
     fn = {"mean": np.nanmean, "max": np.nanmax, "std": np.nanstd}[how]
@@ -78,10 +78,10 @@ def block_reduce(a, factor, how):
 
 
 def mean_direct_insolation(slope, aspect, lat_deg, n_decl=12, n_hours=24):
-    """Insolación directa media anual relativa a una superficie horizontal (sin sombras proyectadas).
+    """Mean annual direct insolation relative to a horizontal surface (no cast shadows).
 
-    Promedia cos(ángulo de incidencia) sobre declinaciones solares de Marte (±25.2°) y horas del día.
-    1.0 = recibe lo mismo que el llano; >1 laderas orientadas al sol.
+    Averages cos(incidence angle) over Mars solar declinations (±25.2°) and hours of the day.
+    1.0 = same as flat ground; >1 sun-facing slopes.
     """
     s, a = np.radians(slope), np.radians(aspect)
     lat = np.radians(lat_deg)
@@ -89,7 +89,7 @@ def mean_direct_insolation(slope, aspect, lat_deg, n_decl=12, n_hours=24):
     acc, flat = np.zeros_like(slope), 0.0
     for decl in np.radians(25.19) * np.sin(np.linspace(0, 2 * np.pi, n_decl, endpoint=False)):
         for h in np.linspace(-np.pi, np.pi, n_hours, endpoint=False):
-            # vector solar en coordenadas locales (este, norte, arriba)
+            # sun vector in local coordinates (east, north, up)
             sz = np.sin(lat) * np.sin(decl) + np.cos(lat) * np.cos(decl) * np.cos(h)
             if sz <= 0:
                 continue

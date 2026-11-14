@@ -1,12 +1,12 @@
-"""Recorta, reproyecta y deriva todas las capas de Jezero sobre una rejilla común.
+"""Clip, reproject and derive all Jezero layers onto a common grid.
 
-Rejilla común: la del DTM CTX de Mars 2020 TRN (equirectangular, esfera R=3396190 m, 20 m/px),
-cuya extensión coincide con el bbox acordado 77.1605E-77.6992E, 18.2110N-18.7212N.
+Common grid: the Mars 2020 TRN CTX DTM grid (equirectangular, sphere R=3396190 m, 20 m/px),
+whose extent matches the agreed bbox 77.1605E-77.6992E, 18.2110N-18.7212N.
 
-Uso:
-    python build_layers.py base     # capas que no dependen de HiRISE
-    python build_layers.py hirise   # productos 1 m de HiRISE (DTM y ortoimagen)
-    python build_layers.py stack    # junta todo en stack/jezero_stack_20m.tif + layers.json
+Usage:
+    python build_layers.py base     # layers that do not depend on HiRISE
+    python build_layers.py hirise   # 1 m HiRISE products (DTM and orthoimage)
+    python build_layers.py stack    # merge everything into stack/jezero_stack_20m.tif + layers.json
 """
 import json
 import os
@@ -26,8 +26,8 @@ from scipy import ndimage
 import terrain
 
 HERE = Path(__file__).resolve().parent
-# Dos disposiciones: en el repo MARPS el pipeline vive en data/jezero/pipeline/ y los datos en data/jezero/;
-# en el cuaderno de trabajo vive en tools/jezero/ y los datos en data/jezero/. JEZERO_DATA lo fuerza.
+# Two layouts: in the MARPS repo the pipeline lives in data/jezero/pipeline/ and the data in data/jezero/;
+# in the working notebook it lives in tools/jezero/ and the data in data/jezero/. JEZERO_DATA overrides it.
 if os.environ.get("JEZERO_DATA"):
     DATA = Path(os.environ["JEZERO_DATA"]).resolve()
 elif (HERE.parent / "stack").exists():
@@ -48,11 +48,11 @@ HI_DTM = RAW / "JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_l
 
 MARS_LONLAT = CRS.from_proj4("+proj=longlat +R=3396190 +no_defs")
 CENTER_LAT = 18.466
-SCALE_H_M = 11100.0  # altura de escala de la atmósfera marciana
-MIN_BASE_COVERAGE = 0.999  # las capas base deben cubrir todo el bbox
+SCALE_H_M = 11100.0  # Martian atmosphere scale height
+MIN_BASE_COVERAGE = 0.999  # base layers must cover the whole bbox
 
-# Rejilla común = la del DTM CTX de Mars 2020 TRN (se fija aquí para no depender del fichero descargado;
-# test_grid_matches_ctx_dtm lo comprueba cuando el fichero existe).
+# Common grid = the Mars 2020 TRN CTX DTM grid (hardcoded here to avoid depending on the downloaded file;
+# test_grid_matches_ctx_dtm checks it when the file exists).
 GRID = dict(crs=CRS.from_proj4("+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs"),
             transform=rasterio.Affine(20.0, 0.0, 4573663.250853, 0.0, -20.0, 1109693.140188), width=1596, height=1512)
 RES = GRID["transform"].a
@@ -60,7 +60,7 @@ BOUNDS = rasterio.transform.array_bounds(GRID["height"], GRID["width"], GRID["tr
 
 
 def to_grid(src_path, band=1, resampling=Resampling.bilinear, src_nodata=None):
-    """Reproyecta una banda a la rejilla común; devuelve float32 con NaN fuera de datos."""
+    """Reproject one band onto the common grid; return float32 with NaN outside the data."""
     out = np.full((GRID["height"], GRID["width"]), np.nan, np.float32)
     with rasterio.open(src_path) as s:
         nod = s.nodata if src_nodata is None else src_nodata
@@ -104,7 +104,7 @@ def build_terrain_ctx():
     ins = terrain.mean_direct_insolation(np.nan_to_num(slope), np.nan_to_num(aspect), CENTER_LAT)
     ins[~np.isfinite(dem)] = np.nan
     save20("insolation_rel", ins)
-    # Proxy de blindaje atmosférico: columna de atmósfera relativa a la cota más alta del área (%).
+    # Atmospheric shielding proxy: atmosphere column relative to the highest elevation in the area (%).
     col = 100.0 * (np.exp(-(dem - np.nanmax(dem)) / SCALE_H_M) - 1.0)
     save20("atm_column_pct", col)
     save20("ctx_ortho", to_grid(CTX_ORTHO, resampling=Resampling.average, src_nodata=0))
@@ -121,7 +121,7 @@ TI_GLOBAL = ("https://asc-astropedia.s3.us-west-2.amazonaws.com/Mars/Odyssey/THE
 
 
 def build_thermal():
-    """THEMIS a 100 m con cobertura completa del bbox (recortes de mosaicos globales/regionales USGS)."""
+    """THEMIS at 100 m with full bbox coverage (clips of USGS global/regional mosaics)."""
     print("THEMIS")
     from fetch_clip import fetch
     clips = {"themis_ti_quant_global_clip.tif": TI_GLOBAL,
@@ -130,8 +130,8 @@ def build_thermal():
     for name, url in clips.items():
         if not (RAW / name).exists():
             fetch(url, name)
-    # Inercia térmica: se usa el producto de Jezero (mejor calidad) aunque le falte la franja oeste;
-    # la global cuantitativa cubre todo pero tiene bandas entre pasadas y se guarda solo como referencia.
+    # Thermal inertia: use the Jezero product (better quality) even though it lacks the western strip;
+    # the quantitative global one covers everything but has striping between passes and is kept only as reference.
     save20("thermal_inertia", to_grid(RAW / "Jezero_Thermal_Inertia_v1.tiff", src_nodata=0))
     ti = to_grid(RAW / "themis_ti_quant_global_clip.tif")
     ti[ti <= 0] = np.nan
@@ -140,7 +140,7 @@ def build_thermal():
     save20("themis_night_ir", to_grid(RAW / "themis_mc13_night_ir_clip.tif", src_nodata=0))
 
 
-# Clave de colores de Parente, Itoh y Saranathan (Jezero_readme.pdf): (alta confianza, confianza media)
+# Color key from Parente, Itoh and Saranathan (Jezero_readme.pdf): (high confidence, medium confidence)
 CRISM_CLASSES = [
     ("Olivino", (255, 0, 0), (153, 0, 0)),
     ("Carbonato de Mg", (0, 255, 0), (0, 153, 0)),
@@ -155,14 +155,14 @@ CRISM_CLASSES = [
 ]
 
 
-CRISM_MAX_COLOR_DIST = 40.0  # el TIFF publicado trae ruido de compresión en los colores
+CRISM_MAX_COLOR_DIST = 40.0  # the published TIFF has compression noise in its colors
 
 
 def classify_crism(rgb):
-    """RGB (3,H,W) -> (clase, confianza).
+    """RGB (3,H,W) -> (class, confidence).
 
-    clase: 1..10 según CRISM_CLASSES, 0 = sin identificar (negro o color ambiguo), -1 = fuera de la escena (blanco).
-    confianza: 2 alta, 1 media, 0 nula, -1 fuera.
+    class: 1..10 per CRISM_CLASSES, 0 = unidentified (black or ambiguous color), -1 = outside the scene (white).
+    confidence: 2 high, 1 medium, 0 none, -1 outside.
     """
     codes = [((0, 0, 0), 0, 0), ((255, 255, 255), -1, -1)]
     for i, (_, hi, mid) in enumerate(CRISM_CLASSES, start=1):
@@ -240,7 +240,7 @@ def _hires_profile(src, dtype, nodata):
 
 
 def build_hirise_dtm(chunk=1000):
-    """Pendiente y sombreado a 1 m, y agregados a 20 m (media de cota, pendiente máx/media, rugosidad)."""
+    """Slope and hillshade at 1 m, plus 20 m aggregates (mean elevation, max/mean slope, roughness)."""
     print("HiRISE DTM 1 m (por bloques)")
     HR.mkdir(parents=True, exist_ok=True)
     f = 20
@@ -285,7 +285,7 @@ STAC_URL = "https://stac.astrogeology.usgs.gov/api/"
 
 
 def hirise_ortho_assets():
-    """Ortoimágenes HiRISE controladas a 1 m (variante *_RED_C_01_ORTHO) de los DTM que tocan el bbox."""
+    """Controlled 1 m HiRISE orthoimages (*_RED_C_01_ORTHO variant) of the DTMs that touch the bbox."""
     from pystac_client import Client
     w, s, e, n = BOUNDS
     m = 180 / (np.pi * 3396190)
@@ -299,10 +299,10 @@ def hirise_ortho_assets():
 
 
 def build_hirise_ortho():
-    """Mosaico 1 m de ortoimágenes HiRISE controladas (USGS, COG en S3) sobre todo el bbox.
+    """1 m mosaic of controlled HiRISE orthoimages (USGS, COG on S3) over the whole bbox.
 
-    Sustituye a la ortoimagen TRN de 25 cm (3,4 GB) cuando la descarga desde planetarymaps es lenta.
-    Cada imagen se estira a 8 bits con sus percentiles 0.5-99.5; las primeras tienen prioridad.
+    Replaces the 25 cm TRN orthoimage (3.4 GB) when the download from planetarymaps is slow.
+    Each image is stretched to 8 bits with its 0.5-99.5 percentiles; earlier images take priority.
     """
     print("HiRISE ortho 1 m desde COG")
     HR.mkdir(parents=True, exist_ok=True)

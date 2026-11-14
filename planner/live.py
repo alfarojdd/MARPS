@@ -1,9 +1,9 @@
-"""Banco de pruebas interactivo del planificador: controles a la izquierda, mapa a la derecha, recálculo en vivo.
+"""Interactive planner test bench: controls on the left, map on the right, live recomputation.
 
     .venv/bin/python tools/planner/live.py          # http://127.0.0.1:8766
 
-No es el frontend del producto: es una herramienta para ver cómo se comporta el algoritmo. Solo usa la biblioteca
-estándar para el servidor; el planificador es el mismo módulo `planner.py`.
+This is not the product frontend: it is a tool to see how the algorithm behaves. It only uses the standard
+library for the server; the planner is the same `planner.py` module.
 """
 import io
 import json
@@ -47,7 +47,7 @@ BG = {k: background(k) for k in ("relief", "crism", "slope")}
 
 
 def shadow_background(hour):
-    """Relieve con la sombra (azul) y la noche a una hora solar local, del mapa de sombras."""
+    """Relief with shadow (blue) and night at a local solar time, from the shadow map."""
     hs = np.nan_to_num(PL.grid["hillshade_ctx"], nan=0.5)
     rgb = np.dstack([hs * 255] * 3)
     if PL.sun is not None:
@@ -122,7 +122,7 @@ class H(BaseHTTPRequestHandler):
         try:
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             self._send(plan(body))
-        except (ValueError, KeyError) as e:  # parámetros inválidos: se muestran en la página
+        except (ValueError, KeyError) as e:  # invalid parameters: shown on the page
             self._send(dict(error=str(e)), code=400)
 
 

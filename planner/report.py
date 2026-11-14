@@ -1,13 +1,13 @@
-"""Informe de trayecto para el resumen del LLM del casco.
+"""Traverse report for the helmet LLM summary.
 
-Entrada: parámetros de misión (los saca el LLM) + estado del sistema (lo sabe el vehículo: hora, batería).
-Salida: un JSON con la ruta, la comparación frente al A* clásico, el "por qué" y avisos de luz y batería.
-Si la batería no alcanza, propone la ruta de ahorro y, si hace falta, una parada de carga solar en la zona
-más soleada cercana a la ruta (y replanifica pasando por ella).
+Input: mission parameters (produced by the LLM) + system state (known by the vehicle: time, battery).
+Output: a JSON with the route, the comparison against the classic A*, the "why" and light and battery warnings.
+If the battery is not enough, it proposes the energy-saving route and, if needed, a solar charging stop in the
+sunniest area near the route (and replans through it).
 
-Con el mapa de sombras (`shadows.py`), la ventana de luz sale de SunAngle.csv, el sitio de carga es el que
-más luz directa recibe durante la carga (sin sombra) y el tiempo de carga usa esa luz hora a hora.
-Las horas del informe son hora solar local (LTST); `time_h`/`duration_h` son horas terrestres.
+With the shadow map (`shadows.py`), the daylight window comes from SunAngle.csv, the charging site is the one
+receiving the most direct light during charging (no shadow) and the charging time uses that light hour by hour.
+Report times are local solar time (LTST); `time_h`/`duration_h` are Earth hours.
 """
 from dataclasses import dataclass, asdict
 
@@ -16,20 +16,20 @@ from scipy import ndimage
 
 import planner as P
 
-SUNRISE, SUNSET, DAYLIGHT_MARGIN_H = 6.0, 18.0, 0.5   # LTST; solo si no hay mapa de sombras
-EARTH_TO_LTST = 3600 / 3698.9                         # horas terrestres → horas solares locales
-DWELL_H = 1 / 3                                       # tiempo por parada científica
-P_PARKED = 150.0                                      # W con el vehículo parado (sin contar soporte vital)
-P_SOLAR_PARKED = 3000.0                               # W pico con el panel desplegado al cargar
-CHARGE_SEARCH_M = 1000                                # buscar sitio de carga a menos de 1 km de la ruta
+SUNRISE, SUNSET, DAYLIGHT_MARGIN_H = 6.0, 18.0, 0.5   # LTST; only if there is no shadow map
+EARTH_TO_LTST = 3600 / 3698.9                         # Earth hours → local solar hours
+DWELL_H = 1 / 3                                       # time per science stop
+P_PARKED = 150.0                                      # W with the vehicle stopped (excluding life support)
+P_SOLAR_PARKED = 3000.0                               # peak W with the panel deployed while charging
+CHARGE_SEARCH_M = 1000                                # look for a charging site within 1 km of the route
 
 
 @dataclass
 class SystemState:
-    start_hour: float = 9.0              # hora solar local de salida (reloj del sistema)
-    battery_kwh: float = 30.0            # carga actual
+    start_hour: float = 9.0              # local solar departure time (system clock)
+    battery_kwh: float = 30.0            # current charge
     battery_capacity_kwh: float = 40.0
-    reserve_pct: float = 20.0            # margen mínimo a la llegada
+    reserve_pct: float = 20.0            # minimum margin on arrival
 
     @classmethod
     def from_dict(cls, d):
@@ -37,7 +37,7 @@ class SystemState:
 
 
 def sun_factor(h):
-    """Fracción de la potencia solar pico según la hora (sin sombras ni estación)."""
+    """Fraction of peak solar power by time of day (no shadows or season)."""
     return np.clip(np.sin(np.pi * (np.asarray(h) - SUNRISE) / (SUNSET - SUNRISE)), 0, None)
 
 
@@ -66,7 +66,7 @@ def _window(pl):
 
 
 def _charge_hours(pl, deficit_kwh, start_h, spot, p):
-    """Horas de carga parada para recuperar deficit_kwh empezando a start_h. None si no da tiempo con luz."""
+    """Stationary charging hours to recover deficit_kwh starting at start_h. None if there is not enough daylight."""
     p_parked = P_PARKED + (P.VEHICLE["p_life_support"] if p.human else 0)
     _, sunset, _ = _window(pl)
     got, h, dt = 0.0, start_h, 0.05
@@ -82,11 +82,11 @@ def _charge_hours(pl, deficit_kwh, start_h, spot, p):
 
 
 def _charge_spot(pl, path, cum_e, cum_t, battery_kwh, start_hour, deficit_kwh, p):
-    """Sitio de carga llano, firme y sin dunas a menos de 1 km del tramo de ruta alcanzable con la batería.
+    """Flat, firm, dune-free charging site within 1 km of the route segment reachable with the battery.
 
-    Cada candidato llega a su hora (la del punto de ruta más cercano) y se elige el que termina antes de cargar
-    deficit_kwh: llegada + deficit / (potencia solar con la luz real de ese sitio en las 3 h siguientes − consumo).
-    Con mapa de sombras así se evitan los sitios en sombra; sin él se usa la insolación media y una curva solar.
+    Each candidate is reached at its own time (that of the nearest route point) and the one that finishes charging
+    deficit_kwh first is chosen: arrival + deficit / (solar power with that site's actual light over the next 3 h − consumption).
+    With the shadow map this avoids shaded sites; without it the mean insolation and a solar curve are used.
     """
     F, W = pl.F, pl.W
     r, c = path // W, path % W
@@ -103,7 +103,7 @@ def _charge_spot(pl, path, cum_e, cum_t, battery_kwh, start_hour, deficit_kwh, p
     if not len(cr):
         return None
     pi = idx_grid[nr[cr, cc], nc[cr, cc]]
-    t_c = start_hour + cum_t[pi] * EARTH_TO_LTST  # hora de llegada de cada candidato (sin contar el desvío)
+    t_c = start_hour + cum_t[pi] * EARTH_TO_LTST  # arrival time of each candidate (excluding the detour)
     if pl.sun is not None:
         hrs = pl.sun.hours[:, None]
         win = (hrs >= t_c[None]) & (hrs <= t_c[None] + 3)
@@ -121,7 +121,7 @@ def _charge_spot(pl, path, cum_e, cum_t, battery_kwh, start_hour, deficit_kwh, p
 
 
 def _why(pl, route, classic_route, p, h):
-    """Qué términos de coste evita la ruta frente al A* clásico, medidos con los pesos de esta misión."""
+    """Which cost terms the route avoids compared to the classic A*, measured with this mission's weights."""
     ours = pl.evaluate(route["path"], p, start_hour=h)["cost_breakdown"]
     theirs = pl.evaluate(classic_route["path"], p, start_hour=h)["cost_breakdown"]
     diff = {k: theirs[k] - ours[k] for k in ours}
@@ -154,7 +154,7 @@ def build_report(pl, mission: dict, system: dict, classic_route=None):
     charge = None
     if s.battery_kwh - energy < reserve:
         alt = None
-        if not p.power:  # ¿basta con la ruta de ahorro?
+        if not p.power:  # is the energy-saving route enough?
             alt_p = P.Params.from_dict({**asdict(p), "power": True})
             alt_r = pl.plan(alt_p, start_hour=h0)
             if alt_r["ok"]:
@@ -171,7 +171,7 @@ def build_report(pl, mission: dict, system: dict, classic_route=None):
                                              "charging spot was found near it."))
             else:
                 rerouted = pl.plan(p, via=[spot["rc"]], stops=route["stops"], pois=route["pois"], start_hour=h0)
-                if rerouted["ok"]:  # pasar por la zona soleada y recalcular con la ruta nueva
+                if rerouted["ok"]:  # go through the sunny area and recompute with the new route
                     route = rerouted
                     duration, energy = _timeline(route["metrics"], len(route["pois"]), s, p)
                 W = pl.W
@@ -194,8 +194,8 @@ def build_report(pl, mission: dict, system: dict, classic_route=None):
                                          message=f"Needs {deficit:.1f} kWh of solar charge but daylight ends "
                                                  f"before it can be collected."))
                 else:
-                    duration += hours / EARTH_TO_LTST  # la carga se midió en horas LTST
-                    energy -= deficit  # lo recargado
+                    duration += hours / EARTH_TO_LTST  # charging was measured in LTST hours
+                    energy -= deficit  # the recharged energy
                     warnings.append(dict(code="CHARGING_STOP_REQUIRED", severity="warning",
                                          message=f"Stop {hours:.1f} h at a sunny spot ({lon:.4f}E, {lat:.4f}N), "
                                                  f"arriving {hhmm(arrive_h)}, to recharge {deficit:.1f} kWh."))
@@ -215,7 +215,7 @@ def build_report(pl, mission: dict, system: dict, classic_route=None):
 
     m = route["metrics"]
     per_target = P.interest_map(pl.grid, p.science_targets)[1] if p.science_targets else {}
-    mc = pl.evaluate(classic_route["path"], p, per_target, h0)  # mismo vehículo y tripulación; solo cambia el recorrido
+    mc = pl.evaluate(classic_route["path"], p, per_target, h0)  # same vehicle and crew; only the path changes
     if p.human and m.get("shadow_pct", 0) > 15:
         warnings.append(dict(code="ROUTE_IN_SHADOW", severity="warning",
                              message=f"{m['shadow_pct']:.0f}% of the route is in terrain shadow (cold, low visibility)."))

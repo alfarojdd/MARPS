@@ -1,4 +1,4 @@
-"""Descarga solo la ventana del bbox (más un margen) de un GeoTIFF remoto (COG) y la guarda en raw/."""
+"""Download only the bbox window (plus a margin) of a remote GeoTIFF (COG) and save it to raw/."""
 import sys
 import rasterio
 from rasterio.windows import from_bounds

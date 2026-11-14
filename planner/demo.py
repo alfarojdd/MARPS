@@ -1,10 +1,10 @@
-"""Demo del planificador: lanza varios JSON de parámetros con el mismo A→B, dibuja las rutas y compara métricas.
+"""Planner demo: runs several parameter JSONs with the same A→B, draws the routes and compares metrics.
 
-    python demo.py                                   # escenarios de scenarios.json
-    python demo.py scenarios.json out/mi_prueba      # otro fichero de escenarios / otro prefijo de salida
+    python demo.py                                   # scenarios from scenarios.json
+    python demo.py scenarios.json out/mi_prueba      # another scenarios file / another output prefix
     python demo.py --json '{"power": true}' --origin landing_site --destination delta_top
 
-Salida: <prefijo>.png (mapa + rutas) y <prefijo>.md (tabla de métricas frente a la ruta base).
+Output: <prefix>.png (map + routes) and <prefix>.md (metrics table against the baseline route).
 """
 import argparse
 import json

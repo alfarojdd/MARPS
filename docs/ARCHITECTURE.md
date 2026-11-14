@@ -1,34 +1,34 @@
-# Arquitectura y contratos entre áreas
+# Architecture and contracts between areas
 
-**Estado: borrador para discutir.** Lo importante es que las tres áreas se pongan de acuerdo pronto en estos tres formatos para poder trabajar en paralelo. Quien cambie uno debe actualizar este fichero en el mismo PR.
+**Status: draft for discussion.** What matters is that the three areas agree on these three formats early so they can work in parallel. Whoever changes one must update this file in the same PR.
 
 ```
- Capas (data/) ───────────────────────────────┐
-                                               ▼
- Texto de misión ─► LLM (llm/) ─► [B] JSON ─► Planificador (planner/) ─► [C] Ruta ─► Interfaz (platform/)
-                                               ▲
-                                       [A] rejilla de capas
+ Layers (data/) ────────────────────────────┐
+                                            ▼
+ Mission text ─► LLM (llm/) ─► [B] JSON ─► Planner (planner/) ─► [C] Route ─► Interface (platform/)
+                                            ▲
+                                    [A] layer grid
 ```
 
-## [A] Capas de mapa: `data/` → `planner/` y `platform/`
+## [A] Map layers: `data/` → `planner/` and `platform/`
 
-Todas las capas de una zona comparten **la misma rejilla**: mismo sistema de coordenadas, misma resolución y mismas dimensiones. Así el planificador puede combinarlas celda a celda.
+All layers of an area share **the same grid**: same coordinate system, same resolution and same dimensions. That way the planner can combine them cell by cell.
 
-Propuesta inicial:
-- Formato: GeoTIFF (una banda por capa) o arrays NumPy `.npy` con un `metadata.json` al lado.
-- `metadata.json` por zona: nombre de la zona, CRS, resolución (m/píxel), esquina de origen, tamaño (filas × columnas), y por capa: nombre, unidad, valor de "sin dato" y fuente.
-- Nombres de capa estándar: `elevation`, `slope`, `roughness`, `thermal_inertia`, `mineralogy_<objetivo>`, `geology`, `radiation`, `rock_abundance`.
-- Valores normalizados a 0-1 en una versión aparte para el planificador (`*_norm`), manteniendo los valores físicos para mostrarlos en la interfaz.
+Initial proposal:
+- Format: GeoTIFF (one band per layer) or NumPy `.npy` arrays with a `metadata.json` alongside.
+- `metadata.json` per area: area name, CRS, resolution (m/pixel), origin corner, size (rows × columns), and per layer: name, unit, "no data" value and source.
+- Standard layer names: `elevation`, `slope`, `roughness`, `thermal_inertia`, `mineralogy_<objetivo>`, `geology`, `radiation`, `rock_abundance`.
+- Values normalised to 0-1 in a separate version for the planner (`*_norm`), keeping the physical values for display in the interface.
 
-**Estado (2026-11-14):** zona Jezero y rejilla de 20 m decididas. Las capas se publican como un único GeoTIFF multibanda en `data/jezero/stack/` con `layers.json` (ver [JEZERO_LAYERS.md](JEZERO_LAYERS.md)). Los nombres de banda son los reales (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...) y no los estándar propuestos arriba; no hay mineralogía, radiación ni abundancia de rocas en la base. Normalización 0-1 y `metadata.json` por zona: sin hacer.
+**Status (2026-11-14):** Jezero area and 20 m grid decided. The layers are published as a single multiband GeoTIFF in `data/jezero/stack/` with `layers.json` (see [JEZERO_LAYERS.md](JEZERO_LAYERS.md)). The band names are the actual ones (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...), not the standard names proposed above; there is no mineralogy, radiation or rock abundance in the base. 0-1 normalisation and per-area `metadata.json`: not done.
 
-Decisiones por tomar: zona (Gale/Monte Sharp o Jezero), resolución (HiRISE es mucho más fina que CTX/MOLA) y qué capas llegan a tiempo.
+Decisions to make: area (Gale/Mount Sharp or Jezero), resolution (HiRISE is much finer than CTX/MOLA) and which layers arrive in time.
 
-## [B] Parámetros de misión: `llm/` → `planner/`
+## [B] Mission parameters: `llm/` → `planner/`
 
-**Estado (2026-11-14): acordado e implementado** en `planner/api.py` (`POST /plan-route`). La entrada son dos bloques: `mission`, que rellena el LLM (los 5 campos actuales de `backend/llm/api.py` más `safety`, `science_targets`, `science_detour` y `return_to_origin`), y `system` (hora solar local y batería, que pone el vehículo). Contrato exacto en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). La propuesta inicial de abajo queda como histórico.
+**Status (2026-11-14): agreed and implemented** in `planner/api.py` (`POST /plan-route`). The input has two blocks: `mission`, filled in by the LLM (the 5 current fields of `backend/llm/api.py` plus `safety`, `science_targets`, `science_detour` and `return_to_origin`), and `system` (local solar time and battery, set by the vehicle). Exact contract in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). The initial proposal below is kept for reference.
 
-El LLM convierte el texto de misión en este JSON. **Se valida contra un esquema**; si falla, se reintenta o se usan pesos por defecto. El planificador nunca recibe texto libre.
+The LLM converts the mission text into this JSON. **It is validated against a schema**; if validation fails, it retries or falls back to default weights. The planner never receives free text.
 
 ```json
 {
@@ -51,17 +51,17 @@ El LLM convierte el texto de misión en este JSON. **Se valida contra un esquema
 }
 ```
 
-- `travel_mode`: `on_foot` o `rover`.
-- `hard_constraints`: celdas que quedan **prohibidas** (el planificador las trata como intransitables).
-- `weights`: pesos relativos, mayores o iguales a 0. El planificador los normaliza.
-- `science_targets`: qué buscar; el planificador lo cruza con la capa de mineralogía o geología.
-- El modelo **solo traduce**; los límites de seguridad por defecto (por ejemplo, pendiente máxima absoluta) los impone el planificador aunque el LLM no los mencione.
+- `travel_mode`: `on_foot` or `rover`.
+- `hard_constraints`: cells that become **forbidden** (the planner treats them as impassable).
+- `weights`: relative weights, greater than or equal to 0. The planner normalises them.
+- `science_targets`: what to look for; the planner cross-references it with the mineralogy or geology layer.
+- The model **only translates**; the default safety limits (for example, absolute maximum slope) are enforced by the planner even if the LLM does not mention them.
 
-Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afinidad(celda, objetivos)`, manteniéndolo siempre positivo para que A* siga siendo válido.
+Per-cell cost idea: `coste = Σ peso_i · capa_i  −  peso_interés · afinidad(celda, objetivos)`, always kept positive so that A* remains valid.
 
-## [C] Ruta: `planner/` → `platform/`
+## [C] Route: `planner/` → `platform/`
 
-**Estado (2026-11-14): implementado.** La respuesta de `POST /plan-route` tiene tres partes: `report` (métricas, comparación con un A* clásico, avisos de luz y batería, parada de carga y `why`, para el resumen del LLM y el panel), `geojson` (ruta, A* clásico y paradas en lon/lat planetocéntricas) y `ctx_px` (las líneas en píxeles del mapa base CTX de 6 m para Leaflet `CRS.Simple`). Detalle en [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). La propuesta inicial de abajo queda como histórico.
+**Status (2026-11-14): implemented.** The `POST /plan-route` response has three parts: `report` (metrics, comparison with a classic A*, light and battery warnings, charging stop and `why`, for the LLM summary and the panel), `geojson` (route, classic A* and stops in planetocentric lon/lat) and `ctx_px` (the lines in pixels of the 6 m CTX basemap for Leaflet `CRS.Simple`). Details in [PLANNER_INTEGRATION.md](PLANNER_INTEGRATION.md). The initial proposal below is kept for reference.
 
 ```json
 {
@@ -75,32 +75,32 @@ Idea de coste por celda: `coste = Σ peso_i · capa_i  −  peso_interés · afi
     "radiation_exposure": 0,
     "science_points_passed": []
   },
-  "explanation": "texto corto de por qué se eligió esta ruta",
+  "explanation": "short text on why this route was chosen",
   "feasible": true
 }
 ```
 
-- `path`: lista de coordenadas en la rejilla [A] (o lon/lat; decidirlo y fijarlo aquí).
-- `feasible: false` con un motivo cuando las restricciones duras no permiten llegar.
+- `path`: list of coordinates on the [A] grid (or lon/lat; decide and fix it here).
+- `feasible: false` with a reason when the hard constraints make the destination unreachable.
 
-## Stack tentativo
+## Tentative stack
 
-| Pieza | Propuesta | Estado |
+| Component | Proposal | Status |
 |---|---|---|
-| Planificador | Python + NumPy + Numba; A* sobre la rejilla de 20 m, sombras con `mars_shadows.py` | hecho (`planner/`) |
-| API | FastAPI | por confirmar |
-| LLM local | Ollama o llama.cpp con salida JSON y validación (Pydantic / JSON Schema) | por confirmar |
-| Interfaz | Mapa web (Leaflet, OpenLayers o deck.gl) | por confirmar |
+| Planner | Python + NumPy + Numba; A* over the 20 m grid, shadows with `mars_shadows.py` | done (`planner/`) |
+| API | FastAPI | to be confirmed |
+| Local LLM | Ollama or llama.cpp with JSON output and validation (Pydantic / JSON Schema) | to be confirmed |
+| Interface | Web map (Leaflet, OpenLayers or deck.gl) | to be confirmed |
 
-Cada área anota aquí qué ha elegido y por qué.
+Each area records here what it chose and why.
 
-## [D] Reconstrucciones de superficie → visor
+## [D] Surface reconstructions → viewer
 
-Implementación local en `backend/viewer.py` y `backend/reconstructions.py`, con biblioteca estándar Python. No depende de la API del LLM. Arranque y preparación: [visor](../platform/viewer/README.md).
+Local implementation in `backend/viewer.py` and `backend/reconstructions.py`, using the Python standard library. It does not depend on the LLM API. Startup and setup: [viewer](../platform/viewer/README.md).
 
-- `GET /api/map-config`: configuración del pipeline si existe; en su ausencia, fondo CTX con las teselas versionadas.
-- `GET /api/reconstructions`: `{version:1, body:"Mars", radius:3396190, counts, warnings, scenes}`. Cada escena incluye `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat_planetocéntrica]` o `null`), `anchor`, `sol`, `license`, `source` y `available`. Las locales añaden `asset`, `frame` y `radius`; la OBJ añade `texture`.
-- `GET /api/traverse`: una línea GeoJSON con coordenadas de **Marte**, sólo para mostrar contexto.
-- `/assets/ctx/…`: teselas orbitales del repositorio. `/reconstructions/files/cheyava_falls/…` y `/reconstructions/files/ejemplo_malla_NASA/…`: archivos locales del paquete configurado con `--dataset`.
+- `GET /api/map-config`: pipeline configuration if it exists; otherwise, CTX background with the versioned tiles.
+- `GET /api/reconstructions`: `{version:1, body:"Mars", radius:3396190, counts, warnings, scenes}`. Each scene includes `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat_planetocéntrica]` or `null`), `anchor`, `sol`, `license`, `source` and `available`. Local scenes add `asset`, `frame` and `radius`; the OBJ scene adds `texture`.
+- `GET /api/traverse`: a GeoJSON line with **Mars** coordinates, for context display only.
+- `/assets/ctx/…`: orbital tiles from the repository. `/reconstructions/files/cheyava_falls/…` and `/reconstructions/files/ejemplo_malla_NASA/…`: local files from the package configured with `--dataset`.
 
-El mapa proyecta las anclas con la misma equirectangular marciana que [A]. Abrir una escena conserva el estado del mapa en un diálogo; cerrarla destruye su iframe y libera el visor WebGL. Los modelos sin ubicación nunca reciben coordenadas inventadas. La cámara local usa suelo estimado y movimiento limitado, sin garantizar colisiones ni cobertura continua.
+The map projects the anchors with the same Martian equirectangular projection as [A]. Opening a scene keeps the map state in a dialog; closing it destroys its iframe and releases the WebGL viewer. Models without a location never receive invented coordinates. The local camera uses an estimated ground and limited movement, with no guaranteed collision handling or continuous coverage.

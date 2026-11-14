@@ -1,3 +1,3 @@
 # platform
 
-Interfaz web: mapa con capas, origen y destino, cuadro de misión y panel de resultados. Ver [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).
+Web interface: layered map, origin and destination, mission box and results panel. See [../docs/ARCHITECTURE.md](../docs/ARCHITECTURE.md).

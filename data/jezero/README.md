@@ -1,18 +1,18 @@
-# Jezero: capas del mapa
+# Jezero: map layers
 
-Zona: 77.1604655-77.6991776 °E, 18.2110274-18.7211945 °N (misma que `backend/`). Rejilla común: equirectangular (`+proj=eqc +R=3396190`), 20 m/píxel, 1596 × 1512.
+Area: 77.1604655-77.6991776 °E, 18.2110274-18.7211945 °N (same as `backend/`). Common grid: equirectangular (`+proj=eqc +R=3396190`), 20 m/pixel, 1596 × 1512.
 
-**Los datos no están en GitHub** (pesan demasiado). Están en la carpeta de Google Drive del equipo: **[Mapas Jezero (Drive)](PENDIENTE: enlace de la carpeta)**.
+**The data is not on GitHub** (it is too large). It is in the team's Google Drive folder: **[Jezero maps (Drive)](PENDIENTE: enlace de la carpeta)**.
 
-Descargad y colocad así:
-- `data/jezero/stack/`: `jezero_stack_20m.tif` (**13 bandas** float32, NaN = sin dato) y `layers.json` (unidad y descripción de cada banda). Todas cubren el 100 % del recuadro salvo `thermal_inertia` (96,1 %, sin dato en 1,2 km del borde oeste: tratadlo como desconocido, no como 0).
-- `data/jezero/vectors/`: GeoJSON en metros de esa proyección (geología SIM 3464).
-- `data/jezero/extra/`: `geo_unit.tif` (unidades geológicas, 95,8 %) y `crism_class.tif` (mineralogía CRISM, 41 %), fuera del stack.
-- `pipeline/`: código que genera todo y sus pruebas (sí está en GitHub).
+Download it and place it as follows:
+- `data/jezero/stack/`: `jezero_stack_20m.tif` (**13 bands** float32, NaN = no data) and `layers.json` (unit and description of each band). All bands cover 100 % of the bounding box except `thermal_inertia` (96.1 %, no data along 1.2 km of the western edge: treat it as unknown, not as 0).
+- `data/jezero/vectors/`: GeoJSON in metres in that projection (SIM 3464 geology).
+- `data/jezero/extra/`: `geo_unit.tif` (geologic units, 95.8 %) and `crism_class.tif` (CRISM mineralogy, 41 %), outside the stack.
+- `pipeline/`: code that generates everything, plus its tests (this is on GitHub).
 
-Detalle de cada capa, fuentes, avisos y capas descartadas: [../../docs/JEZERO_LAYERS.md](../../docs/JEZERO_LAYERS.md).
+Details of each layer, sources, caveats and discarded layers: [../../docs/JEZERO_LAYERS.md](../../docs/JEZERO_LAYERS.md).
 
-Leer una banda por nombre:
+Read a band by name:
 ```python
 import rasterio
 with rasterio.open("data/jezero/stack/jezero_stack_20m.tif") as s:

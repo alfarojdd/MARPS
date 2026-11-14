@@ -1,16 +1,16 @@
-"""Endpoint del planificador para el backend FastAPI de MARPS.
+"""Planner endpoint for the MARPS FastAPI backend.
 
-Montaje en la app del backend:
+Mounting in the backend app:
     import sys; sys.path.insert(0, "planner")
     from api import router as planner_router
     app.include_router(planner_router)
 
 Endpoints:
     POST /plan-route   {mission, system} → {report, geojson, ctx_px}
-    GET  /places       lugares que entiende el planificador (nombres y alias)
+    GET  /places       places the planner understands (names and aliases)
     GET  /planner/health
 
-El primer POST carga las capas y el mapa de sombras (~10 s; luego quedan en memoria y en caché de disco).
+The first POST loads the layers and the shadow map (~10 s; afterwards they stay in memory and in the disk cache).
 """
 import math
 import threading
@@ -32,7 +32,7 @@ class ScienceTarget(BaseModel):
 
 
 class Mission(BaseModel):
-    """Lo que extrae el LLM del texto del astronauta."""
+    """What the LLM extracts from the astronaut's text."""
     human: bool = True
     origin: str
     destination: str
@@ -45,7 +45,7 @@ class Mission(BaseModel):
 
 
 class SystemState(BaseModel):
-    """Lo que sabe el vehículo, no el LLM."""
+    """What the vehicle knows, not the LLM."""
     start_hour: float = Field(9.0, ge=0, lt=24, description="Hora solar local (LTST) de salida")
     battery_kwh: float = Field(30.0, ge=0)
     battery_capacity_kwh: float = Field(40.0, gt=0)
@@ -60,7 +60,7 @@ class PlanRequest(BaseModel):
 router = APIRouter()
 _LOCK = threading.Lock()
 _PL = None
-CTX_RES = 6.0  # el mapa base del frontend (mosaico CTX de 6 m) comparte esquina con la rejilla de 20 m
+CTX_RES = 6.0  # the frontend base map (6 m CTX mosaic) shares a corner with the 20 m grid
 
 
 def planner():
@@ -76,7 +76,7 @@ def _lonlat(pl, n):
 
 
 def _ctx_px(pl, n):
-    """[col, fila] en píxeles del mosaico CTX de 6 m (Leaflet CRS.Simple: lat = -fila, lng = col)."""
+    """[col, row] in pixels of the 6 m CTX mosaic (Leaflet CRS.Simple: lat = -row, lng = col)."""
     r, c = divmod(int(n), pl.W)
     return [round((c + 0.5) * P.RES / CTX_RES, 1), round((r + 0.5) * P.RES / CTX_RES, 1)]
 
@@ -114,7 +114,7 @@ def plan_route(req: PlanRequest):
         pl = planner()
         try:
             return build_response(pl, req)
-        except ValueError as e:  # lugar desconocido o fuera del mapa: el backend puede pedir al LLM que corrija
+        except ValueError as e:  # unknown place or outside the map: the backend can ask the LLM to correct it
             raise HTTPException(status_code=400, detail=str(e))
 
 

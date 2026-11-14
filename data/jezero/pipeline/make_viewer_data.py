@@ -1,9 +1,9 @@
-"""Genera los datos del visor: teselas por capa, vectores, leyendas y la sonda de valores.
+"""Generate the viewer data: per-layer tiles, vectors, legends and the value probe.
 
-Teselas en un CRS métrico propio (equirectangular de la rejilla común):
-zoom z -> 128 / 2**z m/px; tesela (x, y) empieza en (LEFT + 256*x*res, TOP - 256*y*res).
+Tiles use a custom metric CRS (the common grid's equirectangular):
+zoom z -> 128 / 2**z m/px; tile (x, y) starts at (LEFT + 256*x*res, TOP - 256*y*res).
 
-Uso: python make_viewer_data.py [id_capa ...]   (sin argumentos: todas)
+Usage: python make_viewer_data.py [layer_id ...]   (no arguments: all)
 """
 import json
 import os
@@ -38,7 +38,7 @@ SLOPE_CMAP = LinearSegmentedColormap.from_list(
 
 CRISM_COLORS = {i: c[1] for i, c in enumerate(bl.CRISM_CLASSES, start=1)}
 
-GEO_COLORS = {  # por símbolo de unidad (SIM 3464)
+GEO_COLORS = {  # by unit symbol (SIM 3464)
     "Aeb": "#e6c88a", "Hnpf": "#8fb3d9", "NHjf1": "#4f7fbf", "NHjf2": "#2c5a9e", "Njf": "#c9a27e",
     "Nle": "#e39b5b", "Nue": "#f2c08a", "Nnp1": "#d98ca0", "Nnp2": "#b8607a", "Nrb": "#b0b0b0",
     "ce": "#8cc68c", "ci": "#5fa35f", "cr": "#3d7d3d", "su": "#f0e06a",
@@ -89,7 +89,7 @@ def read_tile(layer, z, x, y, path=None, categorical=False):
                  resampling=Resampling.nearest if categorical else Resampling.bilinear).astype(np.float32)
     if nod is not None:
         a[a == nod] = np.nan
-    # fuera de la extensión del fichero o del bbox: transparente
+    # outside the file extent or the bbox: transparent
     r = span / TILE
     xs = w + (np.arange(TILE) + 0.5) * r
     ys = n - (np.arange(TILE) + 0.5) * r
@@ -170,7 +170,7 @@ def build_tiles(layer, pool):
     jobs = []
     for z in range(0, layer["maxzoom"] + 1):
         xs, ys = tile_range(z, b)
-        for x in xs:  # una tarea por columna
+        for x in xs:  # one task per column
             jobs.append((layer, z, [x], list(ys), extra))
     n = sum(pool.map(_job, jobs, chunksize=4))
     print(f"  {layer['id']}: {n} teselas")
@@ -178,7 +178,7 @@ def build_tiles(layer, pool):
     return extra
 
 
-# ------------------------------------------------------------ leyendas, vectores, sonda
+# ------------------------------------------------------------ legends, vectors, probe
 
 def legend(layer, extra):
     k = layer["kind"]
@@ -197,7 +197,7 @@ def legend(layer, extra):
 
 
 def coverage_pct(layer):
-    """Porcentaje del bbox con dato, medido sobre la rejilla común de 20 m."""
+    """Percentage of the bbox with data, measured on the common 20 m grid."""
     a = np.full((bl.GRID["height"], bl.GRID["width"]), np.nan, np.float32)
     with rasterio.open(DATA / layer["src"]) as s:
         rasterio.warp.reproject(rasterio.band(s, 1), a, src_nodata=layer.get("nodata", s.nodata if s.nodata is not None else 0),
@@ -217,7 +217,7 @@ def copy_vectors():
 
 
 def build_probe():
-    """Valores de todas las bandas del stack a 40 m, cuantizados a int16, para el inspector del visor."""
+    """Values of all stack bands at 40 m, quantized to int16, for the viewer inspector."""
     d = OUT / "probe"
     d.mkdir(parents=True, exist_ok=True)
     meta = []

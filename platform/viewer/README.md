@@ -1,58 +1,58 @@
-# Visor de Jezero y reconstrucciones de superficie
+# Jezero viewer and surface reconstructions
 
-Reutiliza el mapa Leaflet del proyecto y añade accesos a reconstrucciones 3D. No necesita Ollama, FastAPI, Node ni instalar paquetes Python: el servidor usa Python 3.10+ y su biblioteca estándar.
+Reuses the project's Leaflet map and adds access to 3D reconstructions. It does not need Ollama, FastAPI, Node or any Python packages: the server uses Python 3.10+ and its standard library.
 
-## Abrir el mapa
+## Open the map
 
-Desde la raíz de MARPS:
+From the MARPS root:
 
 ```bash
 python3 backend/prepare_viewer.py
 python3 backend/viewer.py
 ```
 
-Abrir **http://127.0.0.1:8765**. El primer comando descarga Leaflet 1.9.4, Three.js 0.178.0 y Spark 0.1.10 a `platform/viewer/vendor/` y verifica SHA-256. Se reutilizan las descargas válidas; `--check` sólo comprueba los archivos sin acceder a internet. Las versiones, URLs y hashes se conservan en `backend/viewer_dependencies.json`. Licencias: [Leaflet BSD-2-Clause](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE), [Three.js MIT](https://github.com/mrdoob/three.js/blob/r178/LICENSE), [Spark MIT](https://github.com/sparkjsdev/spark/blob/main/LICENSE).
+Open **http://127.0.0.1:8765**. The first command downloads Leaflet 1.9.4, Three.js 0.178.0 and Spark 0.1.10 to `platform/viewer/vendor/` and verifies their SHA-256. Valid downloads are reused; `--check` only checks the files without accessing the internet. Versions, URLs and hashes are kept in `backend/viewer_dependencies.json`. Licences: [Leaflet BSD-2-Clause](https://github.com/Leaflet/Leaflet/blob/v1.9.4/LICENSE), [Three.js MIT](https://github.com/mrdoob/three.js/blob/r178/LICENSE), [Spark MIT](https://github.com/sparkjsdev/spark/blob/main/LICENSE).
 
-La ubicación predeterminada de los datos es `MARPS_Jezero_3D_datos/MARPS_Jezero_3D/`. Para otra ubicación:
+The default data location is `MARPS_Jezero_3D_datos/MARPS_Jezero_3D/`. For another location:
 
 ```bash
 python3 backend/viewer.py --dataset /ruta/a/MARPS_Jezero_3D --port 8765
 ```
 
-El servidor escucha sólo en `127.0.0.1` por defecto. Sirve la interfaz, las teselas CTX y los dos directorios de modelos locales sin copiar los binarios. Los modelos y las bibliotecas descargadas se excluyen de Git. Si falta el paquete, el mapa sigue disponible y muestra cómo indicar la ruta.
+By default the server only listens on `127.0.0.1`. It serves the interface, the CTX tiles and the two local model directories without copying the binaries. The models and the downloaded libraries are excluded from Git. If the package is missing, the map is still available and shows how to set the path.
 
-## Uso
+## Usage
 
-- Pulsar un punto **3D** del mapa y **Entrar en la reconstrucción**, o usar directamente **Entrar en Cheyava Falls**.
-- Buscar un lugar, autor o sol y filtrar por archivos locales, escenas, detalles o modelos sin ubicación. **Situar en mapa** centra y abre el punto correspondiente.
-- En las escenas locales, arrastrar para mirar y usar **W A S D / flechas** o los botones de desplazamiento para caminar. Altura de ojos: 1,65 m sobre una superficie estimada a partir de la geometría.
-- **Vista orbital** permite inspeccionar el modelo; **A pie** y **Restablecer vista** recuperan la cámara inicial. **Esc** o **Volver al mapa** cierran la escena.
-- La calidad automática conserva las gaussianas completas con GPU y usa una muestra del 5 % con renderizado por software. **Detalle completo** fuerza el modelo original; **Calidad ligera** reduce el detalle para equipos lentos. La malla NASA conserva su geometría original.
-- El recorrido de Perseverance es una capa opcional de contexto.
+- Click a **3D** point on the map and then **Entrar en la reconstrucción**, or use **Entrar en Cheyava Falls** directly.
+- Search for a place, author or sol and filter by local files, scenes, details or models without a location. **Situar en mapa** centres the map on the corresponding point and opens it.
+- In local scenes, drag to look around and use **W A S D / arrow keys** or the movement buttons to walk. Eye height: 1.65 m above a surface estimated from the geometry.
+- **Vista orbital** lets you inspect the model; **A pie** and **Restablecer vista** restore the initial camera. **Esc** or **Volver al mapa** close the scene.
+- Automatic quality keeps the full Gaussians with a GPU and uses a 5 % sample with software rendering. **Detalle completo** forces the original model; **Calidad ligera** reduces detail for slow machines. The NASA mesh keeps its original geometry.
+- The Perseverance traverse is an optional context layer.
 
-## Datos integrados y límites
+## Included data and limitations
 
-En el paquete entregado hay **242 modelos curados**. Se conservan todos en el catálogo, con autor, licencia y enlace de procedencia. **92** tienen ancla; **150** sólo se muestran en el catálogo para no inventar su posición. Se añaden dos archivos locales: **Cheyava Falls** (SPZ, 16,3 MB, 972.047 gaussianas) y **Navcam sol 180 / Citadelle** (OBJ y textura, unos 54 MB). Resultado: **244 entradas y 94 accesos en el mapa**.
+The delivered package contains **242 curated models**. All of them are kept in the catalogue, with author, licence and source link. **92** have an anchor; **150** are only shown in the catalogue to avoid inventing their position. Two local files are added: **Cheyava Falls** (SPZ, 16.3 MB, 972,047 Gaussians) and **Navcam sol 180 / Citadelle** (OBJ and texture, about 54 MB). Result: **244 entries and 94 access points on the map**.
 
-Los modelos externos se abren dentro de la aplicación usando el visor de Sketchfab, con navegación de primera persona para escenas y navegación orbital para detalles y vistas aéreas. Requieren internet y que el autor mantenga habilitada la visualización. El enlace **Fuente original** permite acceder al modelo si el servicio bloquea el iframe. No se descargan ni redistribuyen esos modelos.
+External models open inside the application using the Sketchfab viewer, with first-person navigation for scenes and orbital navigation for details and aerial views. They require internet access and the author keeping viewing enabled. The **Fuente original** link gives access to the model if the service blocks the iframe. These models are not downloaded or redistributed.
 
-Los conjuntos de imágenes de sites 87/91 son material para entrenar reconstrucciones futuras: no se presentan como modelos ya terminados. Tampoco se presentan los 87.284 fragmentos del inventario PDS como paisajes independientes ni los enlaces de Landform como archivos descargados.
+The image sets from sites 87/91 are material for training future reconstructions: they are not presented as finished models. Nor are the 87,284 fragments of the PDS inventory presented as standalone landscapes, or the Landform links as downloaded files.
 
-Las reconstrucciones son parciales, con huecos y zonas menos nítidas. No hay un Street View continuo del cráter. El movimiento local se limita a celdas con geometría observada, a un entorno acotado y a cambios pequeños de altura. El suelo se estima en una rejilla de 0,5 m: **no es una simulación física, un sistema de colisiones ni un producto para medir el terreno**. Las posiciones del rover son referencias de búsqueda, no huellas exactas de los afloramientos.
+The reconstructions are partial, with gaps and less sharp areas. There is no continuous Street View of the crater. Local movement is limited to cells with observed geometry, to a bounded area and to small height changes. The ground is estimated on a 0.5 m grid: **it is not a physics simulation, a collision system or a product for measuring terrain**. Rover positions are search references, not exact footprints of the outcrops.
 
-Cheyava conserva el origen marciano publicado por Planetary Scene Studio. La licencia de redistribución del SPZ no está confirmada en el paquete: se usa el archivo local aportado y no se publica. Consultar `LEEME.md` del paquete antes de distribuir los datos.
+Cheyava keeps the Martian origin published by Planetary Scene Studio. The redistribution licence of the SPZ is not confirmed in the package: the supplied local file is used and not published. Check the package's `LEEME.md` before distributing the data.
 
-## Marcos de coordenadas
+## Coordinate frames
 
-- Mapa: equirectangular marciana, esfera de radio **3.396.190 m**, longitud positiva hacia el este. Conversión `x = R · lon · π/180`, `y = R · lat · π/180`, compatible con las capas existentes. No se usa Web Mercator ni EPSG:4326 terrestre para medir.
-- Cheyava: origen `site_origin_map` del manifest, **77,30519089° E, 18,49748444° N**. El SPZ ya está en marco local con Z arriba: sólo se rota −90° sobre X para Three.js. No se repite `train_to_site_shift_m` ni se inventan los rásteres ausentes del manifest.
-- Malla NASA: **SITE_FRAME, site 6**, X norte/Y este/Z abajo, transformado a Three.js como `(y, −z, −x)` y recentrado para el visor. Su ancla es la posición PLACES best_interp para **site 6, drive 2684**, **77,444311622° E, 18,430825802° N**, no una georreferenciación global de cada vértice.
+- Map: Martian equirectangular, sphere of radius **3,396,190 m**, longitude positive to the east. Conversion `x = R · lon · π/180`, `y = R · lat · π/180`, compatible with the existing layers. Web Mercator and terrestrial EPSG:4326 are not used for measuring.
+- Cheyava: origin `site_origin_map` from the manifest, **77.30519089° E, 18.49748444° N**. The SPZ is already in a local Z-up frame: it is only rotated −90° about X for Three.js. `train_to_site_shift_m` is not applied again, and the rasters missing from the manifest are not invented.
+- NASA mesh: **SITE_FRAME, site 6**, X north/Y east/Z down, transformed to Three.js as `(y, −z, −x)` and re-centred for the viewer. Its anchor is the PLACES best_interp position for **site 6, drive 2684**, **77.444311622° E, 18.430825802° N**, not a global georeferencing of each vertex.
 
-## Capas temáticas existentes
+## Existing thematic layers
 
-Si existe `platform/viewer/data/config.json`, se usan las capas del pipeline: cambio con ←/→, comparación por cortinilla, vectores e inspector. Si no existe, el fondo se construye directamente con `assets/zones/public/layers/ctx/meta.json` y sus 110 imágenes de teselas, ya incluidas en el repositorio.
+If `platform/viewer/data/config.json` exists, the pipeline layers are used: switching with ←/→, swipe comparison, vectors and inspector. If it does not exist, the background is built directly from `assets/zones/public/layers/ctx/meta.json` and its 110 tile images, already included in the repository.
 
-Para generar las capas temáticas, recuperar primero los datos indicados en `data/jezero/README.md` y ejecutar:
+To generate the thematic layers, first retrieve the data listed in `data/jezero/README.md` and run:
 
 ```bash
 pip install -r data/jezero/pipeline/requirements.txt
@@ -61,9 +61,9 @@ python3 unpack_stack.py
 python3 make_viewer_data.py
 ```
 
-Después arrancar `python3 backend/viewer.py` desde la raíz. El antiguo `python3 -m http.server --directory platform/viewer` no sirve las rutas del paquete 3D ni la API del visor.
+Then start `python3 backend/viewer.py` from the root. The old `python3 -m http.server --directory platform/viewer` does not serve the 3D package paths or the viewer API.
 
-## Verificación
+## Verification
 
 ```bash
 python3 -m unittest discover -s backend -p 'test_*.py' -v
@@ -72,6 +72,6 @@ node --check platform/viewer/reconstructions.mjs
 node --check platform/viewer/surface.mjs
 ```
 
-Las pruebas cubren conservación de modelos sin ubicación, detalles frente a paisajes, origen SPZ, preferencia de PLACES corregido, ausencia de datos, límites del montaje de archivos y correspondencia entre el fondo CTX y su proyección.
+The tests cover keeping models without a location, details versus landscapes, the SPZ origin, preference for corrected PLACES, missing data, file-mount boundaries and the correspondence between the CTX background and its projection.
 
-Con el servidor activo y Playwright instalado, `node platform/viewer/test_viewer.cjs` comprueba mapa, filtros, apertura/cierre, modelos locales, movimiento y diseño móvil. `MARPS_PLAYWRIGHT` permite indicar una instalación externa de Playwright; `MARPS_SCREENSHOTS` permite guardar capturas. La prueba intercepta el iframe externo para no depender de Sketchfab; no verifica la disponibilidad de ese servicio.
+With the server running and Playwright installed, `node platform/viewer/test_viewer.cjs` checks the map, filters, opening/closing, local models, movement and mobile layout. `MARPS_PLAYWRIGHT` lets you point to an external Playwright installation; `MARPS_SCREENSHOTS` lets you save screenshots. The test intercepts the external iframe so it does not depend on Sketchfab; it does not check that service's availability.

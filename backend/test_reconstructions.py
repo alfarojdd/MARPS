@@ -1,4 +1,4 @@
-"""Contratos del catálogo y del montaje de archivos, sin red ni datos pesados."""
+"""Catalog and file-mount contracts, without network or heavy data."""
 import csv
 import json
 import math

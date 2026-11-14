@@ -1,4 +1,4 @@
-"""Adaptador del paquete MARPS_Jezero_3D (sin descargar ni copiar sus binarios)."""
+"""Adapter for the MARPS_Jezero_3D package (without downloading or copying its binaries)."""
 import csv
 import json
 import math
@@ -13,7 +13,7 @@ def read_json(path):
 
 
 def mesh_anchor(dataset):
-    # Los waypoints públicos no incluyen cada RMC. Priorizar la localización corregida.
+    # The public waypoints do not include every RMC. Prefer the corrected localization.
     for filename in ("PLACES_best_interp.csv", "PLACES_telemetry.csv"):
         path = dataset / "geografia" / filename
         if path.exists():
@@ -74,7 +74,7 @@ def build_catalog(dataset=DEFAULT_DATASET):
             description="241 imágenes de Perseverance, 972.047 gaussianas. Entorno parcial de radio 9 m; hay huecos y menor nitidez fuera de las vistas originales. Altura de ojos aproximada, sin colisiones físicas.",
             available=(manifest.parent / "splat.spz").is_file(),
             asset="/reconstructions/files/cheyava_falls/splat.spz",
-            # El SPZ ya está en el marco site (+Z arriba), sin repetir train_to_site_shift.
+            # The SPZ is already in the site frame (+Z up); do not reapply train_to_site_shift.
             frame="site-z-up", radius=original["splat"]["crop_radius_m"],
             eye=[0, 1.65, 3.8], target=[-2.56, 0.1, 0.58],
         ))

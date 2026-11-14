@@ -6,7 +6,7 @@ const $ = selector => document.querySelector(selector);
 const EYE_HEIGHT = 1.65;
 const MOVE_KEYS = {KeyW: "forward", ArrowUp: "forward", KeyS: "back", ArrowDown: "back", KeyA: "left", ArrowLeft: "left", KeyD: "right", ArrowRight: "right"};
 
-// Suelo visual aproximado a partir de la geometría observada. Nunca rellena huecos sin dato.
+// Approximate visual ground from the observed geometry. Never fills gaps without data.
 class SurfaceGrid {
   constructor(cell = .5) { this.cell = cell; this.samples = new Map(); }
   key(x, z) { return `${Math.floor(x / this.cell)},${Math.floor(z / this.cell)}`; }
@@ -85,7 +85,7 @@ export async function start() {
     $("#loadingDetail").textContent = entry.renderer === "spz" ? "Cheyava Falls · 16,3 MB · 972.047 gaussianas" : "Malla Navcam texturizada · 52 MB";
   }
 
-  // Registra la liberación antes de empezar las descargas para cubrir salidas durante la carga.
+  // Register disposal before starting downloads to cover exits during loading.
   window.addEventListener("pagehide", () => {
     renderer.setAnimationLoop(null);
     controls.dispose();
@@ -121,7 +121,7 @@ export async function start() {
       await mesh.initialized;
       original.dispose();
     }
-    // Marco publicado: site +X este, +Y norte, +Z arriba → Three +Y arriba.
+    // Published frame: site +X east, +Y north, +Z up → Three +Y up.
     mesh.rotation.x = -Math.PI / 2;
     scene.add(mesh);
   } else {
@@ -130,7 +130,7 @@ export async function start() {
       new THREE.TextureLoader().loadAsync(entry.texture),
     ]);
     texture.colorSpace = THREE.SRGBColorSpace;
-    // NASA SITE_FRAME NED → Three: este, arriba, sur. No es el marco site del SPZ.
+    // NASA SITE_FRAME NED → Three: east, up, south. Not the SPZ site frame.
     const rotation = new THREE.Matrix4().set(0,1,0,0, 0,0,-1,0, -1,0,0,0, 0,0,0,1);
     modelRoot.applyMatrix4(rotation);
     modelRoot.updateMatrixWorld(true);
@@ -149,8 +149,8 @@ export async function start() {
       for (let i = 0; i < vertices.count; i += 3) {
         p.fromBufferAttribute(vertices, i).applyMatrix4(object.matrixWorld);
         ground.add(p.x, p.y, p.z);
-        // Empezar sobre el primer plano observado y mirar hacia el terreno central
-        // de la foto. El centro de la caja de esta malla cae en un hueco.
+        // Start over the observed foreground and look toward the central terrain
+        // of the photo. This mesh's bounding-box center falls in a gap.
         if (uv) {
           const u = uv.getX(i), v = uv.getY(i);
           const near = (u - .5) ** 2 + (v - .15) ** 2;

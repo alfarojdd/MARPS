@@ -1,17 +1,17 @@
-# planner
+# Planner
 
-Planificador de rutas consciente de la misión: A* sobre la rejilla de 20 m de Jezero, con coste que depende de los parámetros del LLM y del estado del vehículo. Devuelve la ruta y un informe JSON para el resumen del LLM del casco.
+Mission-aware route planner: A* over the 20 m Jezero grid, with a cost that depends on the LLM parameters and the vehicle state. It returns the route and a JSON report for the helmet LLM summary.
 
 ```bash
 pip install -r planner/requirements.txt fastapi
-python planner/live.py                  # banco de pruebas en http://127.0.0.1:8766
-cd planner && python -m pytest -q       # pruebas
+python planner/live.py                  # test bench at http://127.0.0.1:8766
+cd planner && python -m pytest -q       # tests
 ```
 
-Datos: `data/jezero/` (Drive, ver [../data/jezero/README.md](../data/jezero/README.md)) o la ruta de `JEZERO_DATA`.
+Data: `data/jezero/` (Drive, see [../data/jezero/README.md](../data/jezero/README.md)) or the path in `JEZERO_DATA`.
 
-- Modelo, sombras y pendientes: [../docs/PLANNER.md](../docs/PLANNER.md).
-- Contrato con backend y frontend (`POST /plan-route`): [../docs/PLANNER_INTEGRATION.md](../docs/PLANNER_INTEGRATION.md).
-- Ejemplos reales: [examples/](examples/).
+- Model, shadows and open issues: [../docs/PLANNER.md](../docs/PLANNER.md).
+- Contract with the backend and frontend (`POST /plan-route`): [../docs/PLANNER_INTEGRATION.md](../docs/PLANNER_INTEGRATION.md).
+- Real examples: [examples/](examples/).
 
-Sombras: usa `../mars_shadows.py` y `../assets/SunAngle.csv`. Si faltan, funciona igual sin ellas.
+Shadows: uses `../mars_shadows.py` and `../assets/SunAngle.csv`. If they are missing, it works the same without them.

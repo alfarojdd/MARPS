@@ -1,7 +1,7 @@
-"""Reconstruye layers20m/<capa>.tif a partir del stack publicado, para regenerar el visor sin los datos crudos.
+"""Rebuild layers20m/<layer>.tif from the published stack, to regenerate the viewer without the raw data.
 
-Uso (desde el repo clonado):  python unpack_stack.py
-Necesita: stack/jezero_stack_20m.tif, extra/geo_unit.tif y, para la imagen de fondo, assets/JEZ_ctx_B_soc_008_orthoMosaic_6m_*.tif.
+Usage (from the cloned repo):  python unpack_stack.py
+Requires: stack/jezero_stack_20m.tif, extra/geo_unit.tif and, for the background image, assets/JEZ_ctx_B_soc_008_orthoMosaic_6m_*.tif.
 """
 import shutil
 
