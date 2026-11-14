@@ -4,30 +4,29 @@ const MESSAGES = [
   'Bellona is calculating…',
   'Scanning the terrain…',
   'Let Bellona guide you…',
-  'Analysing radiation data…',
+  'Analyzing radiation data…',
   'Plotting the safest path…',
   'Bellona is on it…',
   'Mapping hazard zones…',
   'Computing energy budget…',
   'Routing through Jezero…',
-  'Bellona is thinking…',
+  'Bellona is optimizing…',
 ]
 
-const MESSAGE_INTERVAL = 2200   // ms per phrase
-const FADE_DURATION    = 400    // ms — must match CSS
+const MESSAGE_INTERVAL = 1400 // faster rotation
+const FADE_DURATION = 250 // crisp fade
 
 export default function BellonaThinking({ visible }: { visible: boolean }) {
   const [msgIndex, setMsgIndex] = useState(0)
-  const [fadeIn,   setFadeIn]   = useState(true)
+  const [fadeIn, setFadeIn] = useState(true)
 
-  /* Cycle through phrases with a cross-fade */
+  /* Cycle through phrases with a clean cross-fade */
   useEffect(() => {
     if (!visible) return
     setMsgIndex(0)
     setFadeIn(true)
 
     const interval = setInterval(() => {
-      // fade out
       setFadeIn(false)
       setTimeout(() => {
         setMsgIndex((i) => (i + 1) % MESSAGES.length)
@@ -44,36 +43,36 @@ export default function BellonaThinking({ visible }: { visible: boolean }) {
     <div
       aria-live="polite"
       aria-label="Bellona AI is working"
-      className="pointer-events-none absolute bottom-[200px] left-1/2 z-20 -translate-x-1/2 sm:bottom-[220px]"
+      className="pointer-events-none absolute bottom-[185px] left-1/2 z-30 -translate-x-1/2 px-4 safe-bottom sm:bottom-[195px]"
     >
-      {/* Speech bubble container */}
-      <div className="bellona-bubble relative flex flex-col items-center gap-3">
-
-        {/* ── Animated dot cluster ── */}
-        <div className="flex items-end gap-[5px]">
-          <Bubble delay={0}   size={9}  />
-          <Bubble delay={120} size={12} />
-          <Bubble delay={240} size={9}  />
+      {/* Speech bubble container directly in user's target zone */}
+      <div className="bellona-bubble relative flex flex-col items-center gap-2.5">
+        {/* Animated fast bouncing bubbles / thought circles */}
+        <div className="flex items-center gap-1.5">
+          <Bubble delay={0} size={8} />
+          <Bubble delay={100} size={11} />
+          <Bubble delay={200} size={15} />
+          <Bubble delay={300} size={11} />
+          <Bubble delay={400} size={8} />
         </div>
 
-        {/* ── Frosted glass pill with rotating text ── */}
+        {/* Frosted glass badge with rotating guidance text */}
         <div
-          className="glass-panel flex items-center gap-2.5 rounded-full px-4 py-2 shadow-2xl"
-          style={{ backdropFilter: 'blur(20px) saturate(200%)' }}
+          className="glass-panel flex items-center gap-2.5 rounded-full border border-oxide/40 bg-void/80 px-4 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(196,92,38,0.25)] backdrop-blur-xl"
         >
-          {/* Pulsing mars dot */}
-          <span className="bellona-dot-pulse relative flex h-2 w-2 shrink-0">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-oxide opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-oxide" />
+          {/* Animated beacon dot */}
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-oxide-bright opacity-85" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-oxide" />
           </span>
 
-          {/* Rotating message */}
+          {/* Clean rotating prompt text */}
           <span
-            className="bellona-msg font-mono text-[11px] uppercase tracking-[0.18em] text-paper/90"
+            className="font-mono text-[11px] font-medium tracking-[0.14em] text-paper sm:text-[12px]"
             style={{
-              opacity:    fadeIn ? 1 : 0,
-              transform:  fadeIn ? 'translateY(0)' : 'translateY(4px)',
-              transition: `opacity ${FADE_DURATION}ms ease, transform ${FADE_DURATION}ms ease`,
+              opacity: fadeIn ? 1 : 0,
+              transform: fadeIn ? 'translateY(0) scale(1)' : 'translateY(3px) scale(0.98)',
+              transition: `opacity ${FADE_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1), transform ${FADE_DURATION}ms cubic-bezier(0.16, 1, 0.3, 1)`,
               whiteSpace: 'nowrap',
             }}
           >
@@ -85,16 +84,16 @@ export default function BellonaThinking({ visible }: { visible: boolean }) {
   )
 }
 
-/* ── Single animated bubble dot ── */
 function Bubble({ delay, size }: { delay: number; size: number }) {
   return (
     <span
-      className="bellona-bubble-dot rounded-full bg-oxide/70"
+      className="bellona-bubble-dot rounded-full bg-gradient-to-t from-oxide to-oxide-bright shadow-[0_0_10px_rgba(196,92,38,0.6)]"
       style={{
-        width:  size,
+        width: size,
         height: size,
         animationDelay: `${delay}ms`,
       }}
     />
   )
 }
+
