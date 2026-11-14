@@ -2,6 +2,13 @@
 
 Una entrada por sesión de trabajo, la más reciente arriba. Formato: fecha, área, qué se hizo, decisiones tomadas, bloqueos.
 
+## 2026-11-14: planificador A* consciente de la misión (planner)
+- Subido `planner/`: A* sobre la rejilla de 20 m con 16 vecinos y coste por arista dependiente de la dirección (subida, bajada, pendiente lateral), energía, riesgo (rugosidad, suelo blando por inercia térmica, dunas de SIM 3464, dato desconocido, exposición) y restricciones duras que el JSON no puede relajar. Heurística admisible con cota de subida. Detalle en [PLANIFICADOR.md](PLANIFICADOR.md).
+- Parámetros de misión: los 5 del LLM (`human`, `origin`, `destination`, `power`, `route_preference`) más `safety`, `science_targets`, `science_detour` y `return_to_origin`. El estado del vehículo (hora y batería) llega aparte en `system`.
+- `report.py` genera el JSON para el resumen del LLM del casco: comparación frente a un A* clásico de distancia pura, `why`, avisos de luz y batería, y parada de carga solar.
+- `live.py`: banco de pruebas interactivo (no es el frontend).
+- Hecho como spike (prueba rápida), con 10 pruebas.
+
 ## 2026-11-14: capas de Jezero (data)
 - Subido `data/jezero/`: stack de 14 capas a 20 m con la misma rejilla (elevación CTX/HRSC, pendiente, rugosidad, TPI, orientación, sombreado, inercia térmica, THEMIS día/noche, insolación, proxy de columna atmosférica, distancia a la traza), vectores y el pipeline con pruebas. Detalle en [CAPAS_JEZERO.md](CAPAS_JEZERO.md).
 - Subido el visor de capas en `platform/viewer/` (las teselas se generan con el pipeline).

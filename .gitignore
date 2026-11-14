@@ -241,3 +241,6 @@ platform/viewer/data/
 data/jezero/stack/
 data/jezero/vectors/
 data/jezero/extra/
+
+# Planificador: salidas regeneradas por demo.py y cachés
+planner/out/

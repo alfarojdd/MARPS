@@ -1,4 +1,4 @@
-# Planificador de rutas (spike, 2026-11-14)
+# planner: planificador de rutas consciente de la misión
 
 Código en `planner/`:
 - `planner.py`: modelo de coste, A*, ciencia y métricas.
@@ -10,12 +10,12 @@ Código en `planner/`:
 Es un spike: solo está probado lo básico y no ha pasado por el flujo de subagentes y revisión. Si se lleva al producto (`planner/` de MARPS), habrá que repasarlo con ese flujo.
 
 ```bash
-.venv/bin/python planner/live.py      # http://127.0.0.1:8766 (también preview "planner-live")
-cd tools/planner
-../../.venv/bin/python demo.py             # → out/demo.png + out/demo.md
-../../.venv/bin/python -m pytest -q
+python planner/live.py      # http://127.0.0.1:8766 
+cd planner
+python demo.py             # → out/demo.png + out/demo.md
+python -m pytest -q
 ```
-Necesita `numba` en el venv. La primera ejecución crea `data/jezero/planner_cache_20m.npz`. Un ejemplo del informe está en `planner/out/report_example.json`.
+Dependencias: `pip install -r planner/requirements.txt`. **Datos**: los de `data/jezero/` (Drive, ver `data/jezero/README.md`): `stack/jezero_stack_20m.tif`, `extra/geo_unit.tif` y `extra/crism_class.tif`. Otra ubicación: variable `JEZERO_DATA`. La primera ejecución crea `data/jezero/planner_cache_20m.npz` (no se versiona). Un ejemplo del informe está en `planner/examples/report_example.json`.
 
 ## Entrada: dos bloques
 
@@ -104,7 +104,7 @@ La búsqueda ya tarda 0,05–0,4 s. El cuello de botella es construir la rejilla
 6. Cada parada suma 20 min al tiempo y a la energía.
 
 ## Salida: informe para el LLM del casco (`report.py`)
-Ejemplo completo en `planner/out/report_example.json`. Bloques:
+Ejemplo completo en `planner/examples/report_example.json`. Bloques:
 - `feasible`: falso si hay algún aviso crítico.
 - `route`:
   - métricas físicas: distancia, tiempo, energía total y de tracción, subida y bajada, pendientes máximas, km por terreno rugoso, blando, dunas o sin dato, y exposición media;

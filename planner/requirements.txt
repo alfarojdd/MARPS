@@ -1,0 +1,7 @@
+numpy
+scipy
+numba
+rasterio
+matplotlib
+pillow
+pytest

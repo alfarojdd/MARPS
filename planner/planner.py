@@ -21,15 +21,26 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 import json
 import math
-import os
 
 import numpy as np
 from numba import njit
 from scipy import ndimage
 
-ROOT = Path(__file__).resolve().parents[1]
-# Datos grandes fuera del repo: se apunta a ellos con JEZERO_DATA (si no, data/jezero del repo).
-DATA = Path(os.environ["JEZERO_DATA"]).resolve() if os.environ.get("JEZERO_DATA") else ROOT / "data/jezero"
+import os
+
+HERE = Path(__file__).resolve().parent
+
+
+def _find_data():
+    """data/jezero del repo MARPS (planner/../data/jezero) o del cuaderno local (tools/planner/../../data/jezero)."""
+    cands = [os.environ.get("JEZERO_DATA"), HERE.parent / "data/jezero", HERE.parents[1] / "data/jezero"]
+    for c in cands:
+        if c and ((Path(c) / "stack").exists() or (Path(c) / "layers20m").exists()):
+            return Path(c).resolve()
+    raise FileNotFoundError("No encuentro data/jezero (stack/ o layers20m/). Define JEZERO_DATA.")
+
+
+DATA = _find_data()
 CACHE = DATA / "planner_cache_20m.npz"
 R_MARS = 3396190.0
 G_MARS = 3.71
@@ -117,24 +128,44 @@ MOVES_NB = MOVES  # Numba la congela como constante al compilar
 
 # ---------------------------------------------------------------- datos
 
+def _read_layer(name):
+    """Una capa de la rejilla común: layers20m/<name>.tif, banda <name> del stack o extra/<name>.tif."""
+    import rasterio
+    for f in (DATA / f"layers20m/{name}.tif", DATA / f"extra/{name}.tif"):
+        if f.exists():
+            with rasterio.open(f) as s:
+                a = s.read(1).astype(np.float32)
+                if s.nodata is not None and not np.isnan(s.nodata):
+                    a[a == s.nodata] = np.nan
+                return a, (s.transform.c, s.transform.f)
+    stack = DATA / "stack/jezero_stack_20m.tif"
+    if stack.exists():
+        with rasterio.open(stack) as s:
+            if name in s.descriptions:
+                return s.read(s.descriptions.index(name) + 1).astype(np.float32), (s.transform.c, s.transform.f)
+    return None, None
+
+
 def load_grid():
     """Capas en la rejilla común de 20 m. Se cachea en data/jezero/planner_cache_20m.npz."""
     if CACHE.exists():
         z = np.load(CACHE)
         return {k: z[k] for k in z.files}
-    import rasterio
     out = {}
-    for n in ["elev_ctx", "tri_ctx", "thermal_inertia", "insolation_rel", "atm_column_pct", "hillshade_ctx"]:
-        with rasterio.open(DATA / f"layers20m/{n}.tif") as s:
-            left, top = s.transform.c, s.transform.f
-            a = s.read(1).astype(np.float32)
-            if s.nodata is not None and not np.isnan(s.nodata):
-                a[a == s.nodata] = np.nan
-            out[n] = a
-    for n in ["crism_class", "crism_conf", "geo_unit"]:
-        with rasterio.open(DATA / f"layers20m/{n}.tif") as s:
-            out[n] = s.read(1).astype(np.int16)
-    out["origin_xy"] = np.array([left, top])
+    for n in ["elev_ctx", "tri_ctx", "thermal_inertia", "insolation_rel", "atm_column_pct", "hillshade_ctx",
+              "crism_class", "crism_conf", "geo_unit"]:
+        a, origin = _read_layer(n)
+        if a is None:
+            if n in ("crism_class", "crism_conf", "geo_unit"):
+                continue  # opcionales: sin ellas no hay ciencia (o confianza) de esa fuente
+            raise FileNotFoundError(f"Falta la capa {n} en {DATA}")
+        out[n] = np.nan_to_num(a, nan=-1).astype(np.int16) if n in ("crism_class", "crism_conf", "geo_unit") else a
+        out["origin_xy"] = np.array(origin)
+    shape = out["elev_ctx"].shape
+    out.setdefault("crism_class", np.full(shape, -1, np.int16))
+    out.setdefault("geo_unit", np.zeros(shape, np.int16))
+    if "crism_conf" not in out:  # el repo solo publica la clase: se asume confianza media
+        out["crism_conf"] = np.where(out["crism_class"] > 0, 1, 0).astype(np.int16)
     np.savez_compressed(CACHE, **out)
     return out
 
