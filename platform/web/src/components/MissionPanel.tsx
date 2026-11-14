@@ -81,9 +81,9 @@ export default function MissionPanel({
         <div className="glass-panel pointer-events-auto mx-auto w-full max-w-4xl rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all sm:p-5">
 
           {/* Top Row: Route Endpoints, Status, and Edit Action */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-paper/10 pb-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="flex items-center gap-2 font-mono text-[13px] font-semibold text-paper sm:text-[14px]">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-paper/10 pb-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2 truncate font-mono text-[12px] font-semibold text-paper sm:text-[13px]">
                 <span className="text-paper">{siteLabel(route.originName)}</span>
                 <span className="text-oxide">→</span>
                 <span className="text-paper">{siteLabel(route.destinationName)}</span>
@@ -115,7 +115,7 @@ export default function MissionPanel({
           </div>
 
           {/* Middle Row: Primary Metrics Strip */}
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+          <div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 sm:gap-2">
             <MetricBadge
               label="Ground Dist."
               value={`${formatKm(route.metrics.distance_m)} km`}
@@ -172,7 +172,7 @@ export default function MissionPanel({
 
             {/* Extracted Constraints Badges */}
             {requirements && (
-              <div className="flex shrink-0 flex-wrap items-center gap-1.5 pt-2 sm:border-l sm:border-paper/10 sm:pl-3 sm:pt-0">
+              <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-paper/10 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
                 <span className="rounded-lg border border-paper/10 bg-white/[0.04] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-dim">
                   {requirements.human ? 'Crew EVA' : 'Rover'}
                 </span>
@@ -224,11 +224,11 @@ export default function MissionPanel({
           <div className="glass-input relative flex items-center rounded-2xl p-2 transition-all">
             <textarea
               id="mission-prompt"
-              rows={2}
+              rows={3}
               value={prompt}
               onChange={(e) => onPromptChange(e.target.value)}
               placeholder="e.g. Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low."
-              className="min-h-[48px] w-full resize-none bg-transparent px-2.5 py-1 text-[13px] leading-relaxed text-paper placeholder:text-faint/60 focus:outline-none sm:text-[14px]"
+              className="min-h-[60px] w-full resize-none bg-transparent px-2.5 py-1 text-[13px] leading-relaxed text-paper placeholder:text-faint/60 focus:outline-none sm:min-h-[48px] sm:text-[14px]"
             />
 
             {/* Right Side: Circled Action Button (as in sketch: "Input  (b)") */}
@@ -248,7 +248,7 @@ export default function MissionPanel({
                 onClick={onPlan}
                 disabled={loading || !prompt.trim()}
                 aria-label="Execute route planning"
-                className="glass-circle-btn flex h-10 w-10 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40"
+                className="glass-circle-btn flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
                 title={`Execute Route Planning (${shortcut})`}
               >
                 {loading ? (
@@ -275,9 +275,9 @@ export default function MissionPanel({
 
 function MetricBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-paper/8 bg-void/35 p-2 text-center sm:text-left">
-      <div className="font-mono text-[8px] uppercase tracking-[0.16em] text-faint">{label}</div>
-      <div className="mt-0.5 font-mono text-[13px] font-semibold tracking-tight text-paper sm:text-[14px]">
+    <div className="rounded-xl border border-paper/8 bg-void/35 p-1.5 text-center sm:p-2">
+      <div className="font-mono text-[7px] uppercase tracking-[0.12em] text-faint sm:text-[8px] sm:tracking-[0.16em]">{label}</div>
+      <div className="mt-0.5 font-mono text-[12px] font-semibold tracking-tight text-paper sm:text-[14px]">
         {value}
       </div>
     </div>
