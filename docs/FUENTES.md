@@ -42,8 +42,7 @@ Rellenar al incorporar cada capa.
 | ortoimagen CTX | USGS Mars 2020 TRN CTX orthomosaic 6 m | 2026-11-14 | Dominio público (USGS) | 6 m, todo el bbox (`assets/`) | Teselas para el visor | data |
 | thermal_inertia | Edwards & Buz 2021, THEMIS-derived thermal inertia of Jezero, https://zenodo.org/records/4931348 | 2026-11-14 | CC-BY-4.0 (citar) | 100 m, 96,1 % del bbox (falta franja oeste de 1,2 km) | Remuestreo bilineal a 20 m | data |
 | themis_day_ir, themis_night_ir | USGS THEMIS controlled mosaics MC-13 Syrtis Major (STAC `mo_themis_controlled_mosaics`) | 2026-11-14 | Dominio público (NASA/JPL/ASU) | 100 m, todo el bbox; DN cualitativos | Recorte y remuestreo a 20 m | data |
-| insolation_rel, atm_column_pct, dist_traverse | Cálculo propio sobre `elev_ctx` y la traza de Perseverance | 2026-11-14 | n/a | 20 m | Insolación media sin sombras; proxy de columna atmosférica (no es radiación); distancia euclídea a la traza | data |
-| traza y waypoints de Perseverance | NASA/JPL MMGIS, https://mars.nasa.gov/mmgis-maps/M20/Layers/json/ (hasta sol 2022) | 2026-11-14 | Datos públicos NASA | vectores | Recorte al bbox y reproyección | data |
+| insolation_rel, atm_column_pct | Cálculo propio sobre `elev_ctx` | 2026-11-14 | n/a | 20 m | Insolación media sin sombras; proxy de columna atmosférica (no es radiación) | data |
 | geología (`geo_unit` y vectores) | Sun & Stack 2020, USGS SIM 3464, https://doi.org/10.3133/sim3464 | 2026-11-14 | Dominio público (USGS) | 1:75 000, 95,8 % del bbox | Rasterizado a 20 m; vectores simplificados a 5 m | data |
 
 Para cada capa responder: ¿qué mide y en qué unidades?, ¿hay valores ausentes?, ¿qué NO permite concluir?, ¿qué es observación y qué es transformación o inferencia nuestra?

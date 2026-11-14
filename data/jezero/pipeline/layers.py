@@ -51,14 +51,14 @@ LAYERS = [
     dict(id="atm_column_pct", group="Misión (inferido)", title="Blindaje atmosférico extra", units="%",
          kind="continuous", cmap="viridis", vmin=0, vmax=11, maxzoom=4, obs=False, src=L20.format("atm_column_pct"),
          source="Proxy propio: columna atmosférica relativa (H = 11.1 km) sobre el DTM CTX"),
-    dict(id="dist_traverse", group="Misión (inferido)", title="Distancia a la traza de Perseverance", units="m",
-         kind="continuous", cmap="YlGnBu_r", vmin=0, vmax=3000, maxzoom=4, obs=False, src=L20.format("dist_traverse"),
-         source="Derivada de la traza M20 de NASA/JPL (MMGIS)"),
 
     # ---------------- complementaria: no entra en el stack base porque no cubre todo el bbox
     dict(id="geo_unit", group="Complementaria (no cubre todo)", title="Unidades geológicas (SIM 3464)", kind="categorical",
          maxzoom=4, obs=True, src=L20.format("geo_unit"), base=False,
          source="Sun & Stack 2020, USGS SIM 3464 (doi:10.3133/sim3464)"),
+    dict(id="crism_class", group="Complementaria (no cubre todo)", title="Mineralogía CRISM (clases)", kind="categorical",
+         maxzoom=4, obs=True, src=L20.format("crism_class"), base=False, valid_min=0,
+         source="Parente, Itoh & Saranathan 2021, CRISM mineral map of Jezero (Zenodo 5575824, CC-BY-4.0); 4 escenas, 41 % del bbox"),
 ]
 
 # Capas descargadas y procesadas pero retiradas por no cubrir todo el bbox (los ficheros siguen en data/jezero).
@@ -85,7 +85,6 @@ STACK_BANDS = [
          min_coverage=0.95),  # excepción aceptada: falta la franja oeste de 1,2 km (NaN)
     dict(id="themis_day_ir", units="DN", desc="THEMIS IR diurno (cualitativo)"),
     dict(id="themis_night_ir", units="DN", desc="THEMIS IR nocturno (cualitativo)"),
-    dict(id="dist_traverse", units="m", desc="Distancia a la traza de Perseverance"),
     dict(id="ctx_ortho", units="DN", desc="Ortoimagen CTX promediada a 20 m"),
 ]
 
@@ -103,7 +102,7 @@ WHY = {
     "themis_day_ir": "Diferencias de temperatura diurna (material suelto se calienta más). Complementa a la inercia térmica.",
     "themis_night_ir": "De noche la roca conserva calor: zonas brillantes = roca expuesta y firme.",
     "geo_unit": "Unidad geológica: tipo de terreno esperado y contexto científico de cada parada (delta, suelo del cráter, dunas).",
+    "crism_class": "Minerales que indican agua antigua: carbonatos y esmectitas Fe/Mg (delta y margen del lago), caolinita (alteración intensa); olivino y piroxeno, roca ígnea. Objetivos del contexto científico; solo existe en el centro de la zona.",
     "insolation_rel": "Energía solar disponible y carga térmica según la ladera. Importa en misiones largas con paneles o con ventanas horarias estrictas.",
     "atm_column_pct": "Las zonas bajas tienen más atmósfera encima y reciben algo menos de radiación. Es un proxy grosero; importa en EVA largas o durante eventos solares.",
-    "dist_traverse": "Cerca de la traza de Perseverance el terreno ya se recorrió con éxito: menos incertidumbre. Importa en misiones conservadoras o con poco margen.",
 }
