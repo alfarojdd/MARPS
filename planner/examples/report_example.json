@@ -1,0 +1,137 @@
+{
+ "feasible": true,
+ "mission": {
+  "human": false,
+  "safety": "normal",
+  "power": true,
+  "route_preference": null,
+  "origin": "western_rim",
+  "destination": "landing_site",
+  "science_targets": [],
+  "science_detour": "medium",
+  "return_to_origin": false
+ },
+ "system": {
+  "start_hour": 6.25,
+  "battery_kwh": 6,
+  "battery_capacity_kwh": 40,
+  "reserve_pct": 20.0
+ },
+ "sun": {
+  "source": "SunAngle.csv (2026-318)",
+  "sunrise": "05:48",
+  "sunset": "18:12",
+  "daylight_limit": "17:42"
+ },
+ "route": {
+  "distance_km": 16.408,
+  "time_h": 4.085,
+  "energy_kwh": 10.78,
+  "drive_kwh": 8.875,
+  "ascent_m": 330.276,
+  "descent_m": 827.828,
+  "max_pitch_deg": 17.802,
+  "max_cross_deg": 7.845,
+  "rough_km": 5.001,
+  "soft_km": 0.847,
+  "dunes_km": 0.756,
+  "unknown_km": 0.0,
+  "mean_exposure": 0.379,
+  "shadow_km": 1.419,
+  "shadow_pct": 8.649,
+  "night_km": 0.0,
+  "duration_h": 9.58,
+  "departure": "06:15",
+  "arrival": "15:35",
+  "daylight_limit": "17:42",
+  "daylight_margin_h": 2.13,
+  "battery_start_kwh": 6,
+  "battery_end_kwh": 8.0,
+  "battery_end_pct": 20.0,
+  "science_stops": [],
+  "charging_stop": {
+   "lon": 77.27974,
+   "lat": 18.44064,
+   "rc": [
+    831,
+    353
+   ],
+   "arrive": "07:33",
+   "battery_on_arrival_kwh": 1.56,
+   "energy_needed_kwh": 12.78,
+   "mean_direct_light": 0.782,
+   "charge_hours": 5.35
+  },
+  "waypoints_lonlat": [
+   [
+    77.22002,
+    18.40015
+   ],
+   [
+    77.22441,
+    18.40318
+   ],
+   [
+    77.22845,
+    18.40622
+   ],
+   "..."
+  ]
+ },
+ "classic_astar": {
+  "distance_km": 14.303,
+  "time_h": 4.465,
+  "energy_kwh": 12.12,
+  "drive_kwh": 10.159,
+  "ascent_m": 351.818,
+  "descent_m": 849.371,
+  "max_pitch_deg": 20.527,
+  "max_cross_deg": 13.711,
+  "rough_km": 6.249,
+  "soft_km": 4.266,
+  "dunes_km": 4.722,
+  "unknown_km": 0.0,
+  "mean_exposure": 0.352,
+  "shadow_km": 1.12,
+  "shadow_pct": 7.83,
+  "night_km": 0.0
+ },
+ "comparison": {
+  "energy_saved_pct": 11.1,
+  "drive_energy_saved_pct": 12.6,
+  "time_saved_pct": 8.5,
+  "extra_distance_pct": 14.7,
+  "max_pitch_reduction_deg": 2.7,
+  "max_cross_slope_reduction_deg": 5.9,
+  "rough_km_avoided": 1.25,
+  "soft_km_avoided": 3.42,
+  "dunes_km_avoided": 3.97,
+  "shadow_km_avoided": -0.3
+ },
+ "why": [
+  {
+   "factor": "dune",
+   "share_pct": 41.1
+  },
+  {
+   "factor": "energy",
+   "share_pct": 24.1
+  },
+  {
+   "factor": "soft",
+   "share_pct": 11.4
+  },
+  {
+   "factor": "cross",
+   "share_pct": 10.8
+  }
+ ],
+ "warnings": [
+  {
+   "code": "CHARGING_STOP_REQUIRED",
+   "severity": "warning",
+   "message": "Stop 5.4 h at a sunny spot (77.2797E, 18.4406N), arriving 07:33, to recharge 12.8 kWh."
+  }
+ ],
+ "suggestions": []
+}
