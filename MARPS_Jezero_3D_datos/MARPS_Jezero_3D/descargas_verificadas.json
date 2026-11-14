@@ -1,0 +1,136 @@
+[
+  {
+    "path": "ejemplos_imagenes/ZL0_1950_0840042149_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042149_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4704655,
+    "sha256": "154f3afac126f2174a9466f07b8119d0bf56d35ca22e69cb2f1c27eac1016452",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1950_0840042149_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZR0_1950_0840042149_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4697636,
+    "sha256": "239166c7a7eba99a2cabc067c0f09edc95bb33383c957edec9e692ded3259229",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1950_0840042204_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042204_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4558749,
+    "sha256": "00578ed8faef680fe128875a440ab4f74e2f9a1eb37a590dd038c99f4ead73ea",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1950_0840042204_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZR0_1950_0840042204_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4524661,
+    "sha256": "b6dc648c8f941e64e5a2c331d81bd11b171aaf8560541936ad687f8914c7bd0b",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1950_0840042221_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042221_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4675296,
+    "sha256": "041903977c355bc8d0e9708cf4f24dfc91cab86852da10cd7de88bfc6c33d485",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1950_0840042221_568EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZR0_1950_0840042221_568EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4646583,
+    "sha256": "372574da463ffb48f60f341bdf1cdc899d120efd1f87e8b1156fe8b757a2b3a9",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4407077,
+    "sha256": "4ec5bd3f64adedd6b3173dc0ab68b70c267fef4e3c4d31ec6c4a5754e80df2e6",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZR0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "bytes": 4458542,
+    "sha256": "32c811f09f4cd54f2ca63647c1f179f8dd33ed56039b4336bd307d2b32ee32a3",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1955_0840500168_054EBY_N0910124ZCAM07125_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZR0_1955_0840500168_054EBY_N0910124ZCAM07125_1100LMJ01.png",
+    "bytes": 4704515,
+    "sha256": "c0b012a63905a6eaa475fca4529fcba37f7cce35f0f0e05818edbd8868811f94",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1955_0840500168_054EBY_N0910124ZCAM07125_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZL0_1955_0840500168_054EBY_N0910124ZCAM07125_1100LMJ01.png",
+    "bytes": 4718199,
+    "sha256": "29622a45e19e23580b992bab6ce20d7c7cd9a8cf73a264e33f9b804870fdf3de",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1955_0840495068_269EBY_N0910000ZCAM09999_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZL0_1955_0840495068_269EBY_N0910000ZCAM09999_1100LMJ01.png",
+    "bytes": 4759225,
+    "sha256": "aa840a56da804e8a9d1908a2c3850900d70186518f1488e74af9e65617c6fcef",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1955_0840495068_269EBY_N0910000ZCAM09999_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZR0_1955_0840495068_269EBY_N0910000ZCAM09999_1100LMJ01.png",
+    "bytes": 4732084,
+    "sha256": "d8bc7372ea2c194531d73e6746ac35043c886f8418bbf464080ecd9c45e5596b",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZL0_1955_0840495175_473EBY_N0910000ZCAM04445_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZL0_1955_0840495175_473EBY_N0910000ZCAM04445_1100LMJ01.png",
+    "bytes": 4888527,
+    "sha256": "93d30ebed1aad10672edefb20767b42bc9c223a3c37c4d834e01b833c8c44894",
+    "ok": true
+  },
+  {
+    "path": "ejemplos_imagenes/ZR0_1955_0840495236_473EBY_N0910000ZCAM04445_1100LMJ.png",
+    "url": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01955/ids/edr/browse/zcam/ZR0_1955_0840495236_473EBY_N0910000ZCAM04445_1100LMJ01.png",
+    "bytes": 4826744,
+    "sha256": "09d8d4654ec36a0b855a4899634eaa15c68434b9800f4134b83e2d981570a6e2",
+    "ok": true
+  },
+  {
+    "path": "ejemplo_malla_NASA/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.obj",
+    "url": "https://planetarydata.jpl.nasa.gov/img/data/mars2020/mars2020_navcam_ops_mesh/data/sol/00180/ids/rdr/mesh/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.obj",
+    "bytes": 51954517,
+    "sha256": "f72c1c0b2eb96336d985f6b69e61da8f65defe0ae3c6045fb647dc2f54395060",
+    "ok": true
+  },
+  {
+    "path": "ejemplo_malla_NASA/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.mtl",
+    "url": "https://planetarydata.jpl.nasa.gov/img/data/mars2020/mars2020_navcam_ops_mesh/data/sol/00180/ids/rdr/mesh/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.mtl",
+    "bytes": 861,
+    "sha256": "7ffddededab3b1d48bc1e9147216775b62464ff3d4af7d104f1bdef8f2642253",
+    "ok": true
+  },
+  {
+    "path": "ejemplo_malla_NASA/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.png",
+    "url": "https://planetarydata.jpl.nasa.gov/img/data/mars2020/mars2020_navcam_ops_mesh/data/sol/00180/ids/rdr/mesh/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.png",
+    "bytes": 2433303,
+    "sha256": "4492a3149f338b7d41e84f790ab14bc24224254b8ecd4fc57c529ea50aab7264",
+    "ok": true
+  },
+  {
+    "path": "ejemplo_malla_NASA/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.obj.xml",
+    "url": "https://planetarydata.jpl.nasa.gov/img/data/mars2020/mars2020_navcam_ops_mesh/data/sol/00180/ids/rdr/mesh/NLF_0180_0682923165M025RAS_N0062684NCAM00301_0A0295J06.obj.xml",
+    "bytes": 15693,
+    "sha256": "28801cefea079d42ea1794824862bd2c731a6638f0a8f8344e98a49a7829706f",
+    "ok": true
+  },
+  {
+    "path": "cheyava_falls/splat.spz",
+    "url": "https://planetary-scene-studio.vercel.app/scenes/mars-hero-01/splat.spz",
+    "bytes": 16267642,
+    "sha256": "c5c0459ae5b8106766f5aef6555bd02291bd400e2613630a26d2349d554042e2",
+    "ok": true,
+    "validation": "SPZ v3 header: 972047 Gaussians; not visually rendered"
+  }
+]

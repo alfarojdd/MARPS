@@ -1,0 +1,102 @@
+[
+  {
+    "id": 1,
+    "name": "Cheyava Falls",
+    "position_site": [
+      -2.56,
+      -0.58,
+      0.1
+    ],
+    "kind": "rover_target",
+    "summary": "Rock in Neretva Vallis that Perseverance studied in July 2024, about 1 m across with white veins and \"leopard spots\". NASA announced it in September 2025 as a potential biosignature.",
+    "measurements": [
+      {
+        "label": "Rock type",
+        "value": "mudstone; grains approximately ≤30–110 μm in diameter, finer than coarse silt or very fine sand",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Rock size",
+        "value": "arrowhead-shaped rock measuring 1 meter by 0.6 meters",
+        "source_url": "https://www.jpl.nasa.gov/news/nasa-says-mars-rover-discovered-potential-biosignature-last-year/"
+      },
+      {
+        "label": "Organic matter (SHERLOC)",
+        "value": "detected by the SHERLOC instrument, based on the presence of an approximately 1,600 cm⁻¹ G band in the Raman spectra",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Leopard spots",
+        "value": "distinct spots with circular to crenulated dark-toned rims and lighter-toned cores, about 200 μm to 1 mm in diameter; they appear to represent in situ reaction fronts",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Spot rims (PIXL)",
+        "value": "enriched in Fe, P and Zn relative to the mudstone they occur in",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Spot cores (PIXL)",
+        "value": "a phase enriched in S, Fe, Ni and Zn was detected",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Minerals in the nodules and reaction fronts",
+        "value": "ferrous iron phosphate and sulfide minerals, likely vivianite and greigite, respectively",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Conditions of those reactions",
+        "value": "geological context and petrography indicate that these reactions occurred at low temperatures",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Veins",
+        "value": "large white calcium sulfate veins running the length of the rock",
+        "source_url": "https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scientists-find-intriguing-mars-rock/"
+      },
+      {
+        "label": "Red bands between the veins",
+        "value": "reddish color suggests the presence of hematite",
+        "source_url": "https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scientists-find-intriguing-mars-rock/"
+      },
+      {
+        "label": "Olivine (PIXL)",
+        "value": "an approximately 0.5–1-mm-diameter olivine grain in an approximately centimetre-thick, light-toned Ca-sulfate layer",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Olivine and carbonate grains",
+        "value": "olivine sand grains and particulate and intragranular Fe–Mg carbonate were observed in Cheyava Falls and Steamboat Mountain",
+        "source_url": "https://www.nature.com/articles/s41586-025-09413-0"
+      },
+      {
+        "label": "Biosignature status",
+        "value": "potential biosignature: a substance or structure that might have a biological origin but requires more data or further study before a conclusion can be reached about the absence or presence of life",
+        "source_url": "https://www.jpl.nasa.gov/news/nasa-says-mars-rover-discovered-potential-biosignature-last-year/"
+      },
+      {
+        "label": "Confidence of Life Detection (CoLD) scale",
+        "value": "Step One: “Detect possible signal”",
+        "source_url": "https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scientists-find-intriguing-mars-rock/"
+      },
+      {
+        "label": "Core sample",
+        "value": "Sapphire Canyon, sample no. 25, sealed July 21, 2024 (sol 1215); rock core, 6.2 cm; sedimentary",
+        "source_url": "https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/"
+      }
+    ],
+    "source_urls": [
+      "https://www.jpl.nasa.gov/news/nasa-says-mars-rover-discovered-potential-biosignature-last-year/",
+      "https://en.wikipedia.org/wiki/Cheyava_Falls",
+      "https://www.planetary.org/articles/a-biosignature-on-mars-unpacking-perseverances-cheyava-falls-find",
+      "https://www.nature.com/articles/s41586-025-09413-0",
+      "https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scientists-find-intriguing-mars-rock/",
+      "https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/"
+    ],
+    "sample": {
+      "name": "Sapphire Canyon",
+      "number": 25
+    }
+  }
+]

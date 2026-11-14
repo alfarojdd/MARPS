@@ -1,0 +1,39 @@
+{
+  "extended": {
+    "mastAz": "-37.526",
+    "mastEl": "-10.2757",
+    "sclk": "840042248.419",
+    "scaleFactor": "1",
+    "xyz": "(0.0,0.0,0.0)",
+    "subframeRect": "(1,1,1648,1200)",
+    "dimension": "(1648,1200)"
+  },
+  "sol": 1950,
+  "attitude": "(0.996282,-0.0306724,0.0694233,0.0407555)",
+  "image_files": {
+    "medium": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01_800.jpg",
+    "small": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01_320.jpg",
+    "full_res": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01.png",
+    "large": "https://mars.nasa.gov/mars2020-raw-images/pub/ods/surface/sol/01950/ids/edr/browse/zcam/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ01_1200.jpg"
+  },
+  "imageid": "ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ",
+  "camera": {
+    "filter_name": "ZCAM_L0_RGB",
+    "camera_vector": "(0.7803718183848787,-0.5993207154764655,0.17842226618742243)",
+    "camera_model_component_list": "(0.752356,0.442824,-1.98051);(0.777538,-0.600056,0.188107);(9723.87,11297.5,36.7466);(-1558.45,1363.02,14757.3);(0.782618,-0.598997,0.169491);(0.000331,0.463211,0.042082)",
+    "camera_position": "(0.752356,0.442824,-1.98051)",
+    "instrument": "MCZ_LEFT",
+    "camera_model_type": "CAHVOR"
+  },
+  "caption": "NASA's Mars Perseverance rover acquired this image using its Left Mastcam-Z camera. Mastcam-Z is a pair of cameras located high on the rover's mast.\n\nThis image was acquired on Aug. 15, 2026 (Sol 1950) at the local mean solar time of 10:12:00.",
+  "sample_type": "Full",
+  "date_taken_mars": "Sol-01950M10:12:00.170",
+  "credit": "NASA/JPL-Caltech/ASU",
+  "date_taken_utc": "2026-08-15T05:28:31.262",
+  "json_link": "https://mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020&feedtype=json&id=ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ",
+  "link": "https://mars.nasa.gov/mars2020/multimedia/raw-images/ZL0_1950_0840042233_598EBY_N0910000ZCAM09994_1100LMJ",
+  "drive": "0",
+  "title": "Mars Perseverance Sol 1950: Left Mastcam-Z Camera",
+  "site": 91,
+  "date_received": "2026-08-19T04:00:58Z"
+}

@@ -240,7 +240,6 @@ data/jezero/hires/
 platform/viewer/data/
 platform/viewer/vendor/
 # Local reconstructions package: keep the large models and metadata out of Git.
-MARPS_Jezero_3D_datos/
 # Local Mars Trek export supplied for the relief converter.
 /trekSTL.stl
 # Jezero: data lives in Google Drive, not GitHub

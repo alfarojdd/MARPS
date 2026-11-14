@@ -1,0 +1,70 @@
+{
+  "date": "2026-11-14",
+  "sources": [
+    {
+      "name": "Mastcam-Z catalog search",
+      "url": "https://api.sketchfab.com/v3/search?type=models&user=Mastcam-Z&sort_by=-publishedAt&count=24",
+      "status": "fully paginated, 224 models returned"
+    },
+    {
+      "name": "NASA MMGIS rover waypoints",
+      "url": "https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json",
+      "status": "downloaded: 708 waypoints, through sol2022"
+    },
+    {
+      "name": "PLACES",
+      "url": "https://pds-geosciences.wustl.edu/missions/mars2020/places.htm",
+      "status": "best_interp and telemetry downloaded, PLACES page says release16 through sol1897"
+    },
+    {
+      "name": "Current science release",
+      "url": "https://pds-geosciences.wustl.edu/missions/mars2020/index.htm",
+      "status": "release16 through sol1859; release17 scheduled2026-12-08"
+    },
+    {
+      "name": "NASA raw image feed",
+      "url": "https://mars.nasa.gov/rss/api/?feed=raw_images&category=mars2020&feedtype=json",
+      "status": "selected windows paginated and sol filtering verified; browse PNGs are not calibrated PDS radiance"
+    },
+    {
+      "name": "PDS current archive",
+      "url": "https://pdsimage2.wr.usgs.gov/archive/mars2020/",
+      "status": "HTTP403 during this session"
+    },
+    {
+      "name": "PDS legacy mirror",
+      "url": "https://planetarydata.jpl.nasa.gov/img/data/mars2020/",
+      "status": "accessible but older coverage, do not assume current"
+    },
+    {
+      "name": "PRoViP OPC access",
+      "url": "https://doi.org/10.1029/2022EA002532",
+      "status": "access route published in article; SFTP not enumerated/verified"
+    },
+    {
+      "name": "FU Berlin repository",
+      "url": "https://doi.org/10.17169/refubium-45082",
+      "status": "access blocked by server challenge, actual model files not downloaded"
+    },
+    {
+      "name": "Public 3DGS model",
+      "url": "https://github.com/Matusvec/spaceX-Mhacks-Challenge",
+      "status": "manifest and 16.27 MB splat downloaded"
+    },
+    {
+      "name": "PDS navcam snapshot13",
+      "url": "https://pds.nasa.gov/data/pds4/releases/img/mars2020_navcam_ops_mesh-20250922/collection_data_inventory.csv",
+      "status": "downloaded; excludes auxiliary non-mesh entries from derived catalog"
+    },
+    {
+      "name": "PDS hazcam snapshot13",
+      "url": "https://pds.nasa.gov/data/pds4/releases/img/mars2020_hazcam_ops_mesh-20250922/collection_data_inventory.csv",
+      "status": "downloaded; excludes auxiliary non-mesh entries from derived catalog"
+    },
+    {
+      "name": "PDS mastcamz snapshot13",
+      "url": "https://pds.nasa.gov/data/pds4/releases/img/mars2020_mastcamz_ops_mesh-20250922/collection_data_inventory.csv",
+      "status": "downloaded; excludes auxiliary non-mesh entries from derived catalog"
+    }
+  ]
+}

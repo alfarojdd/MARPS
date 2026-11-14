@@ -5,7 +5,11 @@ import math
 from pathlib import Path
 
 RADIUS = 3396190.0
-DEFAULT_DATASET = Path(__file__).resolve().parents[1] / "MARPS_Jezero_3D_datos/MARPS_Jezero_3D"
+ROOT = Path(__file__).resolve().parents[1]
+BUNDLED_DATASET = ROOT / "data/jezero/reconstructions"
+LEGACY_DATASET = ROOT / "MARPS_Jezero_3D_datos/MARPS_Jezero_3D"
+# Keep existing installations; a fresh clone includes the lightweight metadata.
+DEFAULT_DATASET = LEGACY_DATASET if (LEGACY_DATASET / "catalogos/modelos_curados.csv").is_file() else BUNDLED_DATASET
 
 
 def read_json(path):
@@ -57,7 +61,8 @@ def build_catalog(dataset=DEFAULT_DATASET):
                     description=row.get("description", ""), available=True,
                 ))
     else:
-        warnings.append("No se encontró el catálogo. Indica la carpeta extraída con --dataset.")
+        warnings.append("No se encontró el catálogo. Ejecuta python3 backend/prepare_reconstructions.py --dataset \""
+                        + str(dataset) + "\" o indica la carpeta extraída con --dataset.")
 
     manifest = dataset / "cheyava_falls/scene_original.json"
     if manifest.exists():
@@ -81,6 +86,10 @@ def build_catalog(dataset=DEFAULT_DATASET):
 
     mesh_dir = dataset / "ejemplo_malla_NASA"
     obj = next(mesh_dir.glob("*.obj"), None)
+    if obj is None:
+        # The PDS label is versioned so its POI exists before the heavy OBJ download.
+        label = next(mesh_dir.glob("*.obj.xml"), None)
+        obj = label.with_suffix("") if label else None
     if obj:
         coords, anchor_source = mesh_anchor(dataset)
         scenes.insert(1 if manifest.exists() else 0, dict(
@@ -91,10 +100,15 @@ def build_catalog(dataset=DEFAULT_DATASET):
                 sol=180, license="NASA/PDS · consultar la procedencia del producto",
                 source="https://pds.nasa.gov/ds-view/pds/viewCollection.jsp?identifier=urn:nasa:pds:mars2020_navcam_ops_mesh:data",
                 description="Malla estéreo texturizada parcial. Marco NASA SITE_FRAME (+X norte, +Y este, +Z abajo). Vista inicial sobre la superficie; sin continuidad ni colisiones garantizadas.",
-                available=obj.with_suffix(".png").is_file(), asset=f"/reconstructions/files/ejemplo_malla_NASA/{obj.name}",
+                available=obj.is_file() and obj.with_suffix(".png").is_file(), asset=f"/reconstructions/files/ejemplo_malla_NASA/{obj.name}",
                 texture=f"/reconstructions/files/ejemplo_malla_NASA/{obj.stem}.png",
                 frame="nasa-ned", radius=20,
         ))
+
+    if any(not scene["available"] for scene in scenes if scene["renderer"] != "sketchfab"):
+        warnings.append("Faltan archivos de reconstrucciones locales. Ejecuta python3 backend/prepare_reconstructions.py"
+                        + ("" if dataset.resolve() == DEFAULT_DATASET.resolve() else ' --dataset "' + str(dataset) + '"')
+                        + ". Comprueba la instalación con --check.")
 
     return dict(version=1, body="Mars", radius=RADIUS, scenes=scenes, warnings=warnings,
                 counts=dict(total=len(scenes), placed=sum(s["coordinates"] is not None for s in scenes),

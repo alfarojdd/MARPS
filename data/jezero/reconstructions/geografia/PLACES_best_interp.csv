@@ -1,0 +1,2 @@
+frame,site,drive,pose,landing_x,landing_y,landing_z,northing,easting,planetocentric_latitude,planetodetic_latitude,longitude,elevation,map_pixel_line,map_pixel_sample,dem_pixel_line,dem_pixel_sample,roll,pitch,yaw,quat_s,quat_v1,quat_v2,quat_v3,areoid,radius,sclk,sol
+ROVER,6,2684,-1,-818.070,-369.614,4.469,1092481.625,4354124.472,18.430825802,18.346169209,77.444311622,-2574.379,18353.50,52937.89,4588.38,13234.47,0.216,-0.131,128.700,0.432871372,0.001844045,0.001207115,0.901453004,3394509.409,3391935.030,682923129,180
