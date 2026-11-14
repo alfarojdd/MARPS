@@ -29,13 +29,15 @@ How we work: [CONTRIBUTING.md](CONTRIBUTING.md).
 With `MARPS_Jezero_3D_datos/MARPS_Jezero_3D` extracted at the repository root:
 
 ```bash
-python3 backend/prepare_viewer.py  # first run only; downloads the web libraries
+python3 backend/prepare_viewer.py  # download/update and verify the web libraries
 python3 backend/viewer.py
 ```
 
-Open **http://127.0.0.1:8765**. Select a **3D** marker to enter a reconstruction, or use **Entrar en Cheyava Falls** to open the local scene in first person. Drag to look around and use **W A S D / arrow keys** to walk. Touch controls, an orbital view and a return-to-map button are also available.
+Open **http://127.0.0.1:8765**. The map combines the existing example trajectory, classic A* comparison, stops and **3D reconstruction points**. The floating-card route view at **http://127.0.0.1:8765/terrain3d/demo.html** has the same points and surface viewer. Both share the route and relief controls.
 
-The CTX basemap and local models work offline once the libraries are prepared. Sketchfab models require an internet connection. The catalog distinguishes approximate locations and scenes without verified coordinates. See [platform/viewer/README.md](platform/viewer/README.md) for details and limitations.
+Select a **3D** marker or **Entrar en Cheyava Falls** to enter a local scene in first person. Drag to look around and use **W A S D / arrow keys** to walk. Closing the scene returns to the same map, trajectory and camera. With a generated relief, the map's **3D** button tilts the terrain and keeps reconstruction points clickable above it, alongside the elevation profile. See [TERRAIN_3D.md](docs/TERRAIN_3D.md) to prepare the real DTM; without it, the 2D route and surface reconstructions remain available.
+
+The CTX basemap, generated relief and local models work offline once prepared. Sketchfab models require an internet connection. The catalog distinguishes approximate locations and scenes without verified coordinates. See [platform/viewer/README.md](platform/viewer/README.md) for usage and [RECONSTRUCTIONS.md](docs/RECONSTRUCTIONS.md) for the integration, data and current limitations. The displayed trajectory is a saved planner example; it is not a live mission request.
 
 ## License
 

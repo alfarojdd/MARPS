@@ -48,5 +48,30 @@
     "path": "three/three.module.js",
     "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/build/three.module.js",
     "sha256": "bc0d236927f5163414e7c59a5567257dfe925f1929ce0a151ac4185dc45ca5a2"
+  },
+  {
+    "path": "three/addons/lines/Line2.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/lines/Line2.js",
+    "sha256": "12b6530a7013139bc674f2e4d56c309c3da0b695f43f52f2cce434316a3bfdee"
+  },
+  {
+    "path": "three/addons/lines/LineGeometry.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/lines/LineGeometry.js",
+    "sha256": "94f14393ccabeb2fd7fccc6602a35dc6cc40677cec91b62d9db45ca9deb66813"
+  },
+  {
+    "path": "three/addons/lines/LineMaterial.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/lines/LineMaterial.js",
+    "sha256": "8450d827153d2509e43513cd123df786d7c8c7cdbfd4c7eea4c9e1621f2a7fb5"
+  },
+  {
+    "path": "three/addons/lines/LineSegments2.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/lines/LineSegments2.js",
+    "sha256": "543cf45b47bd071628b823544f682e167e1a52e20b8b714d1b3a08f312a7e0e3"
+  },
+  {
+    "path": "three/addons/lines/LineSegmentsGeometry.js",
+    "url": "https://cdn.jsdelivr.net/npm/three@0.178.0/examples/jsm/lines/LineSegmentsGeometry.js",
+    "sha256": "471f0a954a0c9c59d3d151392f424142a9164a722802f63b371971378a84a1b1"
   }
 ]

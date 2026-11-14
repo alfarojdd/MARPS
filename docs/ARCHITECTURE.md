@@ -101,6 +101,17 @@ Local implementation in `backend/viewer.py` and `backend/reconstructions.py`, us
 - `GET /api/map-config`: pipeline configuration if it exists; otherwise, CTX background with the versioned tiles.
 - `GET /api/reconstructions`: `{version:1, body:"Mars", radius:3396190, counts, warnings, scenes}`. Each scene includes `id`, `title`, `author`, `kind` (`landscape`, `detail`, `aerial`), `renderer` (`spz`, `obj`, `sketchfab`), `coordinates` (`[lon_E, lat_planetocéntrica]` or `null`), `anchor`, `sol`, `license`, `source` and `available`. Local scenes add `asset`, `frame` and `radius`; the OBJ scene adds `texture`.
 - `GET /api/traverse`: a GeoJSON line with **Mars** coordinates, for context display only.
+- `GET /api/terrain-sources`: `{sources:[{id,title,url}]}` for complete, locally generated reliefs. CTX DTM is listed first, then Mars Trek STL; a manifest without its heightmap or texture is omitted.
 - `/assets/ctx/…`: orbital tiles from the repository. `/reconstructions/files/cheyava_falls/…` and `/reconstructions/files/ejemplo_malla_NASA/…`: local files from the package configured with `--dataset`.
 
 The map projects the anchors with the same Martian equirectangular projection as [A]. Opening a scene keeps the map state in a dialog; closing it destroys its iframe and releases the WebGL viewer. Models without a location never receive invented coordinates. The local camera uses an estimated ground and limited movement, with no guaranteed collision handling or continuous coverage.
+
+## [E] Route map + reconstruction points
+
+The main map (`platform/viewer/index.html`) and the existing floating-card route view (`terrain3d/demo.html`) share `route-view.mjs` and `reconstructions.mjs`. The route keeps its orange line, blue dashed classic A*, stop markers, tilt/exaggeration controls and physical elevation profile. The initial framing follows the route; loading the catalogue does not reframe it to all reconstructions.
+
+`initRouteView({map,cfg,container,routeUrl})` returns `{terrain,setRoute,fitRoute,getRouteLayer}`. The default route is the saved `terrain3d/demo_route.json` response. A future caller of `POST /plan-route` can call `setRoute(response)`, or dispatch `CustomEvent("marps:plan-route", {detail:response})` on `.mapwrap` (main map) or `#wrap` (route view). This replaces both route representations and the elevation profile; it is not an automatic HTTP connection to the planner.
+
+`initReconstructions({map,cfg,terrain,container,fitOnLoad:false})` adds the same verified-location catalogue entries to the 2D map and to an HTML button overlay on the tilted relief. `Terrain3D.projectPoint([lon,lat])` samples the loaded relief for height and projects through the active camera. Out-of-bounds, off-screen and approximately terrain-occluded points are hidden. The buttons mark approximate scene/rover anchors, not mesh footprints.
+
+The scene modal suspends the terrain render loop and its animation clock with `setPaused(true)`. Closing it removes the iframe and resumes the same camera, vertical exaggeration and route progress. Catalogue location/fitting actions use `focusAtXY` in 3D. The 2D Leaflet container is inert while the tilted map is active, so covered 2D markers do not receive keyboard focus. Missing relief or WebGL leaves the route and reconstruction catalogue usable in 2D. Full behavior, data setup and verification: [RECONSTRUCTIONS.md](RECONSTRUCTIONS.md) and [TERRAIN_3D.md](TERRAIN_3D.md).

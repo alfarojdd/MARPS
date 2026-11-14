@@ -15,6 +15,18 @@ button:disabled { opacity: .45; cursor: default; }
 .scene-pin { display: grid; place-items: center; border-radius: 50%; background: #203b3b; border: 2px solid #85d6ca; color: white; box-shadow: 0 2px 8px #0009; font-size: 10px; font-weight: bold; }
 .scene-pin.local { background: #b64e28; border-color: #ffd0a9; }
 .scene-pin.detail { background: #563c64; border-color: #dbb2f0; }
+.scene-terrain-layer { position: absolute; inset: 0; z-index: 950; pointer-events: none; overflow: hidden; }
+.scene-terrain-layer[hidden], .scene-terrain-pin[hidden] { display: none; }
+.scene-terrain-pin { position: absolute; left: 0; top: 0; width: 28px; height: 28px; padding: 0; pointer-events: auto; cursor: pointer; }
+.scene-terrain-pin.local { z-index: 2; }
+.reconstruction-panel { left: 12px; bottom: 28px; width: min(330px, calc(100% - 24px)); max-height: calc(100% - 100px); overflow-y: auto; }
+.reconstruction-panel summary { padding: 10px 12px; cursor: pointer; font-weight: 600; color: #f2a679; }
+.reconstruction-panel #reconstructions { border: 0; border-top: 1px solid #42362d; background: none; margin: 0; }
+.reconstruction-panel #sceneList { max-height: 190px; }
+.reconstruction-panel label.row { display: flex; flex-direction: row; align-items: center; gap: 8px; padding: 4px 0; font-size: 12px; }
+.reconstruction-panel .muted { color: #9aa3ae; }
+.is3d .reconstruction-panel { bottom: 158px; max-height: calc(100% - 235px); }
+.scene-actions button, #surfaceDialog button { font: inherit; cursor: pointer; }
 .leaflet-popup-content .scene-card { border: 0; color: #222; }
 .leaflet-popup-content .scene-meta { color: #555; }
 .leaflet-popup-content button { font: inherit; padding: 8px; cursor: pointer; }

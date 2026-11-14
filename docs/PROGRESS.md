@@ -2,6 +2,14 @@
 
 One entry per work session, most recent first. Format: date, area, what was done, decisions made, blockers.
 
+## 2026-11-14: reconstruction points in the existing route map (platform)
+- Integrated surface-reconstruction POIs into both `platform/viewer/index.html` and the existing floating-card `terrain3d/demo.html`, retaining the orange trajectory, dashed blue classic A*, stop colours, tilt/exaggeration controls and elevation profile. Both now share `route-view.mjs` and `reconstructions.mjs`.
+- The 94 located catalogue entries appear as Leaflet markers and projected buttons above the selected relief. Catalogue positioning works in either map mode. Surface modals use the same local/external viewers and preserve the route, tilted camera and exaggeration; the terrain render loop and clock pause while a modal is open.
+- Prepared the official 20 m USGS CTX DTM (9.7 MB) and generated an 800 × 758 browser relief. Also converted the root `trekSTL.stl` supplied by the user: 400 × 400 XY grid, fit `fliplr`, correlation 0.9784, 8.6801 m/unit, offset −422.49 m, RMSE 55.31 m; cropped output 374 × 381. These fit parameters apply to this file and supersede the earlier export's scaling for current use. Sources and hashes: [DATA_SOURCES.md](DATA_SOURCES.md).
+- Added explicit `--dtm` / `--ortho` converter inputs and a `/api/terrain-sources` inventory listing complete local bundles, DTM first. Missing relief and WebGL failure leave the 2D trajectory and reconstruction catalogue available. The five Three.js line addons are now versioned by URL and SHA-256 for local preparation.
+- The route is still a saved planner example, not a live LLM/planner call. Future planner responses can update both route views through `setRoute` / `marps:plan-route`. The Perseverance traverse remains an optional separate context layer.
+- Documented actual operation, data preparation, API contracts, approximate anchors, source licences and remaining limits in [RECONSTRUCTIONS.md](RECONSTRUCTIONS.md), [TERRAIN_3D.md](TERRAIN_3D.md), the viewer README and architecture. Reconstruction binaries, the supplied STL and generated reliefs remain outside Git.
+
 ## 2026-11-14: shadows and planner API (planner)
 - Integrated `mars_shadows.py` (Pablo) with `assets/SunAngle.csv` in `planner/shadows.py`. The ephemeris is converted to local solar time (sunrise 05:48, sunset 18:12) and direct light with cast shadows and self-shadowing is computed for 26 instants (cached).
 - Light feeds into solar charging while moving, into a shadow risk term (higher with `power` or with crew) and into the **charging stop**: the chosen site is the one that finishes charging soonest under real light, avoiding shadow. The light window used in the warnings comes from the CSV.
@@ -37,7 +45,7 @@ One entry per work session, most recent first. Format: date, area, what was done
 - Demo of a **3D** button: the map tilts, the relief is exaggerated and the planner's route is drawn on top, with an elevation profile. Details and integration steps in [TERRAIN_3D.md](TERRAIN_3D.md).
 - Mars Trek STL (400 × 400 grid, no georeference) georeferenced by correlation with the CTX DTM: horizontal mirror, r = 0.978, 29.04 m per unit, RMSE 55 m. Converted to a float32 heightmap + CTX texture with `data/jezero/pipeline/build_terrain3d.py`. The same format can be made from the CTX DTM.
 - Module `platform/viewer/terrain3d/terrain3d.mjs` and demo `platform/viewer/terrain3d/demo.html`, with a real `/plan-route` response.
-- Pending: vendor the line addons of Three.js in `backend/viewer_dependencies.json`, decide the default relief (DTM or STL) and wire the button into the main map.
+- Follow-up completed in the reconstruction-point integration above: vendored line addons, DTM default, shared route controls in the main map and reconstruction points on both relief sources. This earlier export's 29.04 m/unit fit is historical, not the fit of the currently supplied root STL.
 
 ## Pending decisions
 - [x] Mars area: Jezero

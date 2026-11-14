@@ -151,7 +151,7 @@ def _window_bounds(transform, window):
     return float(left), float(top), float(right), float(bottom)
 
 
-def write_texture(path, bounds, max_px=4096):
+def write_texture(path, bounds, max_px=4096, ortho=ORTHO):
     """Crop the CTX orthomosaic to `bounds` and save it as JPEG (stretched 2-98 %)."""
     import rasterio
     from PIL import Image
@@ -161,7 +161,7 @@ def write_texture(path, bounds, max_px=4096):
     left, top, right, bottom = bounds
     aspect = (right - left) / (top - bottom)
     w, h = (max_px, round(max_px / aspect)) if aspect >= 1 else (round(max_px * aspect), max_px)
-    with rasterio.open(ORTHO) as src:
+    with rasterio.open(ortho) as src:
         win = from_bounds(left, bottom, right, top, src.transform)
         a = src.read(1, window=win, out_shape=(h, w), resampling=Resampling.average,
                      boundless=True, masked=True).astype(np.float64)
@@ -176,6 +176,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--source", choices=["stl", "dtm"], default="stl")
     ap.add_argument("--stl", type=Path, default=STL)
+    ap.add_argument("--dtm", type=Path, default=DTM, help="georeferenced elevation GeoTIFF")
+    ap.add_argument("--ortho", type=Path, default=ORTHO, help="CTX orthoimage GeoTIFF for the texture")
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--dtm-width", type=int, default=800, help="grid width when using --source dtm")
     ap.add_argument("--texture-px", type=int, default=4096)
@@ -184,7 +186,7 @@ def main():
     import rasterio
     from rasterio.enums import Resampling
 
-    with rasterio.open(DTM) as src:
+    with rasterio.open(args.dtm) as src:
         dtm = src.read(1).astype(np.float64)
         transform = src.transform
         dtm[~np.isfinite(dtm)] = np.nan
@@ -201,7 +203,7 @@ def main():
     else:
         name = "terrain_dtm"
         h = round(args.dtm_width * dtm.shape[0] / dtm.shape[1])
-        with rasterio.open(DTM) as src:
+        with rasterio.open(args.dtm) as src:
             heights = src.read(1, out_shape=(h, args.dtm_width), resampling=Resampling.average, masked=True)
         heights = heights.astype(np.float32).filled(np.nan)
         heights[~np.isfinite(heights)] = np.nanmin(heights)  # gaps: lowest value, no invented relief
@@ -209,7 +211,7 @@ def main():
 
     bounds = _window_bounds(transform, win)
     args.out.mkdir(parents=True, exist_ok=True)
-    extra.update(write_texture(args.out / f"{name}_ctx.jpg", bounds, args.texture_px))
+    extra.update(write_texture(args.out / f"{name}_ctx.jpg", bounds, args.texture_px, ortho=args.ortho))
     meta = write_terrain(args.out, name, heights, bounds, source=args.source, extra=extra)
     print(f"{args.out / meta['heights']}: {meta['width']}x{meta['height']}, "
           f"{meta['min']:.0f} to {meta['max']:.0f} m")

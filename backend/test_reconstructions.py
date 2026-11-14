@@ -4,10 +4,11 @@ import json
 import math
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from reconstructions import RADIUS, build_catalog, build_route, mesh_anchor
-from viewer import ROOT, ViewerHandler, map_config
+from viewer import ROOT, ViewerHandler, map_config, terrain_sources
 
 
 class ReconstructionTests(unittest.TestCase):
@@ -89,6 +90,28 @@ class ReconstructionTests(unittest.TestCase):
         self.assertEqual(cfg["radius"], RADIUS)
         self.assertAlmostEqual(cfg["left"], 4573663.250853, places=4)
         self.assertAlmostEqual(cfg["top"], 1109693.140188, places=4)
+
+    def test_relief_inventory_only_advertises_complete_local_assets(self):
+        directory = self.dataset / "platform/viewer/data/terrain3d"
+        directory.mkdir(parents=True)
+        (directory / "terrain_dtm.json").write_text(json.dumps(dict(heights="terrain_dtm.f32", texture="texture.jpg")))
+        with patch("viewer.ROOT", self.dataset):
+            self.assertEqual(terrain_sources(), {"sources": []})
+            (directory / "terrain_dtm.f32").touch()
+            self.assertEqual(terrain_sources(), {"sources": []})
+            (directory / "texture.jpg").touch()
+            self.assertEqual(terrain_sources()["sources"][0]["id"], "terrain_dtm")
+            # An invalid second source does not hide the valid DTM.
+            (directory / "terrain_stl.json").write_text("{")
+            self.assertEqual(len(terrain_sources()["sources"]), 1)
+
+    def test_relief_inventory_rejects_files_outside_terrain_directory(self):
+        directory = self.dataset / "platform/viewer/data/terrain3d"
+        directory.mkdir(parents=True)
+        (directory.parent / "outside.f32").touch()
+        (directory / "terrain_dtm.json").write_text(json.dumps(dict(heights="../outside.f32")))
+        with patch("viewer.ROOT", self.dataset):
+            self.assertEqual(terrain_sources(), {"sources": []})
 
 
 if __name__ == "__main__":
