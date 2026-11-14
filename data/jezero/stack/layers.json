@@ -1,5 +1,5 @@
 {
- "crs": "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs=True",
+ "crs": "+proj=eqc +lat_ts=0 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +R=3396190 +units=m +no_defs +type=crs",
  "transform": [
   20.0,
   0.0,
@@ -99,12 +99,6 @@
   },
   {
    "index": 13,
-   "id": "dist_traverse",
-   "units": "m",
-   "desc": "Distancia a la traza de Perseverance"
-  },
-  {
-   "index": 14,
    "id": "ctx_ortho",
    "units": "DN",
    "desc": "Ortoimagen CTX promediada a 20 m"

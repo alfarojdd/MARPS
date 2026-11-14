@@ -14,6 +14,10 @@ Una entrada por sesión de trabajo, la más reciente arriba. Formato: fecha, ár
 - Estructura por áreas (`platform/`, `llm/`, `planner/`, `data/`, `docs/`) y ramas de área.
 - Borrador de los tres contratos entre áreas en [ARQUITECTURA.md](ARQUITECTURA.md).
 
+## 2026-11-14 (tarde): mapas sin trayectoria
+- Se retira la trayectoria de Perseverance: capa `dist_traverse`, vectores de traza y waypoints, y la elipse de aterrizaje. Stack base de 13 bandas.
+- Pendiente de decisión: reescribir el historial de `main` para borrar la trayectoria de commits anteriores (328d796). No se ha hecho.
+
 ## Decisiones pendientes
 - [x] Zona de Marte: Jezero
 - [x] Capas concretas y fuentes: ver [CAPAS_JEZERO.md](CAPAS_JEZERO.md) (falta que el planificador elija cuáles usa)

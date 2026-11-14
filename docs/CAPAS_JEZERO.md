@@ -3,15 +3,15 @@
 Qué capas tiene el mapa, de dónde salen, cómo se generan y qué se descartó. Quien cambie las capas actualiza este fichero y `docs/FUENTES.md`.
 
 ## Zona de trabajo
-- **Bbox (lon/lat, esfera Mars 2000 R = 3 396 190 m)**: 77.1604655–77.6991776 °E, 18.2110274–18.7211945 °N. Unos 32 × 30 km en el borde oeste del cráter Jezero: delta, suelo del cráter, Séítah, borde oeste y elipse de aterrizaje de Perseverance.
+- **Bbox (lon/lat, esfera Mars 2000 R = 3 396 190 m)**: 77.1604655–77.6991776 °E, 18.2110274–18.7211945 °N. Unos 32 × 30 km en el borde oeste del cráter Jezero: delta, suelo del cráter, Séítah y borde oeste.
 - Coincide exactamente con la extensión del DTM CTX que USGS preparó para la navegación TRN de Mars 2020; esa es la **rejilla común**: equirectangular (`+proj=eqc +R=3396190`), 20 m/px, 1596 × 1512 px, esquina NO en (4 573 663.25, 1 109 693.14) m.
 - **Regla de la base (decidida el 2026-11-14)**: solo entran en la base las capas con dato en todo el bbox (≥ 99,9 %). `pipeline/build_layers.py stack` y la prueba `test_base_stack_covers_whole_bbox` lo hacen cumplir. **Única excepción aceptada por el usuario: `thermal_inertia` (96,1 %)**, marcada con `min_coverage` en `layers.STACK_BANDS`. Todo se recorta exactamente al bbox; el visor no deja salir del recuadro.
 
 ## Dónde está cada cosa en el repo
 | Ruta | Contenido |
 |---|---|
-| `data/jezero/stack/jezero_stack_20m.tif` + `layers.json` | **Stack base** para el planificador: 14 bandas float32 (NaN = sin dato), 90 MB |
-| `data/jezero/vectors/` | GeoJSON en metros de la misma proyección (traza, waypoints, elipse, geología) |
+| `data/jezero/stack/jezero_stack_20m.tif` + `layers.json` | **Stack base** para el planificador: 13 bandas float32 (NaN = sin dato), 85 MB |
+| `data/jezero/vectors/` | GeoJSON en metros de la misma proyección (geología) |
 | `data/jezero/extra/geo_unit.tif` | Unidades geológicas (capa complementaria, 95,8 %) |
 | `data/jezero/pipeline/` | Código que genera todo y sus pruebas |
 | `platform/viewer/index.html` | Visor Leaflet; las teselas no se versionan, se generan con `make_viewer_data.py` |
@@ -36,7 +36,6 @@ Las descargas originales, las capas intermedias y las capas descartadas (HiRISE,
 | `thermal_inertia` (**96,1 %**) | THEMIS, Edwards & Buz 2021 (Zenodo 4931348) | 100 m | Obs.* | Alta = roca firme; baja = arena o polvo (atasco) | Carga pesada, rutas largas |
 | `themis_day_ir` | THEMIS IR diurno, mosaico controlado USGS MC-13 | 100 m | Obs. | Contraste térmico diurno | Complemento de la inercia térmica |
 | `themis_night_ir` | THEMIS IR nocturno, mosaico controlado USGS MC-13 | 100 m | Obs. | De noche la roca conserva calor → roca firme | Igual |
-| `dist_traverse` | Derivada de la traza M20 (NASA/JPL MMGIS, hasta sol 2022) | 20 m | Der. | Distancia a terreno ya recorrido con éxito | Misiones conservadoras |
 
 Obs. = observado; Obs.* = producto científico ya interpretado; Der. = derivado o inferido por nosotros.
 
@@ -46,7 +45,7 @@ Obs. = observado; Obs.* = producto científico ya interpretado; Der. = derivado 
 | `geo_unit` + vectores geológicos (USGS SIM 3464, Sun & Stack 2020, 1:75 000) | 95,8 % (el mapa acaba en 18,70 °N; falta una franja de 1,3 km al norte) | Es el único mapa geológico a esta escala y aporta el tercer tipo de dato (geológico) |
 
 ### Vectores (dentro del bbox)
-Traza de Perseverance (555 tramos), waypoints (708), elipse de aterrizaje, contactos geológicos, crestas, frentes de delta, canales, mantos oscuros y cráteres pequeños.
+Contactos geológicos, crestas, frentes de delta, canales, mantos oscuros y cráteres pequeños.
 
 ### Avisos sobre los datos
 - **Inercia térmica: se eligió la de Jezero (decisión del usuario, 2026-11-14).** No tiene dato en una franja de 1,2 km del borde oeste (77.160–77.181 °E): ahí la banda vale NaN y el planificador debe tratarla como "desconocido", no como cero. La alternativa global cuantitativa de USGS cubre el 100 %, pero tiene bandas verticales entre pasadas de THEMIS; comparada con la de Jezero, la correlación es de 0,41 y da +106 TIU de media. Se guarda en `layers20m/thermal_inertia_global.tif`.
@@ -61,7 +60,7 @@ Los ficheros se conservan en `data/jezero/` por si se usan como detalle más ade
 |---|---|---|
 | Ortoimagen HiRISE 1 m (6 ortos controladas USGS) | 37 % | Solo la franja central |
 | DTM HiRISE TRN 1 m y derivadas (pendiente 1 m, pendiente máx./media en 20 m, rugosidad, sombreado, cota) | 32 % | Solo el centro (zona de aterrizaje) |
-| Mineralogía CRISM (Parente et al. 2021, Zenodo 5575824) | 41 % | 4 escenas sobre la elipse |
+| Mineralogía CRISM (Parente et al. 2021, Zenodo 5575824) | 41 % | 4 escenas sobre el centro de la zona |
 | Inercia térmica global cuantitativa USGS (00N060E, 100 m) | 100 % | Bandas entre pasadas THEMIS; se prefirió la de Jezero |
 | THEMIS IR día/noche de SIM 3464 (oct 2018) | 96 % | Falta la franja norte; sustituidos por MC-13 |
 
@@ -90,7 +89,7 @@ python -m pytest -q data/jezero/pipeline
 
 Regenerar el stack desde los datos originales (descargas abajo en `data/jezero/raw/`):
 ```bash
-python build_layers.py base            # CTX, HRSC, THEMIS (descarga recortes), CRISM, geología, traza
+python build_layers.py base            # CTX, HRSC, THEMIS (descarga recortes), CRISM, geología
 python build_layers.py stack           # falla si alguna banda base no cubre todo el bbox
 ```
 `build_layers.py hirise_dtm` / `hirise_ortho` regeneran las capas HiRISE descartadas. Cada regeneración del stack añade ~90 MB al historial de git: no lo subáis por cada cambio pequeño.
@@ -103,7 +102,6 @@ Descargas manuales a `data/jezero/raw/`:
 | `Jezero_Thermal_Inertia_v1.tiff` | https://zenodo.org/records/4931348 |
 | `jezeroFinal.tif`, `Jezero_readme.pdf` | https://zenodo.org/records/5575824 |
 | `sim3464_database.zip` → `raw/sim3464/` | https://pubs.usgs.gov/sim/3464/sim3464_database.zip |
-| `M20_traverse.json`, `M20_waypoints.json` | https://mars.nasa.gov/mmgis-maps/M20/Layers/json/ |
 
 Los recortes THEMIS (`themis_*_clip.tif`) los descarga solo `build_layers.py`, desde los COG de USGS en S3.
 

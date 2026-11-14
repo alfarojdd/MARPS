@@ -203,7 +203,7 @@ def coverage_pct(layer):
         rasterio.warp.reproject(rasterio.band(s, 1), a, src_nodata=layer.get("nodata", s.nodata if s.nodata is not None else 0),
                                 dst_transform=bl.GRID["transform"], dst_crs=bl.GRID["crs"], dst_nodata=np.nan,
                                 resampling=Resampling.nearest)
-    valid = np.isfinite(a) & ((a > 0) if layer["kind"] == "categorical" else True)
+    valid = np.isfinite(a) & ((a >= layer.get("valid_min", 1)) if layer["kind"] == "categorical" else True)
     return round(float(valid.mean()) * 100, 1)
 
 

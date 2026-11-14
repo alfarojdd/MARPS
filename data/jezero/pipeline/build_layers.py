@@ -223,28 +223,11 @@ def build_geology():
     units["geometry"] = units.geometry.simplify(5.0)
     units.to_file(VEC / "geo_units.geojson", driver="GeoJSON")
     for layer, out in (("SurfaceFeatures", "geo_surface_features"), ("LinearFeatures", "geo_linear_features"),
-                       ("LocationFeatures", "geo_location_features"), ("LandingEllipse", "landing_ellipse")):
+                       ("LocationFeatures", "geo_location_features")):
         g = _clip_box_gdf(pyogrio.read_dataframe(gdb, layer=layer).to_crs(GRID["crs"]))
         keep = [c for c in ("TYPE", "name") if c in g.columns]
         g[keep + ["geometry"]].to_file(VEC / f"{out}.geojson", driver="GeoJSON")
         print(f"  {out}: {len(g)} elementos")
-
-
-def build_traverse():
-    print("Traza de Perseverance")
-    import geopandas as gpd
-    tr = gpd.read_file(RAW / "M20_traverse.json").set_crs(MARS_LONLAT, allow_override=True).to_crs(GRID["crs"])
-    wp = gpd.read_file(RAW / "M20_waypoints.json").set_crs(MARS_LONLAT, allow_override=True).to_crs(GRID["crs"])
-    tr, wp = _clip_box_gdf(tr), _clip_box_gdf(wp)
-    tr_keep = [c for c in ("sol", "fromRMC", "toRMC", "length", "SCLK_START") if c in tr.columns]
-    wp_keep = [c for c in ("sol", "site", "drive", "RMC", "elev_geoid") if c in wp.columns]
-    tr[tr_keep + ["geometry"]].to_file(VEC / "m20_traverse.geojson", driver="GeoJSON")
-    wp[wp_keep + ["geometry"]].to_file(VEC / "m20_waypoints.geojson", driver="GeoJSON")
-    line = features.rasterize(((g, 1) for g in tr.geometry), out_shape=(GRID["height"], GRID["width"]),
-                              transform=GRID["transform"], fill=0, dtype="uint8", all_touched=True)
-    dist = ndimage.distance_transform_edt(line == 0) * RES
-    save20("dist_traverse", dist)
-    print(f"  {len(tr)} tramos, {len(wp)} waypoints")
 
 
 # ---------------------------------------------------------------- HiRISE 1 m
@@ -387,7 +370,7 @@ def build_stack():
 if __name__ == "__main__":
     stage = sys.argv[1] if len(sys.argv) > 1 else "base"
     if stage == "base":
-        build_terrain_ctx(); build_hrsc(); build_thermal(); build_crism(); build_geology(); build_traverse()
+        build_terrain_ctx(); build_hrsc(); build_thermal(); build_crism(); build_geology()
     elif stage == "hirise":
         build_hirise_dtm(); build_hirise_ortho()
     elif stage == "hirise_dtm":
