@@ -1,0 +1,9 @@
+numpy
+scipy
+rasterio
+pyogrio
+geopandas
+pystac-client
+matplotlib
+pillow
+pytest

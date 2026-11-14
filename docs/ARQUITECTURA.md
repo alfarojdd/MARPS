@@ -20,6 +20,8 @@ Propuesta inicial:
 - Nombres de capa estándar: `elevation`, `slope`, `roughness`, `thermal_inertia`, `mineralogy_<objetivo>`, `geology`, `radiation`, `rock_abundance`.
 - Valores normalizados a 0-1 en una versión aparte para el planificador (`*_norm`), manteniendo los valores físicos para mostrarlos en la interfaz.
 
+**Estado (2026-11-14):** zona Jezero y rejilla de 20 m decididas. Las capas se publican como un único GeoTIFF multibanda en `data/jezero/stack/` con `layers.json` (ver [CAPAS_JEZERO.md](CAPAS_JEZERO.md)). Los nombres de banda son los reales (`elev_ctx`, `slope_ctx`, `tri_ctx`, `thermal_inertia`, ...) y no los estándar propuestos arriba; no hay mineralogía, radiación ni abundancia de rocas en la base. Normalización 0-1 y `metadata.json` por zona: sin hacer.
+
 Decisiones por tomar: zona (Gale/Monte Sharp o Jezero), resolución (HiRISE es mucho más fina que CTX/MOLA) y qué capas llegan a tiempo.
 
 ## [B] Parámetros de misión: `llm/` → `planner/`
