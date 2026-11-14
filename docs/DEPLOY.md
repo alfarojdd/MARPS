@@ -1,0 +1,58 @@
+# Deployment: Vercel frontend + tfm-lab backend
+
+```
+Browser ──► Vercel (platform/web, static React build)
+               │  vercel.json rewrites /api, /viewer, /reconstructions, /data, /terrain3d, /assets/ctx
+               ▼
+        https://tfm-lab.tail9f0864.ts.net   (Tailscale Funnel: public HTTPS → tfm-lab:8765)
+               ▼
+        tfm-lab: marps.service (backend/app.py: planner + API)  ──►  ollama.service (127.0.0.1:11434, GPU)
+```
+
+The planner needs ~2 GB of RAM, Numba and ~270 MB of rasters, so it cannot run as a Vercel function. Vercel only serves the static frontend and proxies the API calls to tfm-lab. The browser always talks to the Vercel domain (same origin, no CORS). Ollama is never exposed: only the MARPS server on 8765 is.
+
+## 1. tfm-lab (already done on 2026-11-14)
+
+| What | Where |
+|---|---|
+| Ollama 0.40.16, user space | `~/ollama`, service `~/.config/systemd/user/ollama.service` (127.0.0.1:11434, keep-alive forever, 2 models resident) |
+| Models | `jezero-extractor`, `jezero-summarizer` (from `backend/llm/Modelfile*`) |
+| Repo + venv | `~/MARPS`, `~/MARPS/.venv` (uv, Python 3.10) |
+| Planner data | `~/marps-data/jezero` (stack, layers20m, caches) |
+| MARPS server | `backend/deploy/marps.service` → `~/.config/systemd/user/marps.service` (127.0.0.1:8765) |
+
+Linger is enabled, so both services start on boot without a login. Update after a push:
+
+```bash
+ssh tfm-lab 'cd ~/MARPS && git pull && systemctl --user restart marps'
+```
+
+Logs: `ssh tfm-lab journalctl --user -u marps -f`.
+
+3D reconstructions: extract the `MARPS_Jezero_3D` package to `~/MARPS/MARPS_Jezero_3D_datos/MARPS_Jezero_3D` on tfm-lab and restart `marps`.
+
+## 2. Public HTTPS with Tailscale Funnel (needs sudo once)
+
+1. In https://login.tailscale.com/admin/acls, allow Funnel for the node (the admin console offers "Enable Funnel" the first time you run the command below).
+2. On tfm-lab:
+   ```bash
+   sudo tailscale funnel --bg 8765
+   tailscale funnel status        # https://tfm-lab.tail9f0864.ts.net → http://127.0.0.1:8765
+   ```
+3. Check from any network: `curl https://tfm-lab.tail9f0864.ts.net/api/llm/health`.
+
+If the node name changes, update the six destinations in `platform/web/vercel.json`.
+
+## 3. Vercel
+
+1. vercel.com → Add New → Project → import `alfarojdd/MARPS`.
+2. **Root Directory: `platform/web`**. Vercel reads `vercel.json` there (framework Vite, `npm run build`, output `dist`). No environment variables are needed.
+3. Deploy. Every push to `main` redeploys.
+
+CLI alternative: `cd platform/web && npx vercel` (log in, link the project, then `npx vercel --prod`).
+
+## Limits
+
+- Vercel stops proxied requests that take too long (around 30 s). The server warms up the planner and both models at startup, so a typical route takes 2–20 s. The first route with science targets can take close to 20 s.
+- The laptop must stay on, awake and connected. If it sleeps, the site loads but planning fails with "Cannot reach the MARPS server".
+- The LLM endpoints have no authentication. Prompts are limited to 2000 characters. Turn the Funnel off after the demo: `sudo tailscale funnel --https=443 off`.
