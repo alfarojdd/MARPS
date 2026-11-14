@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Place } from '../lib/types'
+import type { Place, ThematicLayer } from '../lib/types'
 import { formatLat, formatLon } from '../lib/format'
 
-export type BasemapMode = 'ctx' | 'hirise' | 'dtm'
+export type BasemapMode = 'ctx' | 'hillshade' | 'none'
 
 interface Props {
   open: boolean
@@ -13,12 +13,12 @@ interface Props {
   onToggleSites: () => void
   showRoute: boolean
   onToggleRoute: () => void
-  showHazards: boolean
-  onToggleHazards: () => void
-  showContours: boolean
-  onToggleContours: () => void
-  showGrid: boolean
-  onToggleGrid: () => void
+  showScenes: boolean
+  onToggleScenes: () => void
+  sceneCount: number
+  layers: ThematicLayer[]
+  overlayId: string | null
+  onSelectOverlay: (id: string | null) => void
   overlayOpacity: number
   onChangeOverlayOpacity: (v: number) => void
   places: Place[]
@@ -37,12 +37,12 @@ export default function LayersPopover({
   onToggleSites,
   showRoute,
   onToggleRoute,
-  showHazards,
-  onToggleHazards,
-  showContours,
-  onToggleContours,
-  showGrid,
-  onToggleGrid,
+  showScenes,
+  onToggleScenes,
+  sceneCount,
+  layers,
+  overlayId,
+  onSelectOverlay,
   overlayOpacity,
   onChangeOverlayOpacity,
   places,
@@ -57,9 +57,10 @@ export default function LayersPopover({
     (activeBasemap ? 1 : 0) +
     (showSites ? 1 : 0) +
     (showRoute ? 1 : 0) +
-    (showHazards ? 1 : 0) +
-    (showContours ? 1 : 0) +
-    (showGrid ? 1 : 0)
+    (showScenes ? 1 : 0) +
+    (overlayId ? 1 : 0)
+  const overlay = layers.find((l) => l.id === overlayId) ?? null
+  const groups = [...new Set(layers.filter((l) => l.group !== 'Basemap').map((l) => l.group))]
 
   // Click-outside and Escape key listener for intuitive dismissal
   useEffect(() => {
@@ -175,77 +176,81 @@ export default function LayersPopover({
               <BasemapCard
                 id="ctx"
                 title="CTX Mosaic"
-                subtitle="Calibrated 6 m/px Context Camera"
-                badge="STANDARD"
+                subtitle="Context Camera orthomosaic, 6 m/px"
+                badge="IMAGE"
                 active={activeBasemap === 'ctx'}
                 onSelect={() => onSelectBasemap('ctx')}
               />
               <BasemapCard
-                id="hirise"
-                title="HiRISE Detail"
-                subtitle="High-resolution surface sharpness (0.25 m/px)"
-                badge="ENHANCED"
-                active={activeBasemap === 'hirise'}
-                onSelect={() => onSelectBasemap('hirise')}
-              />
-              <BasemapCard
-                id="dtm"
-                title="Topographic DTM"
-                subtitle="Color-shaded elevation relief & depth"
+                id="hillshade"
+                title="Shaded relief"
+                subtitle="Hillshade of the CTX elevation model, 20 m"
                 badge="RELIEF"
-                active={activeBasemap === 'dtm'}
-                onSelect={() => onSelectBasemap('dtm')}
+                active={activeBasemap === 'hillshade'}
+                onSelect={() => onSelectBasemap('hillshade')}
               />
             </div>
           </div>
 
-          {/* Section 2: Science & Terrain Overlays */}
+          {/* Section 2: data layers from NASA missions */}
           <div className="border-t border-paper/10 pt-3">
             <div className="mb-2 flex items-center justify-between">
               <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-faint">
-                Terrain & Science Overlays
+                Data layer
               </span>
-            </div>
-
-            <div className="space-y-2">
-              <LayerToggleRow
-                label="Slope Hazards & Cliffs"
-                description="Trafficability hazard zones (>15° slope)"
-                active={showHazards}
-                onToggle={onToggleHazards}
-              />
-
-              {showHazards && (
-                <div className="ml-2 rounded-xl border border-paper/8 bg-void/40 p-2.5 transition-all">
-                  <div className="flex items-center justify-between font-mono text-[9px] text-faint">
-                    <span>Hazard Opacity</span>
-                    <span className="text-paper">{overlayOpacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={20}
-                    max={100}
-                    value={overlayOpacity}
-                    onChange={(e) => onChangeOverlayOpacity(Number(e.target.value))}
-                    className="mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-paper/20 accent-oxide"
-                  />
-                </div>
+              {overlayId && (
+                <button
+                  type="button"
+                  onClick={() => onSelectOverlay(null)}
+                  className="rounded-lg px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-faint hover:bg-white/[0.06] hover:text-paper"
+                >
+                  Hide
+                </button>
               )}
-
-              <LayerToggleRow
-                label="Topographic Contours"
-                description="10-meter elevation index contours"
-                active={showContours}
-                onToggle={onToggleContours}
-              />
-
-              <LayerToggleRow
-                label="Lat/Lon Graticule Grid"
-                description="Geodetic reference meridian grid"
-                active={showGrid}
-                onToggle={onToggleGrid}
-              />
             </div>
+            {layers.length === 0 && <p className="text-[11px] text-faint">Layers not exported yet.</p>}
+            {groups.map((group) => (
+              <div key={group} className="mb-2">
+                <div className="mb-1 px-1 font-mono text-[8px] uppercase tracking-[0.18em] text-dim">{group}</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {layers.filter((l) => l.group === group).map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      title={`${l.subtitle}${l.coverage < 99.9 ? ` · covers ${l.coverage}% of the map` : ''}`}
+                      onClick={() => onSelectOverlay(overlayId === l.id ? null : l.id)}
+                      className={`rounded-full border px-2.5 py-1 text-[11px] transition-all active:scale-95 ${
+                        overlayId === l.id
+                          ? 'border-oxide/70 bg-oxide/20 text-paper'
+                          : 'border-paper/10 bg-white/[0.03] text-dim hover:border-paper/25 hover:text-paper'
+                      }`}
+                    >
+                      {l.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {overlay && (
+              <div className="mt-2 rounded-xl border border-paper/8 bg-void/40 p-2.5">
+                <div className="text-[11px] text-paper">{overlay.title}</div>
+                <div className="text-[10px] text-faint">{overlay.subtitle}</div>
+                <Legend layer={overlay} />
+                <div className="mt-2 flex items-center justify-between font-mono text-[9px] text-faint">
+                  <span>Opacity</span>
+                  <span className="text-paper">{overlayOpacity}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={20}
+                  max={100}
+                  value={overlayOpacity}
+                  onChange={(e) => onChangeOverlayOpacity(Number(e.target.value))}
+                  aria-label="Data layer opacity"
+                  className="mt-1.5 h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-paper/20 accent-oxide"
+                />
+              </div>
+            )}
           </div>
 
           {/* Section 3: Annotations & Waypoints */}
@@ -262,6 +267,13 @@ export default function LayersPopover({
                 description="Perseverance landing & crater markers"
                 active={showSites}
                 onToggle={onToggleSites}
+              />
+
+              <LayerToggleRow
+                label="3D Surface Reconstructions"
+                description={`${sceneCount} located scenes · click a 3D point to walk in`}
+                active={showScenes}
+                onToggle={onToggleScenes}
               />
 
               <LayerToggleRow
@@ -307,6 +319,41 @@ export default function LayersPopover({
         </div>
       )}
     </div>
+  )
+}
+
+function Legend({ layer }: { layer: ThematicLayer }) {
+  const g = layer.legend
+  if (g.type === 'ramp' && g.stops) {
+    return (
+      <div className="mt-2">
+        <div className="h-2 rounded" style={{ background: `linear-gradient(90deg, ${g.stops.join(',')})` }} />
+        <div className="mt-0.5 flex justify-between font-mono text-[9px] text-faint">
+          <span>{g.vmin} {g.units}</span>
+          <span>{g.vmax} {g.units}</span>
+        </div>
+      </div>
+    )
+  }
+  if (g.type === 'classes' && g.items) {
+    return (
+      <div className="mt-2 grid grid-cols-[10px_1fr] items-center gap-x-1.5 gap-y-0.5 text-[10px] text-dim">
+        {g.items.map((item) => (
+          <FragmentRow key={`${item.value}-${item.label}`} color={item.color} label={item.label} />
+        ))}
+        {g.note && <p className="col-span-2 mt-1 text-[9px] text-faint">{g.note}</p>}
+      </div>
+    )
+  }
+  return null
+}
+
+function FragmentRow({ color, label }: { color: string; label: string }) {
+  return (
+    <>
+      <span className="h-2.5 w-2.5 rounded-sm" style={{ background: color }} />
+      <span className="truncate">{label}</span>
+    </>
   )
 }
 

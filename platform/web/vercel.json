@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/api/:path*" },
+    { "source": "/viewer/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/viewer/:path*" },
+    { "source": "/reconstructions/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/reconstructions/:path*" },
+    { "source": "/assets/ctx/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/assets/ctx/:path*" },
+    { "source": "/data/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/data/:path*" },
+    { "source": "/terrain3d/:path*", "destination": "https://tfm-lab.tail9f0864.ts.net/terrain3d/:path*" }
+  ]
+}

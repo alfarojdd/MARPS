@@ -2,9 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import MapView from './components/MapView'
 import MissionPanel from './components/MissionPanel'
 import LayersPopover, { type BasemapMode } from './components/LayersPopover'
-import { parseMission } from './lib/api'
-import { findPlace, mockPlanRoute } from './lib/mockPlanner'
-import type { CtxMeta, MissionRequirements, Place, PlannedRoute } from './lib/types'
+import SceneViewer from './components/SceneViewer'
+import { Wordmark } from './components/Brand'
+import VehiclePanel from './components/VehiclePanel'
+import { DEFAULT_SYSTEM, fetchPlannerPlaces, fetchReconstructions, fetchThematicLayers, parseMission, planRoute, summarizeRoute } from './lib/api'
+import { buildRoute, makePlace } from './lib/plan'
+import type { CtxMeta, MissionRequirements, Place, PlannedRoute, Scene, SystemState, ThematicLayer } from './lib/types'
 
 function shortcutLabel() {
   if (typeof navigator === 'undefined') return 'Ctrl ↵'
@@ -34,19 +37,31 @@ export default function App() {
   const [activeBasemap, setActiveBasemap] = useState<BasemapMode>('ctx')
   const [showSites, setShowSites] = useState(true)
   const [showRoute, setShowRoute] = useState(true)
-  const [showHazards, setShowHazards] = useState(false)
-  const [showContours, setShowContours] = useState(false)
-  const [showGrid, setShowGrid] = useState(false)
-  const [overlayOpacity, setOverlayOpacity] = useState(80)
+  const [showScenes, setShowScenes] = useState(true)
+  const [thematic, setThematic] = useState<ThematicLayer[]>([])
+  const [overlayId, setOverlayId] = useState<string | null>(null)
+  const [overlayOpacity, setOverlayOpacity] = useState(70)
+  const [scenes, setScenes] = useState<Scene[]>([])
+  const [openScene, setOpenScene] = useState<Scene | null>(null)
+  const [system, setSystem] = useState<SystemState>(DEFAULT_SYSTEM)
 
   const handleResetLayers = useCallback(() => {
     setActiveBasemap('ctx')
     setShowSites(true)
     setShowRoute(true)
-    setShowHazards(false)
-    setShowContours(false)
-    setShowGrid(false)
-    setOverlayOpacity(80)
+    setShowScenes(true)
+    setOverlayId(null)
+    setOverlayOpacity(70)
+  }, [])
+
+  useEffect(() => {
+    fetchThematicLayers().then(setThematic).catch((err) => console.warn(err.message))
+    fetchReconstructions()
+      .then(({ scenes, warnings }) => {
+        setScenes(scenes)
+        warnings.forEach((w) => console.warn(w))
+      })
+      .catch((err) => console.warn('3D reconstructions unavailable:', err.message))
   }, [])
 
   useEffect(() => {
@@ -54,9 +69,19 @@ export default function App() {
       fetch('/layers/ctx/meta.json').then((r) => r.json()),
       fetch('/layers/ctx/places.json').then((r) => r.json()),
     ])
-      .then(([m, p]) => {
+      .then(async ([m, p]: [CtxMeta, Place[]]) => {
         setMeta(m)
         setPlaces(p)
+        // Add the planner's own named places (delta top, carbonates...) so they show on the map too.
+        try {
+          const known = new Set(p.map((x) => x.name.toLowerCase().replace(/[^a-z]/g, '')))
+          const extra = Object.entries(await fetchPlannerPlaces())
+            .filter(([key, v]) => !p.some((x) => Math.abs(x.lon - v.lon) < 0.02 && Math.abs(x.lat - v.lat) < 0.02) && !known.has(key.replace(/[^a-z]/g, '')))
+            .map(([key, v]) => makePlace(key, v.lon, v.lat, m))
+          setPlaces([...p, ...extra])
+        } catch {
+          /* planner places are optional for drawing the map */
+        }
       })
       .catch((err) => {
         console.error(err)
@@ -75,28 +100,34 @@ export default function App() {
     try {
       const req = await parseMission(prompt)
       setRequirements(req)
+      const missing = (['origin', 'destination'] as const).filter((k) => !req[k])
+      if (missing.length) {
+        throw new Error(`The mission text does not name the ${missing.join(' or ')}. Mention a known place.`)
+      }
+      if (!meta) throw new Error('Map data is not loaded yet.')
 
-      const o = findPlace(req.origin, places)
-      const d = findPlace(req.destination, places)
+      const result = await planRoute(req, system)
+      const built = buildRoute(result, meta)
+      setOrigin(built.origin)
+      setDestination(built.destination)
+      setRoute(built.route)
+      setLoading(false)
 
-      if (!o || !d) {
-        const missing = []
-        if (!o) missing.push(`origin "${req.origin}"`)
-        if (!d) missing.push(`destination "${req.destination}"`)
-        throw new Error(
-          `Could not resolve ${missing.join(' and ')}. Demo supports: ${places.map((p) => p.name).join(', ')}`,
+      // The briefing comes from the local LLM; the route is already on screen while it is written.
+      try {
+        const explanation = await summarizeRoute(result.report)
+        setRoute((current) => (current?.report === result.report ? { ...current, explanation } : current))
+      } catch {
+        setRoute((current) =>
+          current?.report === result.report ? { ...current, explanation: '' } : current,
         )
       }
-
-      setOrigin(o)
-      setDestination(d)
-      setRoute(mockPlanRoute(req, o, d))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
-  }, [places, prompt])
+  }, [meta, prompt, system])
 
   // Global shortcut: Ctrl/Cmd + Enter
   useEffect(() => {
@@ -139,26 +170,18 @@ export default function App() {
           showSites={showSites}
           showRoute={showRoute}
           activeBasemap={activeBasemap}
-          showHazards={showHazards}
-          showContours={showContours}
-          showGrid={showGrid}
+          hillshade={thematic.find((l) => l.id === 'hillshade_ctx') ?? null}
+          overlay={thematic.find((l) => l.id === overlayId) ?? null}
           overlayOpacity={overlayOpacity}
+          scenes={scenes}
+          showScenes={showScenes}
+          onOpenScene={setOpenScene}
         />
       </div>
 
-      {/* 2. TOP-LEFT: "LOGUITO" (From Both Wireframes) */}
-      <div className="pointer-events-auto absolute left-4 top-4 z-30">
-        <div className="glass-panel flex items-center gap-2.5 rounded-2xl px-3.5 py-2 shadow-xl backdrop-blur-xl transition-all hover:bg-white/[0.08]">
-          <LoguitoMark />
-          <div className="flex flex-col">
-            <span className="font-mono text-[11px] font-semibold tracking-[0.24em] text-paper">
-              MARPS
-            </span>
-            <span className="font-mono text-[8px] uppercase tracking-[0.16em] text-dim">
-              Jezero Crater
-            </span>
-          </div>
-        </div>
+      {/* 2. TOP-LEFT: brand wordmark */}
+      <div className="pointer-events-none absolute left-4 top-4 z-30">
+        <Wordmark />
       </div>
 
       {/* 3. BOTTOM-LEFT: "3D" & "LAYERS" BUTTONS (From Both Wireframes) */}
@@ -193,7 +216,7 @@ export default function App() {
           >
             <LayersIcon />
             <span>Layers</span>
-            {(showHazards || showContours || showGrid || activeBasemap !== 'ctx') && (
+            {(overlayId || activeBasemap !== 'ctx') && (
               <span className="h-1.5 w-1.5 rounded-full bg-oxide" />
             )}
           </button>
@@ -208,12 +231,12 @@ export default function App() {
             onToggleSites={() => setShowSites((v) => !v)}
             showRoute={showRoute}
             onToggleRoute={() => setShowRoute((v) => !v)}
-            showHazards={showHazards}
-            onToggleHazards={() => setShowHazards((v) => !v)}
-            showContours={showContours}
-            onToggleContours={() => setShowContours((v) => !v)}
-            showGrid={showGrid}
-            onToggleGrid={() => setShowGrid((v) => !v)}
+            showScenes={showScenes}
+            onToggleScenes={() => setShowScenes((v) => !v)}
+            sceneCount={scenes.filter((x) => x.coordinates).length}
+            layers={thematic}
+            overlayId={overlayId}
+            onSelectOverlay={setOverlayId}
             overlayOpacity={overlayOpacity}
             onChangeOverlayOpacity={setOverlayOpacity}
             places={places}
@@ -222,6 +245,13 @@ export default function App() {
           />
         </div>
       </div>
+
+      {/* Vehicle telemetry (editable for the demo) */}
+      <div className="pointer-events-auto absolute right-4 top-4 z-30 hidden sm:block">
+        <VehiclePanel value={system} onChange={setSystem} />
+      </div>
+
+      <SceneViewer scene={openScene} onClose={() => setOpenScene(null)} />
 
       {/* 4. BOTTOM-CENTER: THE CENTERED LOWER PROMPT BOX THAT TRANSFORMS INTO ROUTE SUMMARY & JUSTIFICATION */}
       <div className="pointer-events-auto absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-4 sm:bottom-6">
@@ -244,31 +274,6 @@ export default function App() {
         />
       </div>
     </div>
-  )
-}
-
-function LoguitoMark() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 16 16" aria-hidden="true" className="text-paper">
-      <rect
-        x="0.75"
-        y="0.75"
-        width="14.5"
-        height="14.5"
-        rx="3"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.1"
-      />
-      <path
-        d="M3.4 12.2 L6.3 8.1 L8.3 9.5 L12.6 4.2"
-        fill="none"
-        stroke="#c45c26"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
 

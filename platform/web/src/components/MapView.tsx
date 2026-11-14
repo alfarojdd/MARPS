@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import type { CtxMeta, Place, PlannedRoute } from '../lib/types'
+import type { CtxMeta, Place, PlannedRoute, Scene, ThematicLayer } from '../lib/types'
+import type { BasemapMode } from './LayersPopover'
 import { formatLat, formatLon, siteLabel } from '../lib/format'
+import { lonLatToPixel } from '../lib/plan'
 
 interface Props {
   meta: CtxMeta | null
@@ -17,11 +19,13 @@ interface Props {
   is3D?: boolean
   showSites?: boolean
   showRoute?: boolean
-  activeBasemap?: 'ctx' | 'hirise' | 'dtm'
-  showHazards?: boolean
-  showContours?: boolean
-  showGrid?: boolean
+  activeBasemap?: BasemapMode
+  hillshade?: ThematicLayer | null
+  overlay?: ThematicLayer | null
   overlayOpacity?: number
+  scenes?: Scene[]
+  showScenes?: boolean
+  onOpenScene?: (scene: Scene) => void
 }
 
 export default function MapView({
@@ -38,17 +42,25 @@ export default function MapView({
   showSites = true,
   showRoute = true,
   activeBasemap = 'ctx',
-  showHazards = false,
-  showContours = false,
-  showGrid = false,
+  hillshade = null,
+  overlay = null,
   overlayOpacity = 80,
+  scenes = [],
+  showScenes = true,
+  onOpenScene,
 }: Props) {
   const mapRef = useRef<L.Map | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const layersRef = useRef<{
     markers?: L.LayerGroup
     route?: L.LayerGroup
+    ctx?: L.LayerGroup
+    base?: L.ImageOverlay
+    overlay?: L.ImageOverlay
+    scenes?: L.LayerGroup
   }>({})
+  const openSceneRef = useRef(onOpenScene)
+  openSceneRef.current = onOpenScene
 
   const insetsRef = useRef(bottomInset)
   insetsRef.current = bottomInset
@@ -80,6 +92,7 @@ export default function MapView({
     ])
 
     const tileGroup = L.layerGroup().addTo(map)
+    layersRef.current.ctx = tileGroup
     meta.tiles.forEach((t) => {
       const bounds: L.LatLngBoundsExpression = [
         [-(t.row0 + t.height), t.col0],
@@ -215,6 +228,19 @@ export default function MapView({
     const latlngs = route.path.map(([col, row]) => L.latLng(-row, col))
     const group = L.layerGroup().addTo(map)
 
+    // Traditional shortest-path A* for comparison (dashed, behind the planned route)
+    if (route.classicPath.length > 1) {
+      L.polyline(route.classicPath.map(([col, row]) => L.latLng(-row, col)), {
+        color: '#7fb4ff', weight: 2, opacity: 0.85, dashArray: '6 6', interactive: false,
+      }).bindTooltip('Classic shortest path (A*)', { sticky: true }).addTo(group)
+    }
+    for (const stop of route.stops) {
+      L.circleMarker(L.latLng(-stop.row, stop.col), {
+        radius: 5, weight: 2, color: '#f4f0e6', fillOpacity: 1,
+        fillColor: stop.kind === 'charging' ? '#f2c94c' : '#5fd38a',
+      }).bindTooltip(stop.label).addTo(group)
+    }
+
     // Outer shadow / glow
     L.polyline(latlngs, {
       color: '#070706',
@@ -259,6 +285,69 @@ export default function MapView({
     })
   }, [route, mapReady, showRoute])
 
+  // Basemap: CTX mosaic tiles, hillshade image, or nothing
+  useEffect(() => {
+    const map = mapRef.current, layers = layersRef.current
+    if (!mapReady || !map || !layers.ctx) return
+    if (activeBasemap === 'ctx') layers.ctx.addTo(map)
+    else map.removeLayer(layers.ctx)
+    layers.base?.remove()
+    layers.base = undefined
+    if (activeBasemap === 'hillshade' && hillshade) {
+      layers.base = L.imageOverlay(hillshade.url, hillshade.bounds, { interactive: false }).addTo(map)
+      layers.base.bringToBack()
+    }
+  }, [activeBasemap, hillshade, mapReady])
+
+  // Thematic data layer over the basemap
+  useEffect(() => {
+    const map = mapRef.current, layers = layersRef.current
+    if (!mapReady || !map) return
+    layers.overlay?.remove()
+    layers.overlay = undefined
+    if (!overlay) return
+    layers.overlay = L.imageOverlay(overlay.url, overlay.bounds, {
+      interactive: false,
+      opacity: overlayOpacity / 100,
+      className: overlay.kind === 'categorical' ? 'pixelated' : '',
+    }).addTo(map)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overlay, mapReady])
+
+  useEffect(() => {
+    layersRef.current.overlay?.setOpacity(overlayOpacity / 100)
+  }, [overlayOpacity])
+
+  // 3D surface reconstruction points
+  useEffect(() => {
+    const map = mapRef.current, layers = layersRef.current
+    if (!mapReady || !map || !meta) return
+    layers.scenes?.remove()
+    layers.scenes = undefined
+    if (!showScenes) return
+    const group = L.layerGroup()
+    for (const scene of scenes) {
+      if (!scene.coordinates) continue
+      const { col, row } = lonLatToPixel(scene.coordinates[0], scene.coordinates[1], meta)
+      const local = scene.renderer !== 'sketchfab'
+      const marker = L.marker([-row, col], {
+        icon: L.divIcon({
+          className: 'marps-pin',
+          html: `<span class="scene-pin ${local ? 'scene-local' : scene.kind === 'detail' ? 'scene-detail' : ''}">3D</span>`,
+          iconSize: local ? [28, 28] : [22, 22],
+        }),
+        title: scene.title,
+        keyboard: true,
+        zIndexOffset: local ? 500 : 0,
+      })
+      marker.bindTooltip(`${scene.title}${scene.sol ? ` · sol ${scene.sol}` : ''}`, { direction: 'top', offset: [0, -10] })
+      marker.on('click', () => scene.available && openSceneRef.current?.(scene))
+      marker.addTo(group)
+    }
+    group.addTo(map)
+    layers.scenes = group
+  }, [scenes, showScenes, mapReady, meta])
+
   // Center / Focus on selected place
   useEffect(() => {
     const map = mapRef.current
@@ -277,36 +366,8 @@ export default function MapView({
         ref={containerRef}
         className={`h-full w-full transition-all duration-700 ease-out ${
           is3D ? 'map-surface-3d' : 'map-surface-2d'
-        } ${
-          activeBasemap === 'dtm'
-            ? 'filter-dtm'
-            : activeBasemap === 'hirise'
-              ? 'filter-hirise'
-              : ''
         }`}
       />
-
-      {/* Lat/Lon Coordinate Graticule Grid Overlay */}
-      {showGrid && (
-        <div className="pointer-events-none absolute inset-0 z-[350] bg-[radial-gradient(#ece8df_1.5px,transparent_1.5px)] [background-size:48px_48px] opacity-25 transition-opacity" />
-      )}
-
-      {/* Slope Hazard Heatmap Overlay (simulated terrain risk) */}
-      {showHazards && (
-        <div
-          className="pointer-events-none absolute inset-0 z-[350] transition-opacity duration-300"
-          style={{
-            opacity: overlayOpacity / 100,
-            background:
-              'radial-gradient(ellipse 65% 55% at 42% 48%, rgba(224, 138, 120, 0.28) 0%, rgba(196, 92, 38, 0.15) 45%, transparent 75%)',
-          }}
-        />
-      )}
-
-      {/* Topographic Contours Overlay */}
-      {showContours && (
-        <div className="pointer-events-none absolute inset-0 z-[350] opacity-20 [background-image:repeating-linear-gradient(45deg,transparent,transparent_24px,rgba(236,232,223,0.18)_24px,rgba(236,232,223,0.18)_25px)]" />
-      )}
 
       {meta && (
         <div className="pointer-events-none absolute inset-0 z-[400]">

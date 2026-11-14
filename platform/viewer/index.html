@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="reconstructions.css">
 <link rel="stylesheet" href="route-view.css">
+<link rel="stylesheet" href="mission.css">
 <script type="importmap">
 {"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/addons/"}}
 </script>
@@ -85,6 +86,8 @@
   <aside>
     <h1>Cráter Jezero · mapa multicapa</h1>
     <div class="sub">77.160–77.699 °E · 18.211–18.721 °N · ~32 × 30 km</div>
+
+    <section id="mission" aria-label="Mission planning"></section>
 
     <section id="reconstructions" aria-label="Reconstrucciones 3D">
       <h2>Explorar la superficie</h2>
@@ -411,9 +414,12 @@ async function inspect(e) {
     const [lon, lat] = toLonLat(e.latlng);
     $("#coords").textContent = `${lat.toFixed(5)}° N  ${lon.toFixed(5)}° E`;
   });
-  map.on("click", inspect);
+  let mission = null;
+  map.on("click", e => { if (!mission?.isPicking()) inspect(e); });
   const { initRouteView } = await import("./route-view.mjs");
   const routeView = await initRouteView({map, cfg, container: $(".mapwrap")});
+  const { initMission } = await import("./mission.mjs");
+  mission = await initMission({map, cfg, panel: $("#mission"), routeView});
   const { initReconstructions } = await import("./reconstructions.mjs");
   await initReconstructions({map, cfg, terrain: routeView.terrain, container: $(".mapwrap"), fitOnLoad: false});
 })().catch(error => {
