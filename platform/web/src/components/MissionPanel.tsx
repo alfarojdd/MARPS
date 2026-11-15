@@ -49,6 +49,19 @@ const PRESET_SORTIES: { id: string; label: string; route: string; text: string; 
   },
 ]
 
+/** Phone-sized viewport (same breakpoint as Tailwind's `sm`). Desktop layout never reads this. */
+function useIsMobile() {
+  const query = '(max-width: 639px)'
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia(query).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(query)
+    const onChange = () => setMobile(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  return mobile
+}
+
 export default function MissionPanel({
   prompt,
   onPromptChange,
@@ -66,11 +79,17 @@ export default function MissionPanel({
 }: Props) {
   // If a route exists and we are not explicitly editing, show summary mode
   const [isEditing, setIsEditing] = useState(false)
+  // Phone only: Bellona hides behind a button, and the route briefing folds down to a compact bar.
+  const isMobile = useIsMobile()
+  const [chatOpen, setChatOpen] = useState(false)
+  const [briefingFolded, setBriefingFolded] = useState(true)
 
   // Reset to summary view whenever a new route is received
   useEffect(() => {
     if (route) {
       setIsEditing(false)
+      setBriefingFolded(true)
+      setChatOpen(false)
     }
   }, [route])
 
@@ -88,8 +107,8 @@ export default function MissionPanel({
         <div className="m3-panel pointer-events-auto mx-auto w-full max-w-4xl rounded-3xl p-4 transition-all sm:p-5">
 
           {/* Top Row: Route Endpoints, Status, and Edit Action */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant pb-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className={`flex flex-nowrap items-center justify-between gap-2 sm:flex-wrap ${isMobile && briefingFolded ? '' : 'border-b border-outline-variant pb-3'}`}>
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:flex-initial sm:flex-wrap">
               <h2 className="flex items-center gap-2 truncate text-base font-medium text-paper">
                 <span className="text-paper">{siteLabel(route.originName)}</span>
                 <span className="text-oxide">→</span>
@@ -100,13 +119,30 @@ export default function MissionPanel({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setIsEditing(true)
+                  setChatOpen(true)
+                }}
                 className="btn btn-tonal"
                 title="Edit the prompt or select a new sortie"
+                aria-label="Edit mission"
               >
                 <PencilIcon />
-                <span>Edit mission</span>
+                <span className="hidden sm:inline">Edit mission</span>
               </button>
+
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => setBriefingFolded((f) => !f)}
+                  className="btn btn-icon"
+                  aria-expanded={!briefingFolded}
+                  aria-label={briefingFolded ? 'Show route details' : 'Hide route details'}
+                  title={briefingFolded ? 'Show route details' : 'Fold down to see the map'}
+                >
+                  <ChevronIcon down={!briefingFolded} />
+                </button>
+              )}
 
               {onResetRoute && (
                 <button
@@ -122,6 +158,14 @@ export default function MissionPanel({
             </div>
           </div>
 
+          {/* Phone, folded: one line with the essentials */}
+          {isMobile && briefingFolded && (
+            <p className="mt-1.5 font-mono text-sm tabular-nums text-dim">
+              {formatKm(route.metrics.distance_m)} km · {duration.value} {duration.unit} · {Math.round(route.metrics.battery_end_pct)} % battery
+            </p>
+          )}
+
+          <div className={isMobile ? (briefingFolded ? 'hidden' : 'max-h-[55vh] overflow-y-auto overscroll-contain') : undefined}>
           {/* Middle Row: Primary Metrics Strip */}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             <MetricBadge
@@ -204,7 +248,21 @@ export default function MissionPanel({
               </div>
             )}
           </div>
+          </div>
         </div>
+      ) : isMobile && !chatOpen ? (
+        /* Phone: Bellona stays out of the way behind her logo until asked */
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          aria-label="Open Bellona, the AI mission assistant"
+          title="Ask Bellona"
+          className="btn btn-fab pointer-events-auto relative ml-auto flex items-center justify-center !rounded-full !p-0"
+          style={{ width: 56, height: 56 }}
+        >
+          <BellonaMark size={34} />
+          {loading && <span className="absolute right-1 top-1 h-3 w-3 animate-ping rounded-full bg-oxide-bright" aria-hidden="true" />}
+        </button>
       ) : (
         /* =========================================================================
            STATE B: CENTERED LOWER PROMPT BOX (Initial / Edit State from Wireframe 1)
@@ -215,7 +273,21 @@ export default function MissionPanel({
           <div className="mb-2 flex items-center gap-2">
             <BellonaMark size={20} />
             <span className="text-base font-semibold text-paper">Bellona</span>
-            <span className="truncate text-sm text-dim">AI mission assistant · built into MARPS</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-dim">AI mission assistant · built into MARPS</span>
+            {isMobile && (
+              <button
+                type="button"
+                onClick={() => {
+                  setChatOpen(false)
+                  setIsEditing(false)
+                }}
+                className="btn btn-icon shrink-0"
+                aria-label="Hide Bellona"
+                title="Hide Bellona"
+              >
+                <CloseIcon />
+              </button>
+            )}
           </div>
 
           {/* Quick examples */}
@@ -292,6 +364,14 @@ function MetricBadge({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-dim">{label}</div>
       <div className="mt-0.5 font-mono text-base font-semibold tabular-nums text-paper">{value}</div>
     </div>
+  )
+}
+
+function ChevronIcon({ down }: { down: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points={down ? '6 9 12 15 18 9' : '6 15 12 9 18 15'} />
+    </svg>
   )
 }
 
