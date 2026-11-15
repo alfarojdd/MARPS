@@ -1,6 +1,6 @@
 # README media
 
-The [main README](../../README.md) uses the 12 application screenshots supplied by the project author, two captioned MP4 walkthroughs and a looping GIF preview. The videos are edited screenshot presentations, with no audio. They show the interface and example outputs; they are not recordings of a live application session.
+Second media set: 12 application screenshots, two captioned MP4 walkthroughs and a looping GIF preview, edited as slide presentations with no audio. They show the interface and example outputs; they are not recordings of a live session. The [main README](../../README.md) uses the recordings in [product/](product/README.md) instead.
 
 ## Watch or read
 
