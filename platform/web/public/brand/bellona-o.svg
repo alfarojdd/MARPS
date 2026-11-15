@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+<title>Bellona</title>
+<circle cx="12" cy="12" r="10.2" fill="#C1440E" stroke="none"/>
+<ellipse cx="12" cy="6.2" rx="4.2" ry="1.4" fill="#F6E7D6"/>
+<path d="M5,13 C8,11.5 10,14 12.5,12.6 S17,11.6 19,13" fill="none" stroke="#7A2A0C" stroke-width="1.6" stroke-linecap="round"/>
+</svg>

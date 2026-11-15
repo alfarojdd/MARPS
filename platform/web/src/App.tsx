@@ -9,6 +9,7 @@ import BellonaThinking from './components/BellonaThinking'
 import { fetchTerrainSources } from './lib/terrain'
 import { DEFAULT_SYSTEM, fetchPlannerPlaces, fetchReconstructions, fetchThematicLayers, parseMission, planRoute, summarizeRoute } from './lib/api'
 import { buildRoute, makePlace } from './lib/plan'
+import { manualMission, nextPick } from './lib/picking'
 import type { CtxMeta, MissionRequirements, Place, PlannedRoute, Scene, SystemState, ThematicLayer } from './lib/types'
 
 const VERTICAL_EXAGGERATION = 3
@@ -24,9 +25,7 @@ function shortcutLabel() {
 export default function App() {
   const [meta, setMeta] = useState<CtxMeta | null>(null)
   const [places, setPlaces] = useState<Place[]>([])
-  const [prompt, setPrompt] = useState(
-    'Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low.',
-  )
+  const [prompt, setPrompt] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [requirements, setRequirements] = useState<MissionRequirements | null>(null)
@@ -34,6 +33,7 @@ export default function App() {
   const [destination, setDestination] = useState<Place | null>(null)
   const [route, setRoute] = useState<PlannedRoute | null>(null)
   const [focus, setFocus] = useState<Place | null>(null)
+  const [routeMode, setRouteMode] = useState<'manual' | 'bellona'>('bellona')
 
   // Map & Layers Controls State (Pure Frontend UI)
   const [is3D, setIs3D] = useState(false)
@@ -104,6 +104,7 @@ export default function App() {
   }, [])
 
   const plan = useCallback(async () => {
+    setRouteMode('bellona')
     setLoading(true)
     setError(null)
     setRoute(null)
@@ -143,6 +144,37 @@ export default function App() {
     }
   }, [meta, prompt, system])
 
+  /** Standard MARPS route between two map points: default weights, no SLM. */
+  const planManual = useCallback(async (from: Place, to: Place) => {
+    if (!meta) return
+    setRouteMode('manual')
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await planRoute(manualMission(from, to), system)
+      const built = buildRoute(result, meta)
+      setRoute({ ...built.route, originName: from.name, destinationName: to.name, explanation: '' })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }, [meta, system])
+
+  const handlePick = useCallback((place: Place) => {
+    if (loading) return
+    const picks = nextPick({ origin, destination }, place)
+    setOrigin(picks.origin)
+    setDestination(picks.destination)
+    if (!picks.destination) {
+      setRoute(null)
+      setRequirements(null)
+      setError(null)
+      return
+    }
+    if (picks.origin) void planManual(picks.origin, picks.destination)
+  }, [loading, origin, destination, planManual])
+
   // Global shortcut: Ctrl/Cmd + Enter
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -178,6 +210,7 @@ export default function App() {
           destination={destination}
           focus={focus}
           onSelectPlace={toggleFocus}
+          onPick={handlePick}
           bottomInset={route ? 220 : 160}
           scanning={loading}
           is3D={is3D}
@@ -293,7 +326,7 @@ export default function App() {
       <SceneViewer scene={openScene} onClose={() => setOpenScene(null)} />
 
       {/* Bellona thinking bubbles — appears above the mission panel during planning */}
-      <BellonaThinking visible={loading} />
+      <BellonaThinking visible={loading && routeMode === 'bellona'} />
 
       {/* 4. BOTTOM-CENTER: THE CENTERED LOWER PROMPT BOX THAT TRANSFORMS INTO ROUTE SUMMARY & JUSTIFICATION */}
       <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-3 safe-bottom sm:bottom-4 sm:pl-[8.5rem] sm:pr-[11rem]">
@@ -314,6 +347,8 @@ export default function App() {
           onResetRoute={handleResetRoute}
           onPreset={setSystem}
           shortcut={shortcutLabel()}
+          pickHint={origin && !destination ? 'Origin set · click the destination on the map.' : !origin ? 'Or click two points on the map for a standard MARPS route.' : undefined}
+          routeMode={routeMode}
         />
       </div>
     </div>

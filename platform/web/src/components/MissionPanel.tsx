@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { MissionRequirements, Place, PlannedRoute, SystemState } from '../lib/types'
 import { formatDuration, formatKm, formatLat, formatLon, siteLabel } from '../lib/format'
-import { MarsDot } from './Brand'
+import { BellonaMark, MarsDot } from './Brand'
 
 interface Props {
   prompt: string
@@ -17,6 +17,10 @@ interface Props {
   onResetRoute?: () => void
   onPreset?: (system: SystemState) => void
   shortcut: string
+  /** One-line hint about clicking two map points for a standard MARPS route. */
+  pickHint?: string
+  /** 'manual': route picked on the map with default weights (no Bellona). */
+  routeMode?: 'manual' | 'bellona'
 }
 
 /** Demo sorties: same origin and destination (landing site → top of the delta), so the routes differ only by mission context.
@@ -57,6 +61,8 @@ export default function MissionPanel({
   onResetRoute,
   onPreset,
   shortcut,
+  pickHint,
+  routeMode,
 }: Props) {
   // If a route exists and we are not explicitly editing, show summary mode
   const [isEditing, setIsEditing] = useState(false)
@@ -143,15 +149,26 @@ export default function MissionPanel({
           {/* Bottom Row: Brief Justification & Constraints */}
           <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-outline-variant bg-void/40 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-sm font-medium text-oxide">
-                <MarsDot size={12} />
-                <span>Bellona · route briefing</span>
-              </div>
-              <p aria-live="polite" className="mt-1 text-sm leading-relaxed text-paper">
-                {route.explanation === null
-                  ? 'Writing the briefing with the local SLM…'
-                  : route.explanation || 'Briefing unavailable (SLM offline). Figures above come from the planner.'}
-              </p>
+              {routeMode === 'manual' ? (
+                <>
+                  <div className="text-sm font-medium text-oxide">MARPS · standard route</div>
+                  <p className="mt-1 text-sm leading-relaxed text-paper">
+                    No mission context: default weights. Describe your mission to Bellona to tailor it.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-sm font-medium text-oxide">
+                    <MarsDot size={14} />
+                    <span>Bellona · route briefing</span>
+                  </div>
+                  <p aria-live="polite" className="mt-1 text-sm leading-relaxed text-paper">
+                    {route.explanation === null
+                      ? 'Writing the briefing with the local SLM…'
+                      : route.explanation || 'Briefing unavailable (SLM offline). Figures above come from the planner.'}
+                  </p>
+                </>
+              )}
               {route.report.route?.charging_stop && (
                 <p className="mt-2 text-sm text-paper">
                   <span className="text-oxide">⚡ Charging stop</span> at {route.report.route.charging_stop.arrive} for{' '}
@@ -173,7 +190,7 @@ export default function MissionPanel({
             </div>
 
             {/* Extracted Constraints Badges */}
-            {requirements && (
+            {requirements && routeMode !== 'manual' && (
               <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-outline-variant pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
                 <span className="badge">
                   {requirements.human ? 'Crew EVA' : 'Rover'}
@@ -194,9 +211,15 @@ export default function MissionPanel({
            ========================================================================= */
         <div className="m3-panel pointer-events-auto mx-auto w-full max-w-3xl rounded-3xl p-3 transition-all">
 
+          {/* Bellona header: MARPS is the product, Bellona is the assistant built into it */}
+          <div className="mb-2 flex items-center gap-2">
+            <BellonaMark size={20} />
+            <span className="text-base font-semibold text-paper">Bellona</span>
+            <span className="truncate text-sm text-dim">AI mission assistant · built into MARPS</span>
+          </div>
+
           {/* Quick examples */}
           <div className="mb-2 flex items-center gap-1.5 overflow-x-auto sm:overflow-visible" role="group" aria-label="Example missions">
-            <span className="shrink-0 pr-1 text-sm text-dim">Examples</span>
             {PRESET_SORTIES.map((preset) => (
               <button
                 key={preset.id}
@@ -223,7 +246,7 @@ export default function MissionPanel({
                 rows={2}
                 value={prompt}
                 onChange={(e) => onPromptChange(e.target.value)}
-                placeholder="e.g. Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low."
+                placeholder="Tell Bellona about your mission…"
                 className="min-h-[56px] w-full resize-none bg-transparent px-2.5 py-1 text-base leading-snug text-paper placeholder:text-faint focus:outline-none"
               />
             </div>
@@ -235,10 +258,10 @@ export default function MissionPanel({
                 aria-busy={loading}
                 aria-keyshortcuts="Control+Enter Meta+Enter"
                 className="btn btn-filled"
-                title={`Plan route (${shortcut})`}
+                title={`Ask Bellona to plan (${shortcut})`}
               >
-                {loading ? <Spinner /> : <ArrowRightIcon />}
-                <span>{loading ? 'Planning…' : 'Plan route'}</span>
+                {loading ? <Spinner /> : <BellonaMark size={22} />}
+                <span>{loading ? 'Planning…' : 'Ask Bellona'}</span>
               </button>
               {route && (
                 <button type="button" onClick={() => setIsEditing(false)} className="btn btn-text">
@@ -247,6 +270,8 @@ export default function MissionPanel({
               )}
             </div>
           </div>
+
+          {pickHint && <p className="mt-2 px-1 text-sm text-dim">{pickHint}</p>}
 
           {/* Error Alert */}
           {error && (
@@ -267,15 +292,6 @@ function MetricBadge({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-dim">{label}</div>
       <div className="mt-0.5 font-mono text-base font-semibold tabular-nums text-paper">{value}</div>
     </div>
-  )
-}
-
-function ArrowRightIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
   )
 }
 

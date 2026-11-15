@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "check:a11y": "node scripts/a11y-check.mjs"
+    "check:a11y": "node scripts/a11y-check.mjs",
+    "test": "node --experimental-strip-types --test src/lib/picking.test.ts"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

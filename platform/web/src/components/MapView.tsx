@@ -7,7 +7,8 @@ import {
   loadTerrainModule, mapFromView, scenePinPosition, viewFromMap, type Terrain3DLike,
 } from '../lib/terrain'
 import { formatLat, formatLon, siteLabel } from '../lib/format'
-import { lonLatToPixel } from '../lib/plan'
+import { lonLatToPixel, makePlace } from '../lib/plan'
+import { pointLabel } from '../lib/picking'
 
 interface Props {
   meta: CtxMeta | null
@@ -35,6 +36,7 @@ interface Props {
   paused?: boolean
   onTerrainState?: (state: 'idle' | 'loading' | 'ready') => void
   onTerrainError?: (message: string) => void
+  onPick?: (place: Place) => void
 }
 
 export default function MapView({
@@ -63,6 +65,7 @@ export default function MapView({
   paused = false,
   onTerrainState = () => undefined,
   onTerrainError = () => undefined,
+  onPick,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -83,6 +86,12 @@ export default function MapView({
 
   const selectRef = useRef(onSelectPlace)
   selectRef.current = onSelectPlace
+
+  const pickRef = useRef(onPick)
+  pickRef.current = onPick
+
+  const is3DRef = useRef(is3D)
+  is3DRef.current = is3D
 
   const [cursor, setCursor] = useState<{ lat: number; lon: number } | null>(null)
   const [mapReady, setMapReady] = useState(false)
@@ -154,6 +163,21 @@ export default function MapView({
     }
   }, [meta])
 
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !meta) return
+
+    const onClick = (e: L.LeafletMouseEvent) => {
+      if (!pickRef.current || is3DRef.current) return
+      const { lon, lat } = pixelToLonLat(e.latlng.lng, -e.latlng.lat, meta)
+      pickRef.current(makePlace(pointLabel(lon, lat), lon, lat, meta))
+    }
+    map.on('click', onClick)
+    return () => {
+      map.off('click', onClick)
+    }
+  }, [meta])
+
   // Adaptive scale calculation based on zoom level and ground resolution
   useEffect(() => {
     const map = mapRef.current
@@ -222,7 +246,7 @@ export default function MapView({
         offset: [0, -8],
         className: 'marps-tip',
       })
-      marker.on('click', () => selectRef.current(place))
+      marker.on('click', () => (pickRef.current ? pickRef.current(place) : selectRef.current(place)))
       marker.addTo(markers)
     })
 
@@ -541,6 +565,7 @@ export default function MapView({
       <div
         ref={containerRef}
         className="h-full w-full"
+        style={{ cursor: 'crosshair' }}
       />
 
       {meta && (
