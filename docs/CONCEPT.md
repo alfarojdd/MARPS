@@ -17,7 +17,7 @@ MARPS makes **the cost function depend on the mission context**.
 1. The user opens the platform and sees the map of Jezero crater.
 2. They switch **layers** on and off (relief, slope, roughness, thermal inertia, sunlight, radiation shielding, geology, mineralogy).
 3. They describe the mission in a text box, for example:
-   > "Two astronauts carrying fragile sample tubes must go from the landing site to Belva crater. Take the safest, gentlest route possible."
+   > "Two astronauts carrying fragile sample tubes must go from the landing site to the top of the delta. Take the safest, gentlest route possible."
 4. A **local SLM** converts the text into a JSON of mission parameters validated against a schema.
 5. The planner combines the layers into a cost map, enforces the safety limits and computes the route, together with a comparison against a classic shortest-path A*.
 6. The route appears on the 2D map or over the 3D relief, with its metrics, warnings and stops (charging, science).

@@ -76,11 +76,11 @@ To use Ollama on another machine, run `backend/run.sh` instead (it opens an SSH 
 
 ### Demo missions
 
-The interface offers three missions that also set the vehicle state:
+The interface offers three missions with the same origin and destination (Octavia E. Butler Landing → top of the western delta), so the only thing that changes is the mission context. Each one also sets the vehicle state:
 
-1. **Low battery · charging stop.** An energy-saving route with a sunlit stop; the system tells the crew when and for how long to recharge.
-2. **Crew + fragile cargo.** The safest, gentlest route: strict slope limits and terrain buffers.
-3. **Science · carbonates.** A route that detours through carbonate- and clay-rich terrain, with science stops.
+1. **Low battery · charging stop.** An energy-saving route (12.2 km, 10.9 kWh) with a sunlit stop; the system tells the crew when and for how long to recharge.
+2. **Crew + fragile cargo.** The safest, gentlest route (14.0 km): strict slope limits and terrain buffers.
+3. **Science · carbonates.** A route (14.3 km) that detours through carbonate- and clay-rich terrain, with two science stops.
 
 ## Tests
 
@@ -108,4 +108,6 @@ All map data comes from public NASA, ESA and USGS products (MRO CTX, Mars Expres
 
 ## Licence
 
-No licence has been assigned to the code in this repository yet. NASA data is in the public domain; [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) lists the terms of each dataset.
+The original code and documentation of MARPS are released under the [Apache License 2.0](LICENSE), the open-source licence the [NASA Space Apps Participant Terms](https://www.spaceappschallenge.org/legal/) apply to submitted solutions by default. Attribution and third-party terms are in [NOTICE](NOTICE).
+
+The licence does not cover third-party material: NASA and USGS data are in the public domain in the United States, other datasets keep their own terms (for example CC BY 4.0) and must be cited, and the language models follow the Gemma model terms. [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) lists the terms of each dataset. The use of NASA data does not imply endorsement by NASA.

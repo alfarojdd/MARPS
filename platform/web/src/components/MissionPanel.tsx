@@ -19,7 +19,8 @@ interface Props {
   shortcut: string
 }
 
-/** Demo sorties. Each one also sets the vehicle state, so the scenario behaves as described. */
+/** Demo sorties: same origin and destination (landing site → top of the delta), so the routes differ only by mission context.
+ * Each one also sets the vehicle state, so the scenario behaves as described. */
 const PRESET_SORTIES: { id: string; label: string; route: string; text: string; system: SystemState }[] = [
   {
     id: '1',
@@ -32,14 +33,14 @@ const PRESET_SORTIES: { id: string; label: string; route: string; text: string; 
     id: '2',
     label: 'Crew + fragile cargo',
     route: 'Crew + fragile cargo',
-    text: 'Two astronauts carrying fragile sample tubes must go from the landing site to Belva crater. Take the safest, gentlest route possible.',
+    text: 'Two astronauts carrying fragile sample tubes must go from the landing site to the top of the delta. Take the safest, gentlest route possible.',
     system: { start_hour: 9, battery_kwh: 30, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
   {
     id: '3',
     label: 'Science · carbonates',
     route: 'Science · carbonates',
-    text: 'From the landing site to the delta carbonates: look for carbonates and clays on the way, we have plenty of time for science stops.',
+    text: 'From the landing site to the top of the delta. Our main goal is carbonates, plus clays if they are on the way. We have plenty of time for science stops.',
     system: { start_hour: 8, battery_kwh: 34, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
 ]

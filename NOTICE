@@ -1,0 +1,30 @@
+MARPS: Mars Aerial Route Pairing System
+Copyright 2026 The MARPS team (NASA Space Apps Challenge 2026, Malaga local event)
+
+This product was created for the 2026 NASA International Space Apps Challenge,
+challenge "Interplanetary Survival Guide: Martian Map". The original code and
+documentation in this repository are licensed under the Apache License,
+Version 2.0 (see LICENSE), as required by the Space Apps Participant Terms
+and Conditions for submitted solutions.
+
+The Apache License covers only the original work of the MARPS team. Third-party
+data, models and libraries keep their own terms:
+
+- NASA, JPL, ASU and USGS data (MRO CTX DTM and orthomosaic, Mars Odyssey
+  THEMIS mosaics, USGS SIM 3464 geologic map, Mars 2020 imagery and data
+  products) are in the public domain in the United States. Use of NASA data
+  does not imply endorsement by NASA. The NASA name, insignia and logotype
+  are not used by this project and are not covered by this licence.
+- Thermal inertia of Jezero: Edwards & Buz (2021), Zenodo 4931348, CC BY 4.0.
+- CRISM mineralogy (evaluated, not in the base map): Parente, Saranathan &
+  Itoh (2021), Zenodo 5575824, CC BY 4.0.
+- Language models are derived from Google Gemma (gemma4:e2b) and are used
+  under the Gemma model terms. Model weights are not distributed in this
+  repository.
+- Third-party 3D surface reconstructions are embedded from their original
+  hosts and keep their authors' licences; they are not redistributed here.
+- Software dependencies (NumPy, SciPy, Numba, Rasterio/GDAL, FastAPI,
+  React, Vite, Tailwind CSS, Leaflet, Three.js and others) keep their own
+  open-source licences.
+
+Full provenance, versions and terms of every dataset: docs/DATA_SOURCES.md.
