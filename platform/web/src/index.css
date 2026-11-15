@@ -111,9 +111,9 @@ body {
 }
 .m3-card:hover { background: rgba(255, 255, 255, 0.09); }
 .m3-card-active {
-  background: var(--md-primary-container) !important;
+  background: var(--md-surface-container-highest) !important;
   border-color: var(--md-primary) !important;
-  color: var(--md-on-primary-container);
+  color: var(--md-on-surface);
 }
 .m3-field {
   background: rgba(0, 0, 0, 0.3);
@@ -388,7 +388,7 @@ body {
 .leaflet-tooltip.marps-tip::before { display: none !important; }
 
 .leaflet-bar { border: none !important; box-shadow: none !important; }
-.leaflet-control-zoom { margin: 72px 12px 0 0 !important; }
+.leaflet-control-zoom { margin: 92px 0 0 16px !important; }
 @media (max-width: 639px) { .leaflet-control-zoom { display: none !important; } }
 
 .leaflet-bar a, .leaflet-bar a:hover, .leaflet-bar a:focus {
