@@ -1,6 +1,6 @@
 # MARPS web application
 
-React, Vite, Tailwind CSS, Leaflet and Three.js interface of the Mars Aerial Route Pairing System, for Jezero crater.
+React, Vite, Tailwind CSS, Leaflet and Three.js interface of the Mars Adaptive Route Planning System, for Jezero crater.
 
 ## Features
 

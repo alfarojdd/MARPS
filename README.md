@@ -2,7 +2,7 @@
   <img src="platform/web/public/brand/marps-bellona.svg" alt="MARPS Bellona" height="64">
 </p>
 
-<h1 align="center">MARPS · Mars Aerial Route Pairing System</h1>
+<h1 align="center">MARPS · Mars Adaptive Route Planning System</h1>
 
 <p align="center">
   <strong>Tell the crew's mission. Get the route that fits it.</strong><br>
