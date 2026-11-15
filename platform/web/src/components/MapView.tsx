@@ -248,22 +248,24 @@ export default function MapView({
 
     // Traditional shortest-path A* for comparison (dashed, behind the planned route)
     if (route.classicPath.length > 1) {
-      L.polyline(route.classicPath.map(([col, row]) => L.latLng(-row, col)), {
-        color: '#7fb4ff', weight: 2, opacity: 0.85, dashArray: '6 6', interactive: false,
+      const classic = route.classicPath.map(([col, row]) => L.latLng(-row, col))
+      L.polyline(classic, { color: '#0b0a09', weight: 7, opacity: 1, interactive: false }).addTo(group)
+      L.polyline(classic, {
+        color: '#9cc7ff', weight: 3, opacity: 1, dashArray: '8 6', interactive: false,
       }).bindTooltip('Classic shortest path (A*)', { sticky: true }).addTo(group)
     }
     for (const stop of route.stops) {
       L.circleMarker(L.latLng(-stop.row, stop.col), {
-        radius: 5, weight: 2, color: '#f4f0e6', fillOpacity: 1,
+        radius: 8, weight: 3, color: '#0b0a09', fillOpacity: 1,
         fillColor: stop.kind === 'charging' ? '#f2c94c' : '#5fd38a',
       }).bindTooltip(stop.label).addTo(group)
     }
 
     // Outer shadow / glow
     L.polyline(latlngs, {
-      color: '#070706',
-      weight: 6,
-      opacity: 0.75,
+      color: '#0b0a09',
+      weight: 9,
+      opacity: 0.9,
       lineCap: 'round',
       lineJoin: 'round',
       interactive: false,
@@ -271,8 +273,8 @@ export default function MapView({
 
     // High-visibility core
     L.polyline(latlngs, {
-      color: '#f4f0e6',
-      weight: 2,
+      color: '#fff7ee',
+      weight: 4,
       opacity: 1,
       lineCap: 'round',
       lineJoin: 'round',
@@ -281,8 +283,8 @@ export default function MapView({
 
     // Marching orange pulse line
     L.polyline(latlngs, {
-      color: '#e26a2c',
-      weight: 1.75,
+      color: '#c2410c',
+      weight: 2,
       opacity: 0.95,
       dashArray: '3 14',
       lineCap: 'butt',
@@ -544,42 +546,42 @@ export default function MapView({
       {meta && (
         <div className="pointer-events-none absolute inset-0 z-[400]">
           {/* Reticle Corner Guides */}
-          <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-paper/15" />
-          <span className="absolute right-3 top-3 h-3 w-3 border-r border-t border-paper/15" />
-          <span className="absolute bottom-3 left-3 h-3 w-3 border-b border-l border-paper/15" />
-          <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-paper/15" />
+          <span className="absolute left-3 top-3 h-3 w-3 border-l border-t border-outline-variant" />
+          <span className="absolute right-3 top-3 h-3 w-3 border-r border-t border-outline-variant" />
+          <span className="absolute bottom-3 left-3 h-3 w-3 border-b border-l border-outline-variant" />
+          <span className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-outline-variant" />
 
           {/* BOTTOM-RIGHT "SCALE" & COORDINATES */}
           <div className="absolute right-4 bottom-4 pointer-events-auto">
-            <div className="glass-panel flex flex-col items-end gap-1 rounded-2xl px-3.5 py-2 shadow-xl backdrop-blur-xl">
+            <div className="m3-panel flex flex-col items-end gap-1 rounded-2xl px-3.5 py-2">
               {/* Graphical Scale Bar */}
               <div className="flex items-center gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-[0.16em] text-dim">
+                <span className="text-sm text-dim">
                   Scale
                 </span>
                 <div className="flex flex-col items-center">
                   <div
-                    className="flex h-1.5 items-center justify-between border-b border-l border-r border-paper/60 transition-all duration-200"
+                    className="flex h-1.5 items-center justify-between border-b border-l border-r border-outline-variant transition-all duration-200"
                     style={{ width: `${scaleInfo.widthPx}px` }}
                   >
-                    <span className="h-1 w-px bg-paper/60" />
-                    <span className="h-1 w-px bg-paper/60" />
-                    <span className="h-1 w-px bg-paper/60" />
+                    <span className="h-1 w-px bg-paper" />
+                    <span className="h-1 w-px bg-paper" />
+                    <span className="h-1 w-px bg-paper" />
                   </div>
-                  <span className="font-mono text-[8px] text-faint mt-0.5 transition-all duration-200">
+                  <span className="mt-0.5 font-mono text-xs text-paper transition-all duration-200">
                     {scaleInfo.label}
                   </span>
                 </div>
               </div>
 
               {/* Real-time Cursor Coordinates */}
-              <div className="font-mono text-[10px] tabular-nums text-paper/80">
+              <div className="font-mono text-xs tabular-nums text-paper">
                 {cursor ? (
                   <span>
                     {formatLat(cursor.lat)} {formatLon(cursor.lon)}
                   </span>
                 ) : (
-                  <span className="text-faint">18.44° N 77.45° E</span>
+                  <span className="text-dim">18.44° N 77.45° E</span>
                 )}
               </div>
             </div>
@@ -595,17 +597,17 @@ export default function MapView({
 
       {/* Initial satellite mosaic acquisition splash */}
       {!meta && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-void/90 backdrop-blur-xl">
-          <div className="glass-panel flex flex-col items-center rounded-2xl p-6 shadow-2xl">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-void/90">
+          <div className="m3-panel flex flex-col items-center rounded-2xl p-6">
             <div className="relative flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-oxide opacity-75" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-oxide" />
             </div>
-            <div className="mt-3 font-mono text-[10px] uppercase tracking-[0.24em] text-oxide">
-              Connecting Feed
+            <div className="mt-3 text-sm font-medium text-oxide">
+              Connecting
             </div>
-            <div className="mt-1 text-[14px] font-medium text-paper">
-              Loading Jezero CTX Orthomosaic (6 m/px)
+            <div className="mt-1 text-sm font-medium text-paper">
+              Loading Jezero CTX orthomosaic (6 m/px)
             </div>
           </div>
         </div>
@@ -638,7 +640,7 @@ function addEndpoint(
 }
 
 function pinIcon(kind: 'site' | 'origin' | 'destination', focused: boolean) {
-  const size = kind === 'site' ? 14 : 22
+  const size = kind === 'site' ? 24 : 30
   const cls = [`pin-${kind}`, focused ? 'pin-focus' : ''].filter(Boolean).join(' ')
   return L.divIcon({
     className: 'marps-pin',

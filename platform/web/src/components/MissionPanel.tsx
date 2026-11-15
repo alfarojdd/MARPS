@@ -25,21 +25,21 @@ const PRESET_SORTIES: { id: string; label: string; route: string; text: string; 
   {
     id: '1',
     label: 'Low battery · charging stop',
-    route: 'Low battery · charge stop',
+    route: 'Low battery',
     text: 'Two astronauts drive from the landing site to the top of the delta. The battery is low, so save as much energy as possible and plan a sunlit stop on the way to recharge.',
     system: { start_hour: 9, battery_kwh: 16, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
   {
     id: '2',
     label: 'Crew + fragile cargo',
-    route: 'Crew + fragile cargo',
+    route: 'Fragile cargo',
     text: 'Two astronauts carrying fragile sample tubes must go from the landing site to the top of the delta. Take the safest, gentlest route possible.',
     system: { start_hour: 9, battery_kwh: 30, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
   {
     id: '3',
     label: 'Science · carbonates',
-    route: 'Science · carbonates',
+    route: 'Science stops',
     text: 'From the landing site to the top of the delta. Our main goal is carbonates, plus clays if they are on the way. We have plenty of time for science stops.',
     system: { start_hour: 8, battery_kwh: 34, battery_capacity_kwh: 40, reserve_pct: 20 },
   },
@@ -79,34 +79,35 @@ export default function MissionPanel({
           STATE A: ROUTE SUMMARY & BRIEF JUSTIFICATION (Post-Plan Transformed State)
           ========================================================================= */}
       {isSummaryMode && route && duration ? (
-        <div className="glass-panel pointer-events-auto mx-auto w-full max-w-4xl rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all sm:p-5">
+        <div className="m3-panel pointer-events-auto mx-auto w-full max-w-4xl rounded-3xl p-4 transition-all sm:p-5">
 
           {/* Top Row: Route Endpoints, Status, and Edit Action */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-paper/10 pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-outline-variant pb-3">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 truncate font-mono text-[12px] font-semibold text-paper sm:text-[13px]">
+              <h2 className="flex items-center gap-2 truncate text-base font-medium text-paper">
                 <span className="text-paper">{siteLabel(route.originName)}</span>
                 <span className="text-oxide">→</span>
                 <span className="text-paper">{siteLabel(route.destinationName)}</span>
-              </div>
+              </h2>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => setIsEditing(true)}
-                className="glass-pill flex items-center gap-1.5 rounded-xl px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] text-paper transition-all hover:bg-white/[0.08] active:scale-95"
+                className="btn btn-tonal"
                 title="Edit the prompt or select a new sortie"
               >
                 <PencilIcon />
-                <span>Modify Prompt</span>
+                <span>Edit mission</span>
               </button>
 
               {onResetRoute && (
                 <button
                   type="button"
                   onClick={onResetRoute}
-                  className="glass-pill flex h-8 w-8 items-center justify-center rounded-xl text-faint transition-all hover:bg-white/[0.08] hover:text-paper active:scale-95"
+                  className="btn btn-icon"
+                  aria-label="Clear route"
                   title="Clear route"
                 >
                   <CloseIcon />
@@ -116,7 +117,7 @@ export default function MissionPanel({
           </div>
 
           {/* Middle Row: Primary Metrics Strip */}
-          <div className="mt-3 grid grid-cols-3 gap-1.5 sm:grid-cols-5 sm:gap-2">
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             <MetricBadge
               label="Ground Dist."
               value={`${formatKm(route.metrics.distance_m)} km`}
@@ -140,32 +141,32 @@ export default function MissionPanel({
           </div>
 
           {/* Bottom Row: Brief Justification & Constraints */}
-          <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-paper/8 bg-void/40 p-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-3 flex flex-col gap-2 rounded-2xl border border-outline-variant bg-void/40 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.2em] text-oxide">
+              <div className="flex items-center gap-2 text-sm font-medium text-oxide">
                 <MarsDot size={12} />
                 <span>Bellona · route briefing</span>
               </div>
-              <p className="mt-1 text-[12px] leading-relaxed text-paper/90 sm:text-[13px]">
+              <p aria-live="polite" className="mt-1 text-sm leading-relaxed text-paper">
                 {route.explanation === null
                   ? 'Writing the briefing with the local SLM…'
                   : route.explanation || 'Briefing unavailable (SLM offline). Figures above come from the planner.'}
               </p>
               {route.report.route?.charging_stop && (
-                <p className="mt-1.5 text-[11px] text-paper/85">
+                <p className="mt-2 text-sm text-paper">
                   <span className="text-oxide">⚡ Charging stop</span> at {route.report.route.charging_stop.arrive} for{' '}
                   {route.report.route.charging_stop.charge_hours?.toFixed(1) ?? '?'} h
                   ({formatLat(route.report.route.charging_stop.lat)} {formatLon(route.report.route.charging_stop.lon)})
                 </p>
               )}
               {(route.report.route?.science_stops.length ?? 0) > 0 && (
-                <p className="mt-1.5 text-[11px] text-paper/85">
+                <p className="mt-2 text-sm text-paper">
                   <span className="text-sage">◆ Science stops</span>:{' '}
                   {route.report.route!.science_stops.map((s) => `${s.targets.join('+')} (${s.dwell_min} min)`).join(' · ')}
                 </p>
               )}
               {route.warnings.map((w) => (
-                <p key={w.code} className={`mt-1.5 text-[11px] ${w.severity === 'critical' ? 'text-bad' : 'text-paper/70'}`}>
+                <p key={w.code} className={`mt-2 text-sm ${w.severity === 'critical' ? 'text-bad' : 'text-paper'}`}>
                   ⚠ {w.message}
                 </p>
               ))}
@@ -173,14 +174,14 @@ export default function MissionPanel({
 
             {/* Extracted Constraints Badges */}
             {requirements && (
-              <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-paper/10 pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
-                <span className="rounded-lg border border-paper/10 bg-white/[0.04] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-dim">
+              <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-t border-outline-variant pt-2 sm:border-l sm:border-t-0 sm:pl-3 sm:pt-0">
+                <span className="badge">
                   {requirements.human ? 'Crew EVA' : 'Rover'}
                 </span>
-                <span className="rounded-lg border border-paper/10 bg-white/[0.04] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-dim">
+                <span className="badge">
                   {requirements.power ? 'Solar Req' : 'Standard'}
                 </span>
-                <span className="rounded-lg border border-paper/10 bg-white/[0.04] px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-dim">
+                <span className="badge">
                   {requirements.route_preference ?? 'Balanced'}
                 </span>
               </div>
@@ -191,80 +192,66 @@ export default function MissionPanel({
         /* =========================================================================
            STATE B: CENTERED LOWER PROMPT BOX (Initial / Edit State from Wireframe 1)
            ========================================================================= */
-        <div className="glass-panel pointer-events-auto mx-auto w-full max-w-2xl rounded-3xl p-3 shadow-2xl backdrop-blur-2xl transition-all sm:p-4">
+        <div className="m3-panel pointer-events-auto mx-auto w-full max-w-3xl rounded-3xl p-3 transition-all">
 
-          {/* Quick Preset Chips Row */}
-          <div className="mb-2.5 flex items-center gap-1.5 overflow-x-auto pb-1 text-faint">
-            <span className="hidden shrink-0 font-mono text-[9px] uppercase tracking-[0.18em] text-faint sm:inline">
-              Sorties:
-            </span>
-            {PRESET_SORTIES.map((preset) => {
-              const active = prompt === preset.text
-              return (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => {
-                    onPromptChange(preset.text)
-                    onPreset?.(preset.system)
-                  }}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition-all active:scale-95 ${
-                    active
-                      ? 'border-oxide/60 bg-oxide/15 text-paper shadow-[0_0_12px_rgba(196,92,38,0.25)]'
-                      : 'border-paper/10 bg-white/[0.03] text-dim hover:border-paper/20 hover:bg-white/[0.07] hover:text-paper'
-                  }`}
-                >
-                  <span className="font-mono text-[9px] text-oxide">#{preset.id}</span>
-                  <span>{preset.route}</span>
-                </button>
-              )
-            })}
+          {/* Quick examples */}
+          <div className="mb-2 flex items-center gap-1.5 overflow-x-auto sm:overflow-visible" role="group" aria-label="Example missions">
+            <span className="shrink-0 pr-1 text-sm text-dim">Examples</span>
+            {PRESET_SORTIES.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => {
+                  onPromptChange(preset.text)
+                  onPreset?.(preset.system)
+                }}
+                className="chip shrink-0"
+                aria-pressed={prompt === preset.text}
+                title={preset.label}
+              >
+                {preset.route}
+              </button>
+            ))}
           </div>
 
-          {/* Main Input Container with Circled Action Button */}
-          <div className="glass-input relative flex items-center rounded-2xl p-2 transition-all">
-            <textarea
-              id="mission-prompt"
-              rows={3}
-              value={prompt}
-              onChange={(e) => onPromptChange(e.target.value)}
-              placeholder="e.g. Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low."
-              className="min-h-[60px] w-full resize-none bg-transparent px-2.5 py-1 text-[13px] leading-relaxed text-paper placeholder:text-faint/60 focus:outline-none sm:min-h-[48px] sm:text-[14px]"
-            />
-
-            {/* Right Side: Circled Action Button (as in sketch: "Input  (b)") */}
-            <div className="ml-2 flex shrink-0 items-center gap-2 pr-1">
-              {route && (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="hidden rounded-xl border border-paper/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-dim hover:text-paper sm:inline-block"
-                >
-                  Cancel
-                </button>
-              )}
-
+          {/* Mission description + actions side by side */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+            <div className="m3-field flex-1 rounded-2xl p-1.5">
+              <label htmlFor="mission-prompt" className="sr-only-text">Mission description</label>
+              <textarea
+                id="mission-prompt"
+                rows={2}
+                value={prompt}
+                onChange={(e) => onPromptChange(e.target.value)}
+                placeholder="e.g. Route a team from Octavia E. Butler Landing to Belva crater. Keep radiation exposure low."
+                className="min-h-[56px] w-full resize-none bg-transparent px-2.5 py-1 text-base leading-snug text-paper placeholder:text-faint focus:outline-none"
+              />
+            </div>
+            <div className="flex items-center justify-end gap-1 sm:flex-col sm:justify-center">
               <button
                 type="button"
                 onClick={onPlan}
                 disabled={loading || !prompt.trim()}
-                aria-label="Execute route planning"
-                className="glass-circle-btn flex h-11 w-11 shrink-0 items-center justify-center disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-10"
-                title={`Execute Route Planning (${shortcut})`}
+                aria-busy={loading}
+                aria-keyshortcuts="Control+Enter Meta+Enter"
+                className="btn btn-filled"
+                title={`Plan route (${shortcut})`}
               >
-                {loading ? (
-                  <Spinner />
-                ) : (
-                  <ArrowRightIcon />
-                )}
+                {loading ? <Spinner /> : <ArrowRightIcon />}
+                <span>{loading ? 'Planning…' : 'Plan route'}</span>
               </button>
+              {route && (
+                <button type="button" onClick={() => setIsEditing(false)} className="btn btn-text">
+                  Cancel
+                </button>
+              )}
             </div>
           </div>
 
           {/* Error Alert */}
           {error && (
-            <div className="mt-2.5 rounded-xl border border-bad/30 bg-bad/10 p-2.5 text-[12px] text-paper">
-              <span className="font-mono text-[10px] uppercase tracking-wider text-bad">Error: </span>
+            <div role="alert" className="mt-3 rounded-xl border border-bad bg-[var(--md-error-container)] p-3 text-sm text-[var(--md-on-error-container)]">
+              <strong className="font-semibold">Error: </strong>
               {error}
             </div>
           )}
@@ -276,11 +263,9 @@ export default function MissionPanel({
 
 function MetricBadge({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-paper/8 bg-void/35 p-1.5 text-center sm:p-2">
-      <div className="font-mono text-[7px] uppercase tracking-[0.12em] text-faint sm:text-[8px] sm:tracking-[0.16em]">{label}</div>
-      <div className="mt-0.5 font-mono text-[12px] font-semibold tracking-tight text-paper sm:text-[14px]">
-        {value}
-      </div>
+    <div className="rounded-xl border border-outline-variant bg-white/[0.05] px-3 py-2">
+      <div className="text-xs text-dim">{label}</div>
+      <div className="mt-0.5 font-mono text-base font-semibold tabular-nums text-paper">{value}</div>
     </div>
   )
 }

@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check:a11y": "node scripts/a11y-check.mjs"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -18,11 +18,11 @@ export function MarsDot({ size = 16 }: { size?: number }) {
 export function Wordmark() {
   const [image, setImage] = useState(true)
   return (
-    <div className="flex items-center px-1 py-1" style={{ filter: "drop-shadow(0 0 1px #000) drop-shadow(0 0 2px rgba(0,0,0,.9)) drop-shadow(0 2px 6px rgba(0,0,0,.7))" }} aria-label="MARPS Bellona">
+    <div className="m3-panel flex items-center rounded-2xl px-3 py-1.5" aria-label="MARPS Bellona">
       {image ? (
-        <img src="/brand/marps-bellona-dark.svg" alt="MARPS Bellona" className="h-9 w-auto" onError={() => setImage(false)} />
+        <img src="/brand/marps-bellona-dark.svg" alt="MARPS Bellona" className="h-8 w-auto" onError={() => setImage(false)} />
       ) : (
-        <span className="brand-wordmark flex items-baseline gap-2 text-[22px] leading-none">
+        <span className="brand-wordmark flex items-baseline gap-2 text-sm leading-none">
           <span className="font-extrabold tracking-wide text-[#bf3f14]">MARPS</span>
           <span className="flex items-center font-semibold text-[#4a4644]">
             Bell

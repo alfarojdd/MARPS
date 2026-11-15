@@ -29,14 +29,14 @@ export default function SceneViewer({ scene, onClose }: { scene: Scene | null; o
       ref={dialogRef}
       onClose={onClose}
       aria-label={scene ? `3D reconstruction: ${scene.title}` : undefined}
-      className="scene-dialog glass-panel m-auto h-[88vh] w-[min(1200px,96vw)] max-w-none rounded-3xl p-0 text-paper backdrop:bg-void/70 backdrop:backdrop-blur-sm sm:h-[88vh] sm:w-[min(1200px,94vw)]"
+      className="scene-dialog m3-panel m-auto h-[88vh] w-[min(1200px,96vw)] max-w-none rounded-3xl p-0 text-paper  sm:h-[88vh] sm:w-[min(1200px,94vw)]"
     >
       {scene && (
         <div className="flex h-full flex-col">
-          <header className="flex flex-col gap-2 border-b border-paper/10 px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
+          <header className="flex flex-col gap-2 border-b border-outline-variant px-3 py-2.5 sm:flex-row sm:items-start sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
             <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-semibold leading-snug sm:text-[14px]">{scene.title}</div>
-              <div className="mt-0.5 truncate text-[10px] text-faint sm:text-[11px]">
+              <div className="text-base font-medium leading-snug">{scene.title}</div>
+              <div className="mt-0.5 truncate text-sm text-dim">
                 {scene.author} · {KIND_LABEL[scene.kind]}
                 {scene.sol ? ` · sol ${scene.sol}` : ''} · {scene.license}
               </div>
@@ -45,9 +45,9 @@ export default function SceneViewer({ scene, onClose }: { scene: Scene | null; o
               type="button"
               onClick={onClose}
               autoFocus
-              className="glass-pill self-start rounded-xl px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.12em] hover:bg-white/[0.08] sm:shrink-0"
+              className="btn btn-tonal self-start sm:shrink-0"
             >
-              Back to map ✕
+              Back to map
             </button>
           </header>
           <iframe
@@ -58,13 +58,13 @@ export default function SceneViewer({ scene, onClose }: { scene: Scene | null; o
             allowFullScreen
             className="min-h-0 flex-1 bg-black"
           />
-          <footer className="flex items-center justify-between gap-3 px-4 py-2 text-[11px] text-faint">
+          <footer className="flex items-center justify-between gap-3 px-4 py-2 text-sm text-dim">
             <span className="truncate">
               {scene.renderer === 'sketchfab'
                 ? `${scene.anchor} · External viewer: use Sketchfab's first-person mode.`
                 : 'Drag to look around, WASD / arrows to walk.'}
             </span>
-            <a href={scene.source} target="_blank" rel="noopener noreferrer" className="shrink-0 text-dim hover:text-paper">
+            <a href={scene.source} target="_blank" rel="noopener noreferrer" className="shrink-0 text-oxide underline hover:text-paper">
               Original source ↗
             </a>
           </footer>

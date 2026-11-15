@@ -41,9 +41,9 @@ export default function BellonaThinking({ visible }: { visible: boolean }) {
 
   return (
     <div
+      role="status"
       aria-live="polite"
-      aria-label="Bellona AI is working"
-      className="pointer-events-none absolute bottom-[185px] left-1/2 z-30 -translate-x-1/2 px-4 safe-bottom sm:bottom-[195px]"
+      className="pointer-events-none absolute bottom-[270px] left-1/2 z-30 -translate-x-1/2 px-4 safe-bottom sm:bottom-[250px]"
     >
       {/* Speech bubble container directly in user's target zone */}
       <div className="bellona-bubble relative flex flex-col items-center gap-2.5">
@@ -58,7 +58,7 @@ export default function BellonaThinking({ visible }: { visible: boolean }) {
 
         {/* Frosted glass badge with rotating guidance text */}
         <div
-          className="glass-panel flex items-center gap-2.5 rounded-full border border-oxide/40 bg-void/80 px-4 py-1.5 shadow-[0_8px_30px_rgba(0,0,0,0.7),0_0_20px_rgba(196,92,38,0.25)] backdrop-blur-xl"
+          className="m3-panel flex items-center gap-2.5 rounded-full px-4 py-2"
         >
           {/* Animated beacon dot */}
           <span className="relative flex h-2.5 w-2.5 shrink-0">
@@ -68,7 +68,7 @@ export default function BellonaThinking({ visible }: { visible: boolean }) {
 
           {/* Clean rotating prompt text */}
           <span
-            className="font-mono text-[11px] font-medium tracking-[0.14em] text-paper sm:text-[12px]"
+            className="text-sm font-medium text-paper"
             style={{
               opacity: fadeIn ? 1 : 0,
               transform: fadeIn ? 'translateY(0) scale(1)' : 'translateY(3px) scale(0.98)',

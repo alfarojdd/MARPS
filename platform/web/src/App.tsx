@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import MapView from './components/MapView'
 import MissionPanel from './components/MissionPanel'
 import LayersPopover, { type BasemapMode } from './components/LayersPopover'
 import SceneViewer from './components/SceneViewer'
 import { Wordmark } from './components/Brand'
-import VehiclePanel from './components/VehiclePanel'
+import VehiclePanel, { fmtHour } from './components/VehiclePanel'
 import BellonaThinking from './components/BellonaThinking'
 import { fetchTerrainSources } from './lib/terrain'
 import { DEFAULT_SYSTEM, fetchPlannerPlaces, fetchReconstructions, fetchThematicLayers, parseMission, planRoute, summarizeRoute } from './lib/api'
@@ -167,7 +167,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-void text-paper select-none">
+    <div className="relative h-full w-full overflow-hidden bg-void text-paper">
       {/* 1. FULL-BLEED MAP CANVAS */}
       <div className="absolute inset-0 z-0">
         <MapView
@@ -205,11 +205,12 @@ export default function App() {
 
       {/* 2. TOP-LEFT: brand wordmark */}
       <div className="pointer-events-none absolute left-4 top-4 z-30">
+        <h1 className="sr-only-text">MARPS Bellona: mission-aware route planner for Jezero crater, Mars</h1>
         <Wordmark />
       </div>
 
       {/* 3. BOTTOM-LEFT: "3D" & "LAYERS" BUTTONS (From Both Wireframes) */}
-      <div className="pointer-events-auto absolute bottom-4 left-3 z-30 flex flex-col gap-2 safe-bottom sm:left-4">
+      <div className="pointer-events-auto absolute left-3 top-[4.5rem] z-40 flex flex-row flex-wrap gap-2 sm:bottom-4 sm:left-4 sm:top-auto sm:flex-col safe-bottom">
         {/* 3D / 2D Perspective Toggle Button (from Wireframe 2) */}
         <button
           type="button"
@@ -218,22 +219,19 @@ export default function App() {
             setIs3D((prev) => !prev)
           }}
           disabled={!terrainUrl || terrainState === 'loading'}
-          className={`glass-panel flex h-10 items-center justify-center gap-1.5 rounded-2xl px-3.5 font-mono text-[11px] uppercase tracking-[0.16em] shadow-xl backdrop-blur-xl transition-all active:scale-95 ${
-            is3D
-              ? 'border-oxide/70 bg-oxide/20 text-oxide shadow-[0_0_16px_rgba(196,92,38,0.3)]'
-              : 'text-paper hover:bg-white/[0.08]'
-          }`}
+          aria-pressed={is3D}
+          className="btn btn-fab"
           title={terrainUrl ? '3D relief with the route' : '3D relief not prepared on the server'}
         >
           <CubeIcon />
-          <span>{terrainState === 'loading' ? '…' : '3D'}</span>
+          <span>{terrainState === 'loading' ? 'Loading 3D…' : is3D ? 'Back to 2D' : '3D view'}</span>
         </button>
 
         {is3D && route && terrainState === 'ready' && (
           <button
             type="button"
             onClick={() => setReplayTick((t) => t + 1)}
-            className="glass-panel flex h-10 items-center justify-center gap-1.5 rounded-2xl px-3.5 font-mono text-[11px] uppercase tracking-[0.16em] text-paper shadow-xl backdrop-blur-xl transition-all hover:bg-white/[0.08] active:scale-95"
+            className="btn btn-fab"
             title="Replay the route animation"
           >
             <ReplayIcon />
@@ -247,17 +245,13 @@ export default function App() {
             type="button"
             onClick={() => setLayersOpen((prev) => !prev)}
             aria-expanded={layersOpen}
-            className={`glass-panel flex h-10 items-center justify-center gap-2 rounded-2xl px-3.5 font-mono text-[11px] uppercase tracking-[0.16em] shadow-xl backdrop-blur-xl transition-all active:scale-95 ${
-              layersOpen
-                ? 'border-oxide/60 bg-white/[0.14] text-paper shadow-[0_0_16px_rgba(196,92,38,0.25)]'
-                : 'text-paper hover:bg-white/[0.08]'
-            }`}
-            title="Toggle map layers, science overlays, and landmarks"
+            className="btn btn-fab"
+            title="Map layers, science overlays and landmarks"
           >
             <LayersIcon />
             <span>Layers</span>
             {(overlayId || activeBasemap !== 'ctx') && (
-              <span className="h-1.5 w-1.5 rounded-full bg-oxide" />
+              <span className="h-2 w-2 rounded-full bg-[var(--md-primary)]" aria-label="Overlay active" />
             )}
           </button>
 
@@ -290,9 +284,9 @@ export default function App() {
       <VehiclePanelWrapper value={system} onChange={setSystem} />
 
       {terrainError && (
-        <div role="alert" className="glass-panel pointer-events-auto absolute left-1/2 top-16 z-40 flex w-[90vw] max-w-md -translate-x-1/2 items-center gap-3 rounded-2xl px-4 py-2.5 text-[12px] text-paper shadow-xl sm:top-4">
-          <span><span className="font-mono text-[10px] uppercase tracking-wider text-bad">3D unavailable: </span>{terrainError}</span>
-          <button type="button" onClick={() => setTerrainError(null)} aria-label="Dismiss" className="text-faint hover:text-paper">✕</button>
+        <div role="alert" className="m3-panel pointer-events-auto absolute left-1/2 top-16 z-40 flex w-[90vw] max-w-md -translate-x-1/2 items-center gap-2 rounded-2xl py-2 pl-4 pr-2 text-sm text-paper sm:top-4">
+          <span className="flex-1"><strong className="font-semibold text-bad">3D unavailable: </strong>{terrainError}</span>
+          <button type="button" onClick={() => setTerrainError(null)} aria-label="Dismiss message" className="btn btn-icon"><span aria-hidden="true">✕</span></button>
         </div>
       )}
 
@@ -302,7 +296,7 @@ export default function App() {
       <BellonaThinking visible={loading} />
 
       {/* 4. BOTTOM-CENTER: THE CENTERED LOWER PROMPT BOX THAT TRANSFORMS INTO ROUTE SUMMARY & JUSTIFICATION */}
-      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-3 safe-bottom sm:bottom-6 sm:px-4">
+      <div className="pointer-events-none absolute bottom-4 left-1/2 z-30 w-full -translate-x-1/2 px-3 safe-bottom sm:bottom-4 sm:pl-[8.5rem] sm:pr-[11rem]">
         <MissionPanel
           prompt={prompt}
           onPromptChange={setPrompt}
@@ -326,39 +320,69 @@ export default function App() {
   )
 }
 
-function VehiclePanelWrapper({ value, onChange }: { value: import('./lib/types').SystemState; onChange: (v: import('./lib/types').SystemState) => void }) {
+/** Compact telemetry readout (time + battery). Tapping it opens the editable panel; the controls only exist for the demo. */
+function VehiclePanelWrapper({ value, onChange }: { value: SystemState; onChange: (v: SystemState) => void }) {
   const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const pct = Math.round((value.battery_kwh / value.battery_capacity_kwh) * 100)
+  const low = pct <= value.reserve_pct
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('pointerdown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('pointerdown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   return (
-    <>
-      {/* Desktop: always visible */}
-      <div className="pointer-events-auto absolute right-4 top-4 z-30 hidden sm:block">
-        <VehiclePanel value={value} onChange={onChange} />
-      </div>
-      {/* Mobile: toggle button top-right */}
-      <div className="pointer-events-auto absolute right-4 top-4 z-30 sm:hidden">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-label="Toggle telemetry panel"
-          aria-expanded={open}
-          className="glass-panel flex h-10 w-10 items-center justify-center rounded-2xl shadow-xl backdrop-blur-xl transition-all active:scale-95"
-        >
-          <TelemetryIcon />
-        </button>
-        {open && (
-          <div className="absolute right-0 top-12 w-72 max-w-[calc(100vw-2rem)]">
-            <VehiclePanel value={value} onChange={onChange} />
-          </div>
-        )}
-      </div>
-    </>
+    <div ref={rootRef} className="pointer-events-auto absolute right-3 top-3 z-40 sm:right-4 sm:top-4">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-controls="telemetry-panel"
+        aria-label={`Telemetry: departure ${fmtHour(value.start_hour)} local solar time, battery ${pct}%. ${open ? 'Close' : 'Edit'}`}
+        className="btn btn-fab gap-2.5 px-3.5"
+      >
+        <ClockIcon />
+        <span className="font-mono tabular-nums">{fmtHour(value.start_hour)}</span>
+        <span aria-hidden="true" className="h-5 w-px bg-outline" />
+        <BatteryIcon pct={pct} low={low} />
+        <span className={`font-mono tabular-nums ${low ? 'text-bad' : ''}`}>{pct}%</span>
+        <span aria-hidden="true" className={`text-xs transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+      </button>
+      {open && (
+        <div className="absolute right-0 top-14">
+          <VehiclePanel value={value} onChange={onChange} />
+        </div>
+      )}
+    </div>
   )
 }
 
-function TelemetryIcon() {
+function ClockIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15 14" />
+    </svg>
+  )
+}
+
+function BatteryIcon({ pct, low }: { pct: number; low: boolean }) {
+  const fill = Math.max(0, Math.min(100, pct)) * 0.12
+  return (
+    <svg width="22" height="14" viewBox="0 0 24 14" fill="none" aria-hidden="true" className={low ? 'text-bad' : ''}>
+      <rect x="1" y="1" width="19" height="12" rx="2.5" stroke="currentColor" strokeWidth="2" />
+      <rect x="21.5" y="4.5" width="2" height="5" rx="1" fill="currentColor" />
+      <rect x="3.5" y="3.5" width={fill} height="7" rx="1" fill="currentColor" />
     </svg>
   )
 }
