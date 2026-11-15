@@ -330,10 +330,11 @@ export default function MissionPanel({
                 aria-busy={loading}
                 aria-keyshortcuts="Control+Enter Meta+Enter"
                 className="btn btn-filled"
+                style={{ width: 52, padding: 0 }}
+                aria-label={loading ? 'Planning…' : 'Ask Bellona'}
                 title={`Ask Bellona to plan (${shortcut})`}
               >
-                {loading ? <Spinner /> : <BellonaMark size={22} />}
-                <span>{loading ? 'Planning…' : 'Ask Bellona'}</span>
+                {loading ? <Spinner /> : <SendIcon />}
               </button>
               {route && (
                 <button type="button" onClick={() => setIsEditing(false)} className="btn btn-text">
@@ -364,6 +365,15 @@ function MetricBadge({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-dim">{label}</div>
       <div className="mt-0.5 font-mono text-base font-semibold tabular-nums text-paper">{value}</div>
     </div>
+  )
+}
+
+function SendIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
+    </svg>
   )
 }
 

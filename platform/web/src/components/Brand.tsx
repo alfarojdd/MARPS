@@ -18,13 +18,22 @@ export function MarsDot({ size = 16 }: { size?: number }) {
 export function Wordmark() {
   const [image, setImage] = useState(true)
   return (
-    <div className="m3-panel flex items-center rounded-2xl px-3 py-1.5" aria-label="MARPS">
+    <a
+      href="/"
+      onClick={(e) => {
+        e.preventDefault()
+        window.location.reload()
+      }}
+      className="m3-panel pointer-events-auto flex items-center rounded-2xl px-3 py-1.5 sm:px-4"
+      aria-label="MARPS, reload the page"
+      title="Reload MARPS"
+    >
       {image ? (
-        <img src="/brand/marps-dark.svg" alt="MARPS" className="h-8 w-auto" onError={() => setImage(false)} />
+        <img src="/brand/marps-dark.svg" alt="" className="h-8 w-auto sm:h-10" onError={() => setImage(false)} />
       ) : (
-        <span className="brand-wordmark text-2xl font-extrabold leading-none tracking-wide text-[#e8683a]">MARPS</span>
+        <span className="brand-wordmark text-2xl font-extrabold leading-none tracking-wide text-[#e8683a] sm:text-3xl">MARPS</span>
       )}
-    </div>
+    </a>
   )
 }
 
