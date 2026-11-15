@@ -134,7 +134,7 @@ The language model can change what the crew *prefers*, never what is *allowed*. 
 | A route that meets the science goals and avoids obstacles | Science targets in the mission text bend the route through carbonates, clays and more |
 | First-person imagery from rovers | 3D reconstructions of Perseverance imagery, walkable from the map |
 
-## Built on public NASA, ESA and USGS data
+## Built on public NASA
 
 MRO CTX · Mars Express HRSC · Mars Odyssey THEMIS · MRO CRISM · USGS geologic map SIM 3464 · Mars 2020 Perseverance imagery. Provenance, licences and processing of every layer are in [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md). The use of NASA data does not imply endorsement by NASA.
 
